@@ -1,0 +1,76 @@
+{% extends "layouts/vertical.html" %}
+{% load static %}
+
+{% block title %}Invite User - NavAccounting{% endblock %}
+{% block page_title %}Invite User{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}">Users</a></li>
+<li class="breadcrumb-item active">Invite</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Invite New Team Member</h5>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    {% endfor %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email" class="form-control" id="id_email" name="email"
+                                   placeholder="Enter email address" required
+                                   value="{{ form.email.value|default:'' }}">
+                        </div>
+                        <div class="form-text">An invitation link will be sent to this email address.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_role" class="form-label">Role</label>
+                        <select class="form-select" id="id_role" name="role">
+                            <option value="">Select a role (optional)</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i> Send Invitation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
