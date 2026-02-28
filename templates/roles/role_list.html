@@ -1,0 +1,70 @@
+{% extends "layouts/vertical.html" %}
+{% load static %}
+
+{% block title %}Roles & Permissions - NavAccounting{% endblock %}
+{% block page_title %}Roles & Permissions{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+<li class="breadcrumb-item active">Roles</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Roles</h5>
+                <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Add Role
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Role Name</th>
+                                <th>Description</th>
+                                <th>Permissions</th>
+                                <th>Users</th>
+                                <th>Type</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in roles %}
+                            <tr>
+                                <td><strong>{{ role.name }}</strong></td>
+                                <td>{{ role.description|truncatewords:10|default:"-" }}</td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary">{{ role.permissions.count }} permissions</span>
+                                </td>
+                                <td>{{ role.user_assignments.count }}</td>
+                                <td>
+                                    {% if role.is_system_role %}
+                                    <span class="badge bg-info-subtle text-info">System</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Custom</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'roles:edit' tenant_slug=current_tenant.slug pk=role.pk %}" class="btn btn-sm btn-light">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    No roles defined yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
