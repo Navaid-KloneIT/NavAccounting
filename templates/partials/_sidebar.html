@@ -1,113 +1,94 @@
 {% load static %}
 
 <!-- Sidebar -->
-<div class="vertical-menu" id="sidebar-menu">
-    <div data-simplebar class="h-100">
-
-        <!-- Logo -->
-        <div class="navbar-brand-box">
-            <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo logo-dark">
-                <span class="logo-sm">
-                    <img src="{% static 'images/logo-sm.png' %}" alt="" height="28">
-                </span>
-                <span class="logo-lg">
-                    <img src="{% static 'images/logo-dark.png' %}" alt="" height="20">
-                </span>
-            </a>
-            <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo logo-light">
-                <span class="logo-sm">
-                    <img src="{% static 'images/logo-sm-light.png' %}" alt="" height="28">
-                </span>
-                <span class="logo-lg">
-                    <img src="{% static 'images/logo-light.png' %}" alt="" height="20">
-                </span>
-            </a>
-        </div>
-
-        <!-- Sidebar Menu -->
-        <div id="sidebar-menu-items">
-            <ul class="metismenu list-unstyled" id="side-menu">
-
-                <li class="menu-title">Menu</li>
-
-                <!-- Dashboard -->
-                <li class="{{ nav_tags.dashboard }}">
-                    {% if current_tenant %}
-                    <a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">
-                    {% else %}
-                    <a href="/">
-                    {% endif %}
-                        <i class="bi bi-speedometer2"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-
-                <li class="menu-title">System Administration</li>
-
-                <!-- Company Setup -->
-                <li class="{{ nav_tags.company }}">
-                    {% if current_tenant %}
-                    <a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">
-                    {% else %}
-                    <a href="#">
-                    {% endif %}
-                        <i class="bi bi-building"></i>
-                        <span>Company Setup</span>
-                    </a>
-                </li>
-
-                <!-- User Management -->
-                <li class="{{ nav_tags.users }}">
-                    {% if current_tenant %}
-                    <a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}">
-                    {% else %}
-                    <a href="#">
-                    {% endif %}
-                        <i class="bi bi-people"></i>
-                        <span>User Management</span>
-                    </a>
-                </li>
-
-                <!-- Roles & Permissions -->
-                <li class="{{ nav_tags.roles }}">
-                    {% if current_tenant %}
-                    <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}">
-                    {% else %}
-                    <a href="#">
-                    {% endif %}
-                        <i class="bi bi-shield-lock"></i>
-                        <span>Roles &amp; Permissions</span>
-                    </a>
-                </li>
-
-                <li class="menu-title">Analytics</li>
-
-                <!-- Reports -->
-                <li class="{{ nav_tags.reports }}">
-                    {% if current_tenant %}
-                    <a href="#">
-                    {% else %}
-                    <a href="#">
-                    {% endif %}
-                        <i class="bi bi-bar-chart"></i>
-                        <span>Reports</span>
-                    </a>
-                </li>
-
-                <!-- Forecasting -->
-                <li class="{{ nav_tags.forecasting }}">
-                    {% if current_tenant %}
-                    <a href="#">
-                    {% else %}
-                    <a href="#">
-                    {% endif %}
-                        <i class="bi bi-graph-up-arrow"></i>
-                        <span>Forecasting</span>
-                    </a>
-                </li>
-
-            </ul>
-        </div>
+<aside class="sidebar" id="sidebar">
+    <!-- Logo / Brand -->
+    <div class="sidebar-brand">
+        <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="d-flex align-items-center text-decoration-none">
+            <span class="logo-icon">
+                <i class="bi bi-journal-bookmark-fill text-white" style="font-size: 1.5rem;"></i>
+            </span>
+            <span class="logo-text ms-2">NavAccounting</span>
+        </a>
     </div>
-</div>
+
+    <!-- Sidebar Content -->
+    <div class="sidebar-content" data-simplebar>
+        <ul class="sidebar-nav">
+
+            <li class="sidebar-header">Menu</li>
+
+            <!-- Dashboard -->
+            <li class="sidebar-item {{ nav_tags.dashboard }}">
+                {% if current_tenant %}
+                <a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                {% else %}
+                <a href="/" class="sidebar-link">
+                {% endif %}
+                    <i class="bi bi-speedometer2 sidebar-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <li class="sidebar-header">System Administration</li>
+
+            <!-- Company Setup -->
+            <li class="sidebar-item {{ nav_tags.company }}">
+                {% if current_tenant %}
+                <a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                {% else %}
+                <a href="#" class="sidebar-link">
+                {% endif %}
+                    <i class="bi bi-building sidebar-icon"></i>
+                    <span>Company Setup</span>
+                </a>
+            </li>
+
+            <!-- User Management -->
+            <li class="sidebar-item {{ nav_tags.users }}">
+                {% if current_tenant %}
+                <a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                {% else %}
+                <a href="#" class="sidebar-link">
+                {% endif %}
+                    <i class="bi bi-people sidebar-icon"></i>
+                    <span>User Management</span>
+                </a>
+            </li>
+
+            <!-- Roles & Permissions -->
+            <li class="sidebar-item {{ nav_tags.roles }}">
+                {% if current_tenant %}
+                <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                {% else %}
+                <a href="#" class="sidebar-link">
+                {% endif %}
+                    <i class="bi bi-shield-lock sidebar-icon"></i>
+                    <span>Roles &amp; Permissions</span>
+                </a>
+            </li>
+
+            <li class="sidebar-header">Analytics</li>
+
+            <!-- Reports -->
+            <li class="sidebar-item {{ nav_tags.reports }}">
+                <a href="#" class="sidebar-link">
+                    <i class="bi bi-bar-chart sidebar-icon"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+
+            <!-- Forecasting -->
+            <li class="sidebar-item {{ nav_tags.forecasting }}">
+                <a href="#" class="sidebar-link">
+                    <i class="bi bi-graph-up-arrow sidebar-icon"></i>
+                    <span>Forecasting</span>
+                </a>
+            </li>
+
+        </ul>
+    </div>
+</aside>
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <!-- End Sidebar -->
