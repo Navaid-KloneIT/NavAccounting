@@ -151,7 +151,7 @@
                     <a class="dropdown-item" href="{% url 'accounts:profile' tenant_slug=current_tenant.slug %}">
                         <i class="bi bi-person me-2"></i>Profile
                     </a>
-                    <a class="dropdown-item" href="{% url 'accounts:settings' tenant_slug=current_tenant.slug %}">
+                    <a class="dropdown-item" href="{% url 'accounts:profile' tenant_slug=current_tenant.slug %}">
                         <i class="bi bi-gear me-2"></i>Settings
                     </a>
                     {% endif %}
