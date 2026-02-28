@@ -1,0 +1,48 @@
+{% extends "layouts/vertical.html" %}
+{% load static %}
+
+{% block title %}Chart of Accounts Templates - NavAccounting{% endblock %}
+{% block page_title %}Chart of Accounts Templates{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">Company</a></li>
+<li class="breadcrumb-item active">COA Templates</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% for template in templates %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title">{{ template.name }}</h5>
+                    {% if template.is_default %}
+                    <span class="badge bg-primary">Default</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted small">{{ template.description|default:"Standard chart of accounts template." }}</p>
+                {% if template.country %}
+                <p class="text-muted small"><i class="bi bi-globe me-1"></i> {{ template.country }}</p>
+                {% endif %}
+                <p class="text-muted small"><i class="bi bi-list-ol me-1"></i> {{ template.items.count }} accounts</p>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{% url 'company:coa_template_detail' tenant_slug=current_tenant.slug pk=template.pk %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye me-1"></i> View Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center text-muted py-5">
+                <i class="bi bi-journal-bookmark" style="font-size: 3rem;"></i>
+                <p class="mt-3">No chart of accounts templates available. Run the seeder to add templates.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
