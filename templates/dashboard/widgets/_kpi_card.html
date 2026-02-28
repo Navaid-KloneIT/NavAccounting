@@ -1,0 +1,18 @@
+<div class="card border-0 shadow-sm h-100">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <p class="text-muted mb-1 small text-uppercase">{{ title }}</p>
+                <h3 class="mb-1">{{ value }}</h3>
+                {% if change %}
+                <span class="badge bg-{{ change_color }}-subtle text-{{ change_color }}">
+                    <i class="bi bi-arrow-{{ change_direction }}"></i> {{ change }}%
+                </span>
+                {% endif %}
+            </div>
+            <div class="rounded-circle bg-{{ color }} bg-opacity-10 p-3">
+                <i class="bi {{ icon }} text-{{ color }}" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+</div>
