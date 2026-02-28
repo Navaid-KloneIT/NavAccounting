@@ -82,6 +82,7 @@ img {
   flex: 1;
   min-width: 0;                    /* prevent flex child overflow */
   min-height: 100vh;
+  margin-left: var(--nav-sidebar-width);
   transition: margin-left var(--nav-transition-speed) var(--nav-transition-fn);
 }
 
@@ -1275,11 +1276,11 @@ img {
     transform: translateX(-100%);
   }
 
-  .sidebar-open .sidebar {
+  body.sidebar-open .sidebar {
     transform: translateX(0);
   }
 
-  .sidebar-open .sidebar-overlay {
+  body.sidebar-open .sidebar-overlay {
     display: block;
   }
 
