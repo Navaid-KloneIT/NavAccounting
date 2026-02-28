@@ -1,0 +1,379 @@
+/* =============================================================================
+   NavAccounting - Horizontal Navigation Layout
+   =============================================================================
+   Top-bar driven layout with a horizontal mega-menu style navigation instead
+   of a vertical sidebar.  Content stretches the full width of the viewport.
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. LAYOUT CONTAINER
+   --------------------------------------------------------------------------- */
+
+[data-layout="horizontal"] .wrapper,
+.layout-horizontal .wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Hide the vertical sidebar in horizontal mode */
+[data-layout="horizontal"] .sidebar,
+.layout-horizontal .sidebar {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   2. MAIN CONTENT AREA - FULL WIDTH
+   --------------------------------------------------------------------------- */
+
+[data-layout="horizontal"] .main,
+.layout-horizontal .main {
+  margin-left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ---------------------------------------------------------------------------
+   3. TOPBAR
+   --------------------------------------------------------------------------- */
+
+[data-layout="horizontal"] .topbar,
+.layout-horizontal .topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--nav-zindex-topbar);
+}
+
+/* ---------------------------------------------------------------------------
+   4. HORIZONTAL NAVIGATION BAR
+   --------------------------------------------------------------------------- */
+
+.horizontal-nav {
+  background: var(--nav-card-bg);
+  border-bottom: 1px solid var(--nav-border-color);
+  box-shadow: var(--nav-shadow-sm);
+  position: sticky;
+  top: var(--nav-topbar-height);
+  z-index: calc(var(--nav-zindex-topbar) - 1);
+}
+
+.horizontal-nav .container-fluid {
+  display: flex;
+  align-items: center;
+}
+
+/* -- Menu List ------------------------------------------------------------- */
+.horizontal-menu {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.125rem;
+}
+
+.horizontal-menu > .menu-item {
+  position: relative;
+}
+
+.horizontal-menu > .menu-item > .menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  color: var(--nav-body-color);
+  font-size: var(--nav-font-size-sm);
+  font-weight: var(--nav-font-weight-medium);
+  white-space: nowrap;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color var(--nav-transition-speed) var(--nav-transition-fn),
+              border-color var(--nav-transition-speed) var(--nav-transition-fn);
+}
+
+.horizontal-menu > .menu-item > .menu-link .menu-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--nav-gray-500);
+  transition: color var(--nav-transition-speed) var(--nav-transition-fn);
+}
+
+.horizontal-menu > .menu-item > .menu-link:hover {
+  color: var(--nav-primary);
+}
+
+.horizontal-menu > .menu-item > .menu-link:hover .menu-icon {
+  color: var(--nav-primary);
+}
+
+/* Active state */
+.horizontal-menu > .menu-item.active > .menu-link {
+  color: var(--nav-primary);
+  border-bottom-color: var(--nav-primary);
+}
+
+.horizontal-menu > .menu-item.active > .menu-link .menu-icon {
+  color: var(--nav-primary);
+}
+
+/* -- Dropdown Arrow -------------------------------------------------------- */
+.horizontal-menu > .menu-item.has-dropdown > .menu-link::after {
+  content: "";
+  display: inline-block;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-left: 0.25rem;
+  transition: transform var(--nav-transition-speed) var(--nav-transition-fn);
+}
+
+.horizontal-menu > .menu-item.has-dropdown:hover > .menu-link::after {
+  transform: rotate(-135deg);
+}
+
+/* ---------------------------------------------------------------------------
+   5. DROPDOWN MENUS
+   --------------------------------------------------------------------------- */
+
+.horizontal-menu .dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: var(--nav-card-bg);
+  border: 1px solid var(--nav-border-color);
+  border-radius: var(--nav-border-radius);
+  box-shadow: var(--nav-shadow);
+  padding: 0.5rem 0;
+  z-index: var(--nav-zindex-dropdown);
+  list-style: none;
+  margin: 0;
+}
+
+.horizontal-menu .menu-item:hover > .dropdown-menu {
+  display: block;
+  animation: navDropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes navDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.horizontal-menu .dropdown-menu .menu-item {
+  position: relative;
+}
+
+.horizontal-menu .dropdown-menu .menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: var(--nav-body-color);
+  font-size: var(--nav-font-size-sm);
+  text-decoration: none;
+  transition: background var(--nav-transition-speed) var(--nav-transition-fn),
+              color var(--nav-transition-speed) var(--nav-transition-fn);
+}
+
+.horizontal-menu .dropdown-menu .menu-link:hover {
+  background: var(--nav-gray-100);
+  color: var(--nav-primary);
+}
+
+.horizontal-menu .dropdown-menu .menu-item.active > .menu-link {
+  color: var(--nav-primary);
+  background: rgba(var(--nav-primary-rgb), 0.06);
+}
+
+/* -- Nested Dropdown (Sub-menu) -------------------------------------------- */
+.horizontal-menu .dropdown-menu .has-dropdown > .menu-link::after {
+  content: "";
+  display: inline-block;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  margin-left: auto;
+}
+
+.horizontal-menu .dropdown-menu .has-dropdown > .dropdown-menu {
+  top: 0;
+  left: 100%;
+}
+
+/* -- Dropdown Heading ------------------------------------------------------ */
+.horizontal-menu .dropdown-header {
+  font-size: var(--nav-font-size-xs);
+  font-weight: var(--nav-font-weight-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nav-gray-500);
+  padding: 0.5rem 1rem 0.25rem;
+}
+
+/* -- Dropdown Divider ------------------------------------------------------ */
+.horizontal-menu .dropdown-divider {
+  height: 0;
+  margin: 0.375rem 0;
+  border: 0;
+  border-top: 1px solid var(--nav-border-color);
+}
+
+/* ---------------------------------------------------------------------------
+   6. MEGA MENU (optional wide dropdown)
+   --------------------------------------------------------------------------- */
+
+.horizontal-menu .mega-menu {
+  position: static;
+}
+
+.horizontal-menu .mega-menu > .dropdown-menu {
+  width: 100%;
+  left: 0;
+  right: 0;
+  padding: 1.25rem;
+  display: none;
+}
+
+.horizontal-menu .mega-menu:hover > .dropdown-menu {
+  display: flex;
+  gap: 2rem;
+}
+
+.mega-menu-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.mega-menu-column .mega-title {
+  font-size: var(--nav-font-size-xs);
+  font-weight: var(--nav-font-weight-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nav-gray-500);
+  margin-bottom: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------------
+   7. CONTENT PAGE
+   --------------------------------------------------------------------------- */
+
+[data-layout="horizontal"] .content-page,
+.layout-horizontal .content-page {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   8. DARK MODE ADJUSTMENTS
+   --------------------------------------------------------------------------- */
+
+[data-bs-theme="dark"] .horizontal-nav {
+  background: var(--nav-card-bg);
+  border-bottom-color: var(--nav-border-color);
+}
+
+[data-bs-theme="dark"] .horizontal-menu .dropdown-menu .menu-link:hover {
+  background: var(--nav-gray-200);
+}
+
+/* ---------------------------------------------------------------------------
+   9. MOBILE - COLLAPSE TO HAMBURGER
+   --------------------------------------------------------------------------- */
+
+/* Mobile toggle button */
+.horizontal-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--nav-body-color);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+@media (max-width: 991.98px) {
+  .horizontal-nav-toggle {
+    display: inline-flex;
+  }
+
+  .horizontal-menu {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    padding: 0.5rem 0;
+    gap: 0;
+  }
+
+  .horizontal-menu.show {
+    display: flex;
+  }
+
+  .horizontal-menu > .menu-item > .menu-link {
+    padding: 0.75rem 1rem;
+    border-bottom: none;
+  }
+
+  .horizontal-menu .dropdown-menu {
+    position: static;
+    box-shadow: none;
+    border: none;
+    padding-left: 1rem;
+    background: transparent;
+    display: none;
+  }
+
+  .horizontal-menu .menu-item.show > .dropdown-menu {
+    display: block;
+  }
+
+  .horizontal-menu .has-dropdown > .menu-link::after {
+    margin-left: auto;
+  }
+
+  .horizontal-menu .dropdown-menu .has-dropdown > .dropdown-menu {
+    top: auto;
+    left: auto;
+    padding-left: 1rem;
+  }
+
+  .horizontal-nav .container-fluid {
+    flex-wrap: wrap;
+  }
+
+  /* Mega menu stacks on mobile */
+  .horizontal-menu .mega-menu:hover > .dropdown-menu,
+  .horizontal-menu .mega-menu.show > .dropdown-menu {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   10. FOOTER
+   --------------------------------------------------------------------------- */
+
+[data-layout="horizontal"] .footer,
+.layout-horizontal .footer {
+  margin-top: auto;
+}
