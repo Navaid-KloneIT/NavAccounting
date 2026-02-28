@@ -1,0 +1,113 @@
+{% load static %}
+
+<!-- Sidebar -->
+<div class="vertical-menu" id="sidebar-menu">
+    <div data-simplebar class="h-100">
+
+        <!-- Logo -->
+        <div class="navbar-brand-box">
+            <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo logo-dark">
+                <span class="logo-sm">
+                    <img src="{% static 'images/logo-sm.png' %}" alt="" height="28">
+                </span>
+                <span class="logo-lg">
+                    <img src="{% static 'images/logo-dark.png' %}" alt="" height="20">
+                </span>
+            </a>
+            <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo logo-light">
+                <span class="logo-sm">
+                    <img src="{% static 'images/logo-sm-light.png' %}" alt="" height="28">
+                </span>
+                <span class="logo-lg">
+                    <img src="{% static 'images/logo-light.png' %}" alt="" height="20">
+                </span>
+            </a>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <div id="sidebar-menu-items">
+            <ul class="metismenu list-unstyled" id="side-menu">
+
+                <li class="menu-title">Menu</li>
+
+                <!-- Dashboard -->
+                <li class="{{ nav_tags.dashboard }}">
+                    {% if current_tenant %}
+                    <a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">
+                    {% else %}
+                    <a href="/">
+                    {% endif %}
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="menu-title">System Administration</li>
+
+                <!-- Company Setup -->
+                <li class="{{ nav_tags.company }}">
+                    {% if current_tenant %}
+                    <a href="{% url 'company:index' tenant_slug=current_tenant.slug %}">
+                    {% else %}
+                    <a href="#">
+                    {% endif %}
+                        <i class="bi bi-building"></i>
+                        <span>Company Setup</span>
+                    </a>
+                </li>
+
+                <!-- User Management -->
+                <li class="{{ nav_tags.users }}">
+                    {% if current_tenant %}
+                    <a href="{% url 'accounts:list' tenant_slug=current_tenant.slug %}">
+                    {% else %}
+                    <a href="#">
+                    {% endif %}
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
+
+                <!-- Roles & Permissions -->
+                <li class="{{ nav_tags.roles }}">
+                    {% if current_tenant %}
+                    <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}">
+                    {% else %}
+                    <a href="#">
+                    {% endif %}
+                        <i class="bi bi-shield-lock"></i>
+                        <span>Roles &amp; Permissions</span>
+                    </a>
+                </li>
+
+                <li class="menu-title">Analytics</li>
+
+                <!-- Reports -->
+                <li class="{{ nav_tags.reports }}">
+                    {% if current_tenant %}
+                    <a href="{% url 'dashboard:reports' tenant_slug=current_tenant.slug %}">
+                    {% else %}
+                    <a href="#">
+                    {% endif %}
+                        <i class="bi bi-bar-chart"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+
+                <!-- Forecasting -->
+                <li class="{{ nav_tags.forecasting }}">
+                    {% if current_tenant %}
+                    <a href="{% url 'dashboard:forecasting' tenant_slug=current_tenant.slug %}">
+                    {% else %}
+                    <a href="#">
+                    {% endif %}
+                        <i class="bi bi-graph-up-arrow"></i>
+                        <span>Forecasting</span>
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</div>
+<!-- End Sidebar -->
