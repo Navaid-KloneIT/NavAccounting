@@ -1,0 +1,133 @@
+{% extends "layouts/vertical.html" %}
+{% load static %}
+
+{% block title %}Profile - NavAccounting{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+<li class="breadcrumb-item active">Profile</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xl-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="Avatar" class="rounded-circle" width="120" height="120">
+                    {% else %}
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                        <span class="text-primary" style="font-size: 3rem;">{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <h4 class="mb-1">{{ user.get_full_name }}</h4>
+                <p class="text-muted mb-3">{{ profile.job_title|default:"No title set" }}</p>
+                <p class="text-muted small">
+                    <i class="bi bi-envelope me-1"></i> {{ user.email }}
+                </p>
+                {% if user.phone %}
+                <p class="text-muted small">
+                    <i class="bi bi-telephone me-1"></i> {{ user.phone }}
+                </p>
+                {% endif %}
+                <p class="text-muted small">
+                    <i class="bi bi-building me-1"></i> {{ profile.department|default:"No department" }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Edit Profile</h5>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="id_first_name" name="first_name"
+                                   value="{{ user.first_name }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="id_last_name" name="last_name"
+                                   value="{{ user.last_name }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="id_phone" name="phone"
+                                   value="{{ user.phone }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_avatar" class="form-label">Avatar</label>
+                            <input type="file" class="form-control" id="id_avatar" name="avatar" accept="image/*">
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="text-muted mb-3">Organization Profile</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_job_title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="id_job_title" name="job_title"
+                                   value="{{ profile.job_title }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_department" class="form-label">Department</label>
+                            <input type="text" class="form-control" id="id_department" name="department"
+                                   value="{{ profile.department }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_bio" class="form-label">Bio</label>
+                        <textarea class="form-control" id="id_bio" name="bio" rows="3">{{ profile.bio }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_timezone" class="form-label">Timezone</label>
+                            <select class="form-select" id="id_timezone" name="timezone">
+                                <option value="UTC" {% if profile.timezone == "UTC" %}selected{% endif %}>UTC</option>
+                                <option value="US/Eastern" {% if profile.timezone == "US/Eastern" %}selected{% endif %}>US/Eastern</option>
+                                <option value="US/Central" {% if profile.timezone == "US/Central" %}selected{% endif %}>US/Central</option>
+                                <option value="US/Pacific" {% if profile.timezone == "US/Pacific" %}selected{% endif %}>US/Pacific</option>
+                                <option value="Europe/London" {% if profile.timezone == "Europe/London" %}selected{% endif %}>Europe/London</option>
+                                <option value="Europe/Paris" {% if profile.timezone == "Europe/Paris" %}selected{% endif %}>Europe/Paris</option>
+                                <option value="Asia/Tokyo" {% if profile.timezone == "Asia/Tokyo" %}selected{% endif %}>Asia/Tokyo</option>
+                                <option value="Asia/Dubai" {% if profile.timezone == "Asia/Dubai" %}selected{% endif %}>Asia/Dubai</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_date_format" class="form-label">Date Format</label>
+                            <select class="form-select" id="id_date_format" name="date_format">
+                                <option value="YYYY-MM-DD" {% if profile.date_format == "YYYY-MM-DD" %}selected{% endif %}>YYYY-MM-DD</option>
+                                <option value="MM/DD/YYYY" {% if profile.date_format == "MM/DD/YYYY" %}selected{% endif %}>MM/DD/YYYY</option>
+                                <option value="DD/MM/YYYY" {% if profile.date_format == "DD/MM/YYYY" %}selected{% endif %}>DD/MM/YYYY</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
