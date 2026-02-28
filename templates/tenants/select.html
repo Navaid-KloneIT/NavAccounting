@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block layout %}
+<!-- Tenant Selection Layout -->
+<div class="auth-page">
+    <div class="container-fluid p-0">
+        <div class="row g-0 justify-content-center">
+            <div class="col-xxl-8 col-lg-10 col-md-12">
+                <div class="d-flex flex-column min-vh-100 py-4 px-3">
+
+                    <!-- Logo -->
+                    <div class="text-center mb-4">
+                        <a href="/">
+                            <img src="{% static 'images/logo-dark.png' %}" alt="NavAccounting" height="30" class="logo-dark-element">
+                            <img src="{% static 'images/logo-light.png' %}" alt="NavAccounting" height="30" class="logo-light-element">
+                        </a>
+                    </div>
+
+                    <!-- Page Heading -->
+                    <div class="text-center mb-4">
+                        <h4 class="fw-semibold">Select an Organization</h4>
+                        <p class="text-muted">Choose an organization to continue, or create a new one.</p>
+                    </div>
+
+                    {% include "partials/_alerts.html" %}
+
+                    <!-- Tenant Cards Grid -->
+                    <div class="row g-3 justify-content-center">
+                        {% for membership in memberships %}
+                        <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
+                            <div class="card border shadow-sm h-100">
+                                <div class="card-body text-center p-4">
+                                    <div class="avatar-md mx-auto mb-3">
+                                        {% if membership.tenant.logo %}
+                                        <img src="{{ membership.tenant.logo.url }}" alt="{{ membership.tenant.name }}"
+                                             class="img-fluid rounded-circle">
+                                        {% else %}
+                                        <span class="avatar-title rounded-circle bg-primary bg-opacity-10 text-primary fs-3">
+                                            {{ membership.tenant.name|first|upper }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <h5 class="card-title mb-1">{{ membership.tenant.name }}</h5>
+                                    {% if membership.is_default %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary mb-3">Default</span>
+                                    {% else %}
+                                    <div class="mb-3">&nbsp;</div>
+                                    {% endif %}
+                                    <a href="{% url 'tenants:switch' tenant_slug=membership.tenant.slug %}"
+                                       class="btn btn-primary w-100">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i> Select
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="bi bi-building fs-1 text-muted"></i>
+                                </div>
+                                <h5 class="text-muted">No organizations found</h5>
+                                <p class="text-muted mb-4">You are not a member of any organization yet.</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Create New Tenant -->
+                    <div class="text-center mt-4">
+                        <a href="{% url 'tenants:create' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Create New Organization
+                        </a>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="text-center mt-auto pt-4">
+                        {% now "Y" as current_year %}
+                        <p class="text-muted mb-0">&copy; {{ current_year }} NavAccounting. All rights reserved.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Tenant Selection Layout -->
+{% endblock %}
