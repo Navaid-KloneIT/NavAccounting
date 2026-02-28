@@ -47,7 +47,7 @@
                 <!-- Company Setup -->
                 <li class="{{ nav_tags.company }}">
                     {% if current_tenant %}
-                    <a href="{% url 'company:index' tenant_slug=current_tenant.slug %}">
+                    <a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">
                     {% else %}
                     <a href="#">
                     {% endif %}
@@ -59,7 +59,7 @@
                 <!-- User Management -->
                 <li class="{{ nav_tags.users }}">
                     {% if current_tenant %}
-                    <a href="{% url 'accounts:list' tenant_slug=current_tenant.slug %}">
+                    <a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}">
                     {% else %}
                     <a href="#">
                     {% endif %}
@@ -85,7 +85,7 @@
                 <!-- Reports -->
                 <li class="{{ nav_tags.reports }}">
                     {% if current_tenant %}
-                    <a href="{% url 'dashboard:reports' tenant_slug=current_tenant.slug %}">
+                    <a href="#">
                     {% else %}
                     <a href="#">
                     {% endif %}
@@ -97,7 +97,7 @@
                 <!-- Forecasting -->
                 <li class="{{ nav_tags.forecasting }}">
                     {% if current_tenant %}
-                    <a href="{% url 'dashboard:forecasting' tenant_slug=current_tenant.slug %}">
+                    <a href="#">
                     {% else %}
                     <a href="#">
                     {% endif %}
