@@ -3,8 +3,9 @@ Django>=5.1,<5.2
 django-environ>=0.11.2
 Pillow>=10.4.0
 
-# Database (SQLite for development, PostgreSQL for production)
-# psycopg2-binary>=2.9.9
+# Database
+mysqlclient>=2.2.8
+# psycopg2-binary>=2.9.9  # Uncomment for PostgreSQL
 
 # Authentication
 django-allauth>=64.0.0
