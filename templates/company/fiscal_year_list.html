@@ -1,0 +1,74 @@
+{% extends "layouts/vertical.html" %}
+{% load static %}
+
+{% block title %}Fiscal Years - NavAccounting{% endblock %}
+{% block page_title %}Fiscal Years{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">Company</a></li>
+<li class="breadcrumb-item active">Fiscal Years</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Fiscal Years</h5>
+                <a href="{% url 'company:fiscal_year_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Add Fiscal Year
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Periods</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fy in fiscal_years %}
+                            <tr>
+                                <td>
+                                    <strong>{{ fy.name }}</strong>
+                                    {% if fy.is_current %}
+                                    <span class="badge bg-primary-subtle text-primary ms-1">Current</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ fy.start_date|date:"M d, Y" }}</td>
+                                <td>{{ fy.end_date|date:"M d, Y" }}</td>
+                                <td>{{ fy.periods.count }}</td>
+                                <td>
+                                    {% if fy.is_closed %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Closed</span>
+                                    {% else %}
+                                    <span class="badge bg-success-subtle text-success">Open</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'company:fiscal_year_edit' tenant_slug=current_tenant.slug pk=fy.pk %}" class="btn btn-sm btn-light">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    No fiscal years configured yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
