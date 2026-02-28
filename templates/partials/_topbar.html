@@ -1,0 +1,174 @@
+{% load static %}
+
+<!-- Top Bar -->
+<header id="topbar">
+    <div class="navbar-header">
+        <div class="d-flex align-items-center">
+            <!-- Logo -->
+            <div class="navbar-brand-box">
+                <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo logo-dark">
+                    <span class="logo-sm">
+                        <img src="{% static 'images/logo-sm.png' %}" alt="NavAccounting" height="28">
+                    </span>
+                    <span class="logo-lg">
+                        <img src="{% static 'images/logo-dark.png' %}" alt="NavAccounting" height="20">
+                    </span>
+                </a>
+                <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo logo-light">
+                    <span class="logo-sm">
+                        <img src="{% static 'images/logo-sm-light.png' %}" alt="NavAccounting" height="28">
+                    </span>
+                    <span class="logo-lg">
+                        <img src="{% static 'images/logo-light.png' %}" alt="NavAccounting" height="20">
+                    </span>
+                </a>
+            </div>
+
+            <!-- Hamburger Menu Toggle -->
+            <button type="button" class="btn btn-sm px-3 fs-16 header-item vertical-menu-btn" id="topbar-hamburger-icon">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+
+            <!-- Search Bar -->
+            <form class="app-search d-none d-lg-block">
+                <div class="position-relative">
+                    <input type="text" class="form-control" placeholder="Search...">
+                    <span class="bi bi-search position-absolute top-50 translate-middle-y ms-3"></span>
+                </div>
+            </form>
+        </div>
+
+        <div class="d-flex align-items-center">
+            <!-- Mobile Search Toggle -->
+            <div class="dropdown d-inline-block d-lg-none">
+                <button type="button" class="btn header-item" id="page-header-search-dropdown" data-bs-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-search fs-5"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0" aria-labelledby="page-header-search-dropdown">
+                    <form class="p-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search...">
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Light/Dark Mode Toggle -->
+            <div class="dropdown d-inline-block">
+                <button type="button" class="btn header-item" id="light-dark-mode">
+                    <i class="bi bi-moon fs-5" id="theme-icon-light"></i>
+                    <i class="bi bi-sun fs-5 d-none" id="theme-icon-dark"></i>
+                </button>
+            </div>
+
+            <!-- Notifications -->
+            <div class="dropdown d-inline-block">
+                <button type="button" class="btn header-item position-relative" id="page-header-notifications-dropdown"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 end-0 notification-badge">3</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0" aria-labelledby="page-header-notifications-dropdown">
+                    <div class="p-3 border-bottom">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h6 class="m-0">Notifications</h6>
+                            </div>
+                            <div class="col-auto">
+                                <a href="#" class="small text-decoration-none">View All</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div data-simplebar style="max-height: 250px;">
+                        <a href="#" class="text-reset notification-item d-block p-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="avatar-xs bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-info-circle text-primary"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 fs-sm">No new notifications</h6>
+                                    <p class="text-muted mb-0 fs-xs">Check back later</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="p-2 border-top text-center">
+                        <a class="btn btn-sm btn-link text-decoration-none" href="#">
+                            <i class="bi bi-arrow-right me-1"></i> View All
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tenant Switcher -->
+            {% if current_tenant %}
+            <div class="dropdown d-inline-block">
+                <button type="button" class="btn header-item" id="tenant-switcher-dropdown"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-building me-1"></i>
+                    <span class="d-none d-md-inline-block">{{ current_tenant.name }}</span>
+                    <i class="bi bi-chevron-down ms-1 d-none d-md-inline-block"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="tenant-switcher-dropdown">
+                    <h6 class="dropdown-header">Switch Organization</h6>
+                    {% for membership in user_tenants %}
+                    <a class="dropdown-item {% if membership.tenant == current_tenant %}active{% endif %}"
+                       href="{% url 'tenants:switch' tenant_slug=membership.tenant.slug %}">
+                        <i class="bi bi-building me-2"></i>{{ membership.tenant.name }}
+                        {% if membership.is_default %}<span class="badge bg-soft-primary ms-1">Default</span>{% endif %}
+                    </a>
+                    {% endfor %}
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{% url 'tenants:create' %}">
+                        <i class="bi bi-plus-circle me-2"></i>Create New
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- User Dropdown -->
+            <div class="dropdown d-inline-block">
+                <button type="button" class="btn header-item" id="page-header-user-dropdown"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {% if user.avatar %}
+                    <img class="rounded-circle header-profile-user" src="{{ user.avatar.url }}" alt="Avatar">
+                    {% else %}
+                    <span class="rounded-circle header-profile-user bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center"
+                          style="width: 32px; height: 32px;">
+                        <i class="bi bi-person text-primary"></i>
+                    </span>
+                    {% endif %}
+                    <span class="d-none d-md-inline-block ms-1">{{ user.get_display_name|default:"Account" }}</span>
+                    <i class="bi bi-chevron-down d-none d-md-inline-block"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <h6 class="dropdown-header">Welcome!</h6>
+                    {% if current_tenant %}
+                    <a class="dropdown-item" href="{% url 'accounts:profile' tenant_slug=current_tenant.slug %}">
+                        <i class="bi bi-person me-2"></i>Profile
+                    </a>
+                    <a class="dropdown-item" href="{% url 'accounts:settings' tenant_slug=current_tenant.slug %}">
+                        <i class="bi bi-gear me-2"></i>Settings
+                    </a>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+
+            <!-- Settings Gear -->
+            <div class="dropdown d-inline-block">
+                <button type="button" class="btn header-item" data-bs-toggle="offcanvas" data-bs-target="#theme-settings-offcanvas">
+                    <i class="bi bi-gear fs-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+<!-- End Top Bar -->
