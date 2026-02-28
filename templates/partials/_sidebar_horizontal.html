@@ -26,7 +26,7 @@
                     <ul class="dropdown-menu" aria-labelledby="systemAdminDropdown">
                         <li>
                             {% if current_tenant %}
-                            <a class="dropdown-item {{ nav_tags.company }}" href="{% url 'company:index' tenant_slug=current_tenant.slug %}">
+                            <a class="dropdown-item {{ nav_tags.company }}" href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">
                             {% else %}
                             <a class="dropdown-item" href="#">
                             {% endif %}
@@ -35,7 +35,7 @@
                         </li>
                         <li>
                             {% if current_tenant %}
-                            <a class="dropdown-item {{ nav_tags.users }}" href="{% url 'accounts:list' tenant_slug=current_tenant.slug %}">
+                            <a class="dropdown-item {{ nav_tags.users }}" href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}">
                             {% else %}
                             <a class="dropdown-item" href="#">
                             {% endif %}
@@ -63,7 +63,7 @@
                     <ul class="dropdown-menu" aria-labelledby="analyticsDropdown">
                         <li>
                             {% if current_tenant %}
-                            <a class="dropdown-item {{ nav_tags.reports }}" href="{% url 'dashboard:reports' tenant_slug=current_tenant.slug %}">
+                            <a class="dropdown-item {{ nav_tags.reports }}" href="#">
                             {% else %}
                             <a class="dropdown-item" href="#">
                             {% endif %}
@@ -72,7 +72,7 @@
                         </li>
                         <li>
                             {% if current_tenant %}
-                            <a class="dropdown-item {{ nav_tags.forecasting }}" href="{% url 'dashboard:forecasting' tenant_slug=current_tenant.slug %}">
+                            <a class="dropdown-item {{ nav_tags.forecasting }}" href="#">
                             {% else %}
                             <a class="dropdown-item" href="#">
                             {% endif %}
