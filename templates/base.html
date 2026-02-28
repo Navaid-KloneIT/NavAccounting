@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-bs-theme="light" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="default" data-layout-width="fluid" data-layout-position="fixed" data-preloader="enable">
+<html lang="en" dir="ltr" data-bs-theme="light" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="default" data-layout-width="fluid" data-layout-position="fixed">
 <head>{% include "partials/_head.html" %}</head>
 <body>
   {% include "partials/_preloader.html" %}
-  <div id="wrapper">{% block layout %}{% endblock %}</div>
+  {% block layout %}{% endblock %}
   {% include "partials/_right_sidebar.html" %}
   {% include "partials/_scripts.html" %}
 </body>
