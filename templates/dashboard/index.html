@@ -1,0 +1,237 @@
+{% extends "layouts/vertical.html" %}
+{% load static humanize %}
+
+{% block title %}Dashboard - NavAccounting{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards Row -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Revenue</p>
+                        <h3 class="mb-1">${{ kpi.total_revenue|intcomma }}</h3>
+                        <span class="badge bg-success-subtle text-success">
+                            <i class="bi bi-arrow-up"></i> {{ kpi.revenue_change }}%
+                        </span>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                        <i class="bi bi-currency-dollar text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Outstanding Invoices</p>
+                        <h3 class="mb-1">{{ kpi.outstanding_invoices }}</h3>
+                        <span class="text-muted small">${{ kpi.invoices_amount|intcomma }} total</span>
+                    </div>
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                        <i class="bi bi-receipt text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Cash Balance</p>
+                        <h3 class="mb-1">${{ kpi.cash_balance|intcomma }}</h3>
+                        <span class="badge bg-danger-subtle text-danger">
+                            <i class="bi bi-arrow-down"></i> {{ kpi.cash_change }}%
+                        </span>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                        <i class="bi bi-wallet2 text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Overdue Payables</p>
+                        <h3 class="mb-1">{{ kpi.overdue_payables }}</h3>
+                        <span class="text-muted small">${{ kpi.payables_amount|intcomma }} total</span>
+                    </div>
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3">
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cash Flow Chart + Alert Center -->
+<div class="row">
+    <div class="col-xl-8 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Cash Flow Overview</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                        Last 6 Months
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">Last 3 Months</a></li>
+                        <li><a class="dropdown-item active" href="#">Last 6 Months</a></li>
+                        <li><a class="dropdown-item" href="#">Last 12 Months</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="cashFlowChart" style="height: 320px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Alert Center</h5>
+                <span class="badge bg-danger">{{ alerts|length }}</span>
+            </div>
+            <div class="card-body p-0" style="max-height: 370px; overflow-y: auto;">
+                {% for alert in alerts %}
+                <div class="d-flex align-items-start p-3 border-bottom">
+                    <div class="me-3">
+                        {% if alert.severity == 'danger' %}
+                        <span class="badge bg-danger rounded-circle p-2"><i class="bi bi-exclamation-lg"></i></span>
+                        {% elif alert.severity == 'warning' %}
+                        <span class="badge bg-warning rounded-circle p-2"><i class="bi bi-exclamation-triangle"></i></span>
+                        {% elif alert.severity == 'success' %}
+                        <span class="badge bg-success rounded-circle p-2"><i class="bi bi-check-lg"></i></span>
+                        {% else %}
+                        <span class="badge bg-info rounded-circle p-2"><i class="bi bi-info-lg"></i></span>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ alert.title }}</h6>
+                        <p class="text-muted small mb-0">{{ alert.message|truncatewords:15 }}</p>
+                        <small class="text-muted">{{ alert.created_at|timesince }} ago</small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted p-4">
+                    <i class="bi bi-bell-slash" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">No alerts</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions + Executive Summary -->
+<div class="row">
+    <div class="col-xl-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary text-start">
+                        <i class="bi bi-receipt me-2"></i> Create Invoice
+                    </button>
+                    <button class="btn btn-outline-primary text-start">
+                        <i class="bi bi-cash-stack me-2"></i> Record Expense
+                    </button>
+                    <button class="btn btn-outline-primary text-start">
+                        <i class="bi bi-bank me-2"></i> Reconcile Bank
+                    </button>
+                    <button class="btn btn-outline-primary text-start">
+                        <i class="bi bi-journal-text me-2"></i> Journal Entry
+                    </button>
+                    <button class="btn btn-outline-primary text-start">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-8 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Revenue vs Expenses</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                        This Month
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item active" href="#">This Month</a></li>
+                        <li><a class="dropdown-item" href="#">Last Month</a></li>
+                        <li><a class="dropdown-item" href="#">This Quarter</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="revenueExpenseChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cash Flow Chart
+        var cashFlowData = {{ cash_flow_data|safe }};
+        if (typeof ApexCharts !== 'undefined' && document.getElementById('cashFlowChart')) {
+            var cashFlowOptions = {
+                chart: { type: 'area', height: 320, toolbar: { show: false },
+                    fontFamily: 'inherit' },
+                series: [
+                    { name: 'Cash In', data: cashFlowData.inflow },
+                    { name: 'Cash Out', data: cashFlowData.outflow }
+                ],
+                xaxis: { categories: cashFlowData.categories },
+                colors: ['#3b7ddd', '#dc3545'],
+                fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.1 } },
+                stroke: { curve: 'smooth', width: 2 },
+                dataLabels: { enabled: false },
+                tooltip: { y: { formatter: function(val) { return '$' + val.toLocaleString(); } } },
+                grid: { borderColor: '#e9ecef', strokeDashArray: 4 }
+            };
+            new ApexCharts(document.getElementById('cashFlowChart'), cashFlowOptions).render();
+        }
+
+        // Revenue vs Expense Chart
+        if (typeof ApexCharts !== 'undefined' && document.getElementById('revenueExpenseChart')) {
+            var revenueExpenseOptions = {
+                chart: { type: 'bar', height: 300, toolbar: { show: false },
+                    fontFamily: 'inherit' },
+                series: [
+                    { name: 'Revenue', data: [45000, 52000, 38000, 47000, 51000, 42000] },
+                    { name: 'Expenses', data: [32000, 38000, 29000, 35000, 39000, 31000] }
+                ],
+                xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'] },
+                colors: ['#3b7ddd', '#fd7e14'],
+                plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                dataLabels: { enabled: false },
+                tooltip: { y: { formatter: function(val) { return '$' + val.toLocaleString(); } } },
+                grid: { borderColor: '#e9ecef', strokeDashArray: 4 }
+            };
+            new ApexCharts(document.getElementById('revenueExpenseChart'), revenueExpenseOptions).render();
+        }
+    });
+</script>
+{% endblock %}
