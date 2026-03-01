@@ -1,5 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.tenants.managers import set_current_tenant
@@ -55,10 +57,35 @@ def fiscal_year_list(request, tenant_slug):
         return redirect('tenants:select')
 
     set_current_tenant(tenant)
-    fiscal_years = FiscalYear.objects.filter(tenant=tenant).prefetch_related('periods')
+    qs = FiscalYear.objects.filter(tenant=tenant).prefetch_related('periods')
+
+    # Stats (before filtering)
+    total_count = qs.count()
+    open_count = qs.filter(is_closed=False).count()
+    closed_count = qs.filter(is_closed=True).count()
+
+    # Search filter
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        qs = qs.filter(name__icontains=search_query)
+
+    # Status filter
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'open':
+        qs = qs.filter(is_closed=False)
+    elif status_filter == 'closed':
+        qs = qs.filter(is_closed=True)
+
+    # Pagination
+    paginator = Paginator(qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'company/fiscal_year_list.html', {
-        'fiscal_years': fiscal_years,
+        'fiscal_years': page_obj,
+        'page_obj': page_obj,
+        'total_count': total_count,
+        'open_count': open_count,
+        'closed_count': closed_count,
     })
 
 
@@ -116,18 +143,78 @@ def fiscal_year_edit(request, tenant_slug, pk):
 @login_required
 def currency_settings(request, tenant_slug):
     """View currency settings."""
-    currencies = Currency.objects.all()
+    qs = Currency.objects.all()
+
+    # Stats (before filtering)
+    total_count = qs.count()
+    active_count = qs.filter(is_active=True).count()
+    inactive_count = qs.filter(is_active=False).count()
+
+    # Search filter
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        qs = qs.filter(Q(code__icontains=search_query) | Q(name__icontains=search_query))
+
+    # Status filter
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        qs = qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        qs = qs.filter(is_active=False)
+
+    # Pagination
+    paginator = Paginator(qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     return render(request, 'company/currency_settings.html', {
-        'currencies': currencies,
+        'currencies': page_obj,
+        'page_obj': page_obj,
+        'total_count': total_count,
+        'active_count': active_count,
+        'inactive_count': inactive_count,
     })
 
 
 @login_required
 def coa_template_list(request, tenant_slug):
     """List chart of accounts templates."""
-    templates = ChartOfAccountsTemplate.objects.all().prefetch_related('items')
+    qs = ChartOfAccountsTemplate.objects.all().prefetch_related('items')
+
+    # Stats (before filtering)
+    total_count = qs.count()
+
+    # Search filter
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        qs = qs.filter(
+            Q(name__icontains=search_query) |
+            Q(country__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+
+    # Country filter
+    country_filter = request.GET.get('country', '')
+    if country_filter:
+        qs = qs.filter(country=country_filter)
+
+    # Get unique countries for dropdown
+    all_countries = (
+        ChartOfAccountsTemplate.objects
+        .exclude(country='')
+        .values_list('country', flat=True)
+        .distinct()
+        .order_by('country')
+    )
+
+    # Pagination
+    paginator = Paginator(qs, 9)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     return render(request, 'company/coa_template_list.html', {
-        'templates': templates,
+        'templates': page_obj,
+        'page_obj': page_obj,
+        'total_count': total_count,
+        'all_countries': all_countries,
     })
 
 
