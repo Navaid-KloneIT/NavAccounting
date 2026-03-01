@@ -1,56 +1,59 @@
-{% extends "layouts/vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Roles & Permissions - NavAccounting{% endblock %}
-{% block page_title %}Roles & Permissions{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-<li class="breadcrumb-item active">Roles</li>
-{% endblock %}
 
 {% block content %}
+<div class="page-title-box">
+    <h4>Roles & Permissions</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Roles</li>
+    </ol>
+</div>
+
 <!-- Stat Cards -->
 <div class="row mb-4">
     <div class="col-md-4 mb-3 mb-md-0">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Total Roles</p>
-                        <h3 class="mb-0">{{ total_roles }}</h3>
+                        <p class="stats-label">Total Roles</p>
+                        <h3 class="stats-value">{{ total_roles }}</h3>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-shield-lock text-primary" style="font-size: 1.25rem;"></i>
+                    <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="ri-shield-keyhole-line"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3 mb-md-0">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted mb-1 small text-uppercase fw-semibold">System Roles</p>
-                        <h3 class="mb-0">{{ system_roles }}</h3>
+                        <p class="stats-label">System Roles</p>
+                        <h3 class="stats-value">{{ system_roles }}</h3>
                     </div>
-                    <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-gear text-info" style="font-size: 1.25rem;"></i>
+                    <div class="stats-icon bg-info bg-opacity-10 text-info">
+                        <i class="ri-settings-3-line"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3 mb-md-0">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Custom Roles</p>
-                        <h3 class="mb-0">{{ custom_roles }}</h3>
+                        <p class="stats-label">Custom Roles</p>
+                        <h3 class="stats-value">{{ custom_roles }}</h3>
                     </div>
-                    <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-person-gear text-secondary" style="font-size: 1.25rem;"></i>
+                    <div class="stats-icon bg-secondary bg-opacity-10 text-secondary">
+                        <i class="ri-user-settings-line"></i>
                     </div>
                 </div>
             </div>
@@ -58,38 +61,39 @@
     </div>
 </div>
 
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search roles..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="system" {% if request.GET.type == 'system' %}selected{% endif %}>System</option>
+                    <option value="custom" {% if request.GET.type == 'custom' %}selected{% endif %}>Custom</option>
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> Add Role</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Roles Table Card -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Roles</h5>
-        <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i> Add Role
-        </a>
-    </div>
-
-    <!-- Filter Toolbar -->
-    <div class="filter-toolbar" id="rolesFilterToolbar">
-        <div class="filter-search">
-            <i class="bi bi-search search-icon"></i>
-            <input type="text"
-                   class="form-control"
-                   id="rolesSearchInput"
-                   placeholder="Search roles..."
-                   autocomplete="off">
-        </div>
-        <select class="form-select" id="rolesTypeFilter">
-            <option value="">All Types</option>
-            <option value="system">System</option>
-            <option value="custom">Custom</option>
-        </select>
-        <div class="filter-count" id="rolesFilterCount">
-            Showing <span id="rolesVisibleCount">{{ roles|length }}</span> roles
-        </div>
-    </div>
-
+<div class="card table-card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="rolesTable">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Role Name</th>
@@ -102,50 +106,47 @@
                 </thead>
                 <tbody>
                     {% for role in roles %}
-                    <tr data-role-name="{{ role.name|lower }}"
-                        data-role-desc="{{ role.description|lower }}"
-                        data-role-type="{% if role.is_system_role %}system{% else %}custom{% endif %}">
+                    <tr>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
-                                    <i class="bi bi-shield-check text-primary"></i>
+                                    <i class="ri-shield-check-line text-primary"></i>
                                 </div>
                                 <strong>{{ role.name }}</strong>
                             </div>
                         </td>
                         <td class="text-muted">{{ role.description|truncatewords:10|default:"-" }}</td>
                         <td>
-                            <span class="badge bg-primary-subtle text-primary">{{ role.permissions.count }} permissions</span>
+                            <span class="badge badge-soft-primary">{{ role.permissions.count }} permissions</span>
                         </td>
                         <td>
-                            <span class="badge bg-secondary-subtle text-secondary">{{ role.user_assignments.count }} users</span>
+                            <span class="badge badge-soft-secondary">{{ role.user_assignments.count }} users</span>
                         </td>
                         <td>
                             {% if role.is_system_role %}
-                            <span class="badge-dot bg-info">System</span>
+                            <span class="badge badge-soft-info">System</span>
                             {% else %}
-                            <span class="badge-dot bg-secondary">Custom</span>
+                            <span class="badge badge-soft-secondary">Custom</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            <div class="action-icons justify-content-end">
-                                <a href="{% url 'roles:edit' tenant_slug=current_tenant.slug pk=role.pk %}"
-                                   data-bs-toggle="tooltip"
-                                   title="Edit role">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                            </div>
+                            <a href="{% url 'roles:edit' tenant_slug=current_tenant.slug pk=role.pk %}"
+                               class="btn btn-sm btn-soft-primary"
+                               data-bs-toggle="tooltip"
+                               title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="6">
                             <div class="empty-state">
-                                <div class="empty-icon"><i class="bi bi-shield"></i></div>
+                                <div class="empty-icon"><i class="ri-shield-line"></i></div>
                                 <div class="empty-title">No roles defined yet</div>
                                 <div class="empty-text">Create your first role to start managing permissions.</div>
                                 <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-plus-lg me-1"></i> Create Role
+                                    <i class="ri-add-line me-1"></i> Create Role
                                 </a>
                             </div>
                         </td>
@@ -154,17 +155,8 @@
                 </tbody>
             </table>
         </div>
-        <!-- No filter results message -->
-        <div class="filter-no-results" id="rolesNoResults">
-            <i class="bi bi-search" style="font-size: 1.5rem;"></i>
-            <p class="mt-2 mb-0">No roles match your filters.</p>
-        </div>
     </div>
 
     {% include "partials/_pagination.html" %}
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/pages/roles.js' %}"></script>
 {% endblock %}
