@@ -1,14 +1,18 @@
-{% extends "layouts/vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Company Setup - NavAccounting{% endblock %}
-{% block page_title %}Company Setup{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-<li class="breadcrumb-item active">Company Setup</li>
-{% endblock %}
+{% block title %}Company Setup{% endblock %}
 
 {% block content %}
+<div class="page-title-box">
+    <h4>Company Setup</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">Company</a></li>
+        <li class="breadcrumb-item active">Setup</li>
+    </ol>
+</div>
+
 <div class="row">
     <div class="col-lg-12">
         <div class="card">
@@ -16,94 +20,118 @@
                 <h5 class="card-title mb-0">Company Information</h5>
             </div>
             <div class="card-body">
-                {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
-                {% endif %}
-
                 <form method="post">
                     {% csrf_token %}
-                    <h6 class="text-primary mb-3"><i class="bi bi-building me-1"></i> Basic Information</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <h6 class="text-primary mb-3"><i class="ri-building-2-line me-1"></i> Basic Information</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label for="id_company_name" class="form-label">Company Name *</label>
-                            <input type="text" class="form-control" id="id_company_name" name="company_name"
+                            <input type="text" class="form-control {% if form.company_name.errors %}is-invalid{% endif %}" id="id_company_name" name="company_name"
                                    value="{{ form.company_name.value|default:'' }}" required>
+                            {% if form.company_name.errors %}
+                            <div class="invalid-feedback">{{ form.company_name.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_legal_name" class="form-label">Legal Name</label>
-                            <input type="text" class="form-control" id="id_legal_name" name="legal_name"
+                            <input type="text" class="form-control {% if form.legal_name.errors %}is-invalid{% endif %}" id="id_legal_name" name="legal_name"
                                    value="{{ form.legal_name.value|default:'' }}">
+                            {% if form.legal_name.errors %}
+                            <div class="invalid-feedback">{{ form.legal_name.errors.0 }}</div>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
                             <label for="id_tax_id" class="form-label">Tax ID / EIN</label>
-                            <input type="text" class="form-control" id="id_tax_id" name="tax_id"
+                            <input type="text" class="form-control {% if form.tax_id.errors %}is-invalid{% endif %}" id="id_tax_id" name="tax_id"
                                    value="{{ form.tax_id.value|default:'' }}">
+                            {% if form.tax_id.errors %}
+                            <div class="invalid-feedback">{{ form.tax_id.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_registration_number" class="form-label">Registration Number</label>
-                            <input type="text" class="form-control" id="id_registration_number" name="registration_number"
+                            <input type="text" class="form-control {% if form.registration_number.errors %}is-invalid{% endif %}" id="id_registration_number" name="registration_number"
                                    value="{{ form.registration_number.value|default:'' }}">
+                            {% if form.registration_number.errors %}
+                            <div class="invalid-feedback">{{ form.registration_number.errors.0 }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
                     <hr>
-                    <h6 class="text-primary mb-3"><i class="bi bi-geo-alt me-1"></i> Address</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <h6 class="text-primary mb-3"><i class="ri-map-pin-line me-1"></i> Address</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label for="id_address_line_1" class="form-label">Address Line 1</label>
-                            <input type="text" class="form-control" id="id_address_line_1" name="address_line_1"
+                            <input type="text" class="form-control {% if form.address_line_1.errors %}is-invalid{% endif %}" id="id_address_line_1" name="address_line_1"
                                    value="{{ form.address_line_1.value|default:'' }}">
+                            {% if form.address_line_1.errors %}
+                            <div class="invalid-feedback">{{ form.address_line_1.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_address_line_2" class="form-label">Address Line 2</label>
-                            <input type="text" class="form-control" id="id_address_line_2" name="address_line_2"
+                            <input type="text" class="form-control {% if form.address_line_2.errors %}is-invalid{% endif %}" id="id_address_line_2" name="address_line_2"
                                    value="{{ form.address_line_2.value|default:'' }}">
+                            {% if form.address_line_2.errors %}
+                            <div class="invalid-feedback">{{ form.address_line_2.errors.0 }}</div>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3">
                             <label for="id_city" class="form-label">City</label>
-                            <input type="text" class="form-control" id="id_city" name="city"
+                            <input type="text" class="form-control {% if form.city.errors %}is-invalid{% endif %}" id="id_city" name="city"
                                    value="{{ form.city.value|default:'' }}">
+                            {% if form.city.errors %}
+                            <div class="invalid-feedback">{{ form.city.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-3">
                             <label for="id_state" class="form-label">State</label>
-                            <input type="text" class="form-control" id="id_state" name="state"
+                            <input type="text" class="form-control {% if form.state.errors %}is-invalid{% endif %}" id="id_state" name="state"
                                    value="{{ form.state.value|default:'' }}">
+                            {% if form.state.errors %}
+                            <div class="invalid-feedback">{{ form.state.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-3">
                             <label for="id_postal_code" class="form-label">Postal Code</label>
-                            <input type="text" class="form-control" id="id_postal_code" name="postal_code"
+                            <input type="text" class="form-control {% if form.postal_code.errors %}is-invalid{% endif %}" id="id_postal_code" name="postal_code"
                                    value="{{ form.postal_code.value|default:'' }}">
+                            {% if form.postal_code.errors %}
+                            <div class="invalid-feedback">{{ form.postal_code.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-3">
                             <label for="id_country" class="form-label">Country</label>
-                            <input type="text" class="form-control" id="id_country" name="country"
+                            <input type="text" class="form-control {% if form.country.errors %}is-invalid{% endif %}" id="id_country" name="country"
                                    value="{{ form.country.value|default:'' }}">
+                            {% if form.country.errors %}
+                            <div class="invalid-feedback">{{ form.country.errors.0 }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
                     <hr>
-                    <h6 class="text-primary mb-3"><i class="bi bi-cash-coin me-1"></i> Financial Settings</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
+                    <h6 class="text-primary mb-3"><i class="ri-money-dollar-circle-line me-1"></i> Financial Settings</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
                             <label for="id_base_currency" class="form-label">Base Currency *</label>
-                            <select class="form-select" id="id_base_currency" name="base_currency" required>
+                            <select class="form-select {% if form.base_currency.errors %}is-invalid{% endif %}" id="id_base_currency" name="base_currency" required>
                                 {% for currency in currencies %}
                                 <option value="{{ currency.id }}" {% if form.base_currency.value == currency.id|stringformat:"d" %}selected{% endif %}>
                                     {{ currency.code }} - {{ currency.name }}
                                 </option>
                                 {% endfor %}
                             </select>
+                            {% if form.base_currency.errors %}
+                            <div class="invalid-feedback">{{ form.base_currency.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4">
                             <label for="id_financial_year_start_month" class="form-label">Fiscal Year Start Month</label>
                             <select class="form-select" id="id_financial_year_start_month" name="financial_year_start_month">
                                 <option value="1">January</option>
@@ -120,7 +148,7 @@
                                 <option value="12">December</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4">
                             <label for="id_date_format" class="form-label">Date Format</label>
                             <select class="form-select" id="id_date_format" name="date_format">
                                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -131,28 +159,37 @@
                     </div>
 
                     <hr>
-                    <h6 class="text-primary mb-3"><i class="bi bi-telephone me-1"></i> Contact</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
+                    <h6 class="text-primary mb-3"><i class="ri-phone-line me-1"></i> Contact</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
                             <label for="id_phone" class="form-label">Phone</label>
-                            <input type="text" class="form-control" id="id_phone" name="phone"
+                            <input type="text" class="form-control {% if form.phone.errors %}is-invalid{% endif %}" id="id_phone" name="phone"
                                    value="{{ form.phone.value|default:'' }}">
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4">
                             <label for="id_email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="id_email" name="email"
+                            <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" id="id_email" name="email"
                                    value="{{ form.email.value|default:'' }}">
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback">{{ form.email.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4">
                             <label for="id_website" class="form-label">Website</label>
-                            <input type="url" class="form-control" id="id_website" name="website"
+                            <input type="url" class="form-control {% if form.website.errors %}is-invalid{% endif %}" id="id_website" name="website"
                                    value="{{ form.website.value|default:'' }}">
+                            {% if form.website.errors %}
+                            <div class="invalid-feedback">{{ form.website.errors.0 }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <div class="text-end mt-3">
+                    <div class="text-end mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i> Save Settings
+                            <i class="ri-save-line me-1"></i> Save Settings
                         </button>
                     </div>
                 </form>
