@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.tenants.managers import set_current_tenant
@@ -20,10 +21,24 @@ def role_list(request, tenant_slug):
     set_current_tenant(tenant)
     roles_qs = Role.objects.filter(tenant=tenant).prefetch_related('permissions', 'user_assignments')
 
-    # Compute stats before pagination
+    # Compute stats before filtering
     total_roles = roles_qs.count()
     system_roles = roles_qs.filter(is_system_role=True).count()
     custom_roles = total_roles - system_roles
+
+    # Server-side filters
+    search_query = request.GET.get('q', '').strip()
+    role_type = request.GET.get('type', '').strip()
+
+    if search_query:
+        roles_qs = roles_qs.filter(
+            Q(name__icontains=search_query) | Q(description__icontains=search_query)
+        )
+
+    if role_type == 'system':
+        roles_qs = roles_qs.filter(is_system_role=True)
+    elif role_type == 'custom':
+        roles_qs = roles_qs.filter(is_system_role=False)
 
     # Pagination
     paginator = Paginator(roles_qs, 10)
@@ -36,6 +51,8 @@ def role_list(request, tenant_slug):
         'total_roles': total_roles,
         'system_roles': system_roles,
         'custom_roles': custom_roles,
+        'search_query': search_query,
+        'role_type': role_type,
     })
 
 
