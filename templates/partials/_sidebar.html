@@ -89,6 +89,108 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">General Ledger <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Chart of Accounts -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'general_ledger:account_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'general_ledger' and 'account' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-book-2-line"></i>
+                    <span class="menu-text">Chart of Accounts</span>
+                </a>
+            </li>
+
+            <!-- Journal Entries -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'general_ledger' and 'journal' in request.resolver_match.url_name or request.resolver_match.app_name == 'general_ledger' and 'approval' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-file-list-3-line"></i>
+                    <span class="menu-text">Journal Entries</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'general_ledger' and 'journal' in request.resolver_match.url_name or request.resolver_match.app_name == 'general_ledger' and 'approval' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'general_ledger:journal_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'journal_list' %}active{% endif %}">
+                            <span class="menu-text">All Entries</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'general_ledger:journal_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'journal_create' %}active{% endif %}">
+                            <span class="menu-text">New Entry</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'general_ledger:approval_queue' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'approval' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Approvals</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Period Close -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'general_ledger:period_close_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'general_ledger' and 'period_close' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-calendar-check-line"></i>
+                    <span class="menu-text">Period Close</span>
+                </a>
+            </li>
+
+            <!-- Reconciliation -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'general_ledger:reconciliation_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'general_ledger' and 'reconciliation' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-scales-3-line"></i>
+                    <span class="menu-text">Reconciliation</span>
+                </a>
+            </li>
+
+            <!-- Allocation Rules -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'general_ledger:allocation_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'general_ledger' and 'allocation' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-pie-chart-line"></i>
+                    <span class="menu-text">Allocations</span>
+                </a>
+            </li>
+
+            <!-- Exchange Rates -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'general_ledger:exchange_rate_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'general_ledger' and 'exchange_rate' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-exchange-dollar-line"></i>
+                    <span class="menu-text">Exchange Rates</span>
+                </a>
+            </li>
+
+            <!-- Audit Trail -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'general_ledger:audit_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'audit_list' %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-history-line"></i>
+                    <span class="menu-text">Audit Trail</span>
+                </a>
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
