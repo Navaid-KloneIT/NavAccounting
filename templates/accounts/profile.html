@@ -1,23 +1,26 @@
-{% extends "layouts/vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Profile - NavAccounting{% endblock %}
-{% block page_title %}My Profile{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-<li class="breadcrumb-item active">Profile</li>
-{% endblock %}
 
 {% block content %}
+<div class="page-title-box">
+    <h4>My Profile</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Profile</li>
+    </ol>
+</div>
+
 <div class="row">
     <div class="col-xl-4">
         <div class="card">
             <div class="card-body text-center">
                 <div class="mb-3">
                     {% if user.avatar %}
-                    <img src="{{ user.avatar.url }}" alt="Avatar" class="rounded-circle" width="120" height="120">
+                    <img src="{{ user.avatar.url }}" alt="Avatar" class="rounded-circle" width="120" height="120" style="object-fit: cover;">
                     {% else %}
-                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                    <div class="rounded-circle bg-soft-primary d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
                         <span class="text-primary" style="font-size: 3rem;">{{ user.first_name|first }}{{ user.last_name|first }}</span>
                     </div>
                     {% endif %}
@@ -25,15 +28,15 @@
                 <h4 class="mb-1">{{ user.get_full_name }}</h4>
                 <p class="text-muted mb-3">{{ profile.job_title|default:"No title set" }}</p>
                 <p class="text-muted small">
-                    <i class="bi bi-envelope me-1"></i> {{ user.email }}
+                    <i class="ri-mail-line me-1"></i> {{ user.email }}
                 </p>
                 {% if user.phone %}
                 <p class="text-muted small">
-                    <i class="bi bi-telephone me-1"></i> {{ user.phone }}
+                    <i class="ri-phone-line me-1"></i> {{ user.phone }}
                 </p>
                 {% endif %}
                 <p class="text-muted small">
-                    <i class="bi bi-building me-1"></i> {{ profile.department|default:"No department" }}
+                    <i class="ri-building-line me-1"></i> {{ profile.department|default:"No department" }}
                 </p>
             </div>
         </div>
@@ -56,49 +59,104 @@
 
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label for="id_first_name" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="id_first_name" name="first_name"
+                            <input type="text"
+                                   class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                                   id="id_first_name"
+                                   name="first_name"
                                    value="{{ user.first_name }}">
+                            {% if form.first_name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.first_name.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_last_name" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="id_last_name" name="last_name"
+                            <input type="text"
+                                   class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                                   id="id_last_name"
+                                   name="last_name"
                                    value="{{ user.last_name }}">
+                            {% if form.last_name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.last_name.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_phone" class="form-label">Phone</label>
-                            <input type="text" class="form-control" id="id_phone" name="phone"
+                            <input type="text"
+                                   class="form-control {% if form.phone.errors %}is-invalid{% endif %}"
+                                   id="id_phone"
+                                   name="phone"
                                    value="{{ user.phone }}">
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.phone.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_avatar" class="form-label">Avatar</label>
-                            <input type="file" class="form-control" id="id_avatar" name="avatar" accept="image/*">
+                            <input type="file"
+                                   class="form-control {% if form.avatar.errors %}is-invalid{% endif %}"
+                                   id="id_avatar"
+                                   name="avatar"
+                                   accept="image/*">
+                            {% if form.avatar.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.avatar.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    <hr>
-                    <h6 class="text-muted mb-3">Organization Profile</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+
+                        <div class="col-12">
+                            <hr>
+                            <h6 class="text-muted mb-0">Organization Profile</h6>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="id_job_title" class="form-label">Job Title</label>
-                            <input type="text" class="form-control" id="id_job_title" name="job_title"
+                            <input type="text"
+                                   class="form-control {% if form.job_title.errors %}is-invalid{% endif %}"
+                                   id="id_job_title"
+                                   name="job_title"
                                    value="{{ profile.job_title }}">
+                            {% if form.job_title.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.job_title.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_department" class="form-label">Department</label>
-                            <input type="text" class="form-control" id="id_department" name="department"
+                            <input type="text"
+                                   class="form-control {% if form.department.errors %}is-invalid{% endif %}"
+                                   id="id_department"
+                                   name="department"
                                    value="{{ profile.department }}">
+                            {% if form.department.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.department.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_bio" class="form-label">Bio</label>
-                        <textarea class="form-control" id="id_bio" name="bio" rows="3">{{ profile.bio }}</textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12">
+                            <label for="id_bio" class="form-label">Bio</label>
+                            <textarea class="form-control {% if form.bio.errors %}is-invalid{% endif %}"
+                                      id="id_bio"
+                                      name="bio"
+                                      rows="3">{{ profile.bio }}</textarea>
+                            {% if form.bio.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.bio.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
                             <label for="id_timezone" class="form-label">Timezone</label>
                             <select class="form-select" id="id_timezone" name="timezone">
                                 <option value="UTC" {% if profile.timezone == "UTC" %}selected{% endif %}>UTC</option>
@@ -111,7 +169,7 @@
                                 <option value="Asia/Dubai" {% if profile.timezone == "Asia/Dubai" %}selected{% endif %}>Asia/Dubai</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_date_format" class="form-label">Date Format</label>
                             <select class="form-select" id="id_date_format" name="date_format">
                                 <option value="YYYY-MM-DD" {% if profile.date_format == "YYYY-MM-DD" %}selected{% endif %}>YYYY-MM-DD</option>
@@ -119,11 +177,11 @@
                                 <option value="DD/MM/YYYY" {% if profile.date_format == "DD/MM/YYYY" %}selected{% endif %}>DD/MM/YYYY</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i> Save Changes
-                        </button>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ri-save-line me-1"></i> Update Profile
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
