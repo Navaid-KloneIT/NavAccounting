@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.tenants.managers import set_current_tenant
@@ -17,10 +18,24 @@ def role_list(request, tenant_slug):
         return redirect('tenants:select')
 
     set_current_tenant(tenant)
-    roles = Role.objects.filter(tenant=tenant).prefetch_related('permissions', 'user_assignments')
+    roles_qs = Role.objects.filter(tenant=tenant).prefetch_related('permissions', 'user_assignments')
+
+    # Compute stats before pagination
+    total_roles = roles_qs.count()
+    system_roles = roles_qs.filter(is_system_role=True).count()
+    custom_roles = total_roles - system_roles
+
+    # Pagination
+    paginator = Paginator(roles_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'roles/role_list.html', {
-        'roles': roles,
+        'roles': page_obj,
+        'page_obj': page_obj,
+        'total_roles': total_roles,
+        'system_roles': system_roles,
+        'custom_roles': custom_roles,
     })
 
 
