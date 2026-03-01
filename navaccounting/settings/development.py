@@ -16,10 +16,10 @@ DATABASES = {
     }
 }
 
-# Debug toolbar
-INSTALLED_APPS += ['debug_toolbar']  # noqa: F405
-MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')  # noqa: F405
-INTERNAL_IPS = ['127.0.0.1']
+# Debug toolbar (disabled — enable by uncommenting below)
+# INSTALLED_APPS += ['debug_toolbar']  # noqa: F405
+# MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')  # noqa: F405
+# INTERNAL_IPS = ['127.0.0.1']
 
 # Email to console
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
