@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ title }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'general_ledger:reconciliation_list' tenant_slug=current_tenant.slug %}">Reconciliation</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-scales-3-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ title }}</h5>
+                <p class="text-muted small mb-0">Verify the account balance by comparing expected (system) balance with actual balance.</p>
+            </div>
+        </div>
+        {% if recon %}
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Balance Summary</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Expected Balance:</span>
+                    <strong>{{ recon.expected_balance|floatformat:2|intcomma }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Actual Balance:</span>
+                    <strong>{{ recon.actual_balance|floatformat:2|intcomma }}</strong>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Difference:</span>
+                    <strong class="{% if recon.difference != 0 %}text-danger{% else %}text-success{% endif %}">{{ recon.difference|floatformat:2|intcomma }}</strong>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-8">
+        <form method="post">
+            {% csrf_token %}
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-scales-3-line text-primary"></i></div>
+                        <h5 class="card-title mb-0">Reconciliation Details</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_account" class="form-label">Account <span class="text-danger">*</span></label>
+                            {{ form.account }}
+                            {% if form.account.errors %}<div class="invalid-feedback d-block">{{ form.account.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_fiscal_period" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                            {{ form.fiscal_period }}
+                            {% if form.fiscal_period.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_actual_balance" class="form-label">Actual Balance <span class="text-danger">*</span></label>
+                            {{ form.actual_balance }}
+                            {% if form.actual_balance.errors %}<div class="invalid-feedback d-block">{{ form.actual_balance.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="id_notes" class="form-label">Notes</label>
+                            {{ form.notes }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if lines %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Transaction Lines</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Entry #</th>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Debit</th>
+                                    <th class="text-end">Credit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for line in lines %}
+                                <tr>
+                                    <td>{{ line.journal_entry.entry_number }}</td>
+                                    <td>{{ line.journal_entry.date|date:"M d, Y" }}</td>
+                                    <td>{{ line.description|default:line.journal_entry.description|truncatechars:40 }}</td>
+                                    <td class="text-end">{% if line.debit %}{{ line.debit|floatformat:2|intcomma }}{% else %}-{% endif %}</td>
+                                    <td class="text-end">{% if line.credit %}{{ line.credit|floatformat:2|intcomma }}{% else %}-{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-body d-flex justify-content-end gap-2">
+                    <a href="{% url 'general_ledger:reconciliation_list' tenant_slug=current_tenant.slug %}" class="btn btn-light"><i class="ri-arrow-left-line me-1"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
