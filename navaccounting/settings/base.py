@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.roles',
     'apps.company',
     'apps.dashboard',
+    'apps.general_ledger',
 ]
 
 MIDDLEWARE = [
