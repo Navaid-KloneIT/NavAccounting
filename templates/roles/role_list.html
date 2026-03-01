@@ -9,62 +9,162 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Roles</h5>
-                <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Add Role
-                </a>
-            </div>
+<!-- Stat Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Role Name</th>
-                                <th>Description</th>
-                                <th>Permissions</th>
-                                <th>Users</th>
-                                <th>Type</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for role in roles %}
-                            <tr>
-                                <td><strong>{{ role.name }}</strong></td>
-                                <td>{{ role.description|truncatewords:10|default:"-" }}</td>
-                                <td>
-                                    <span class="badge bg-primary-subtle text-primary">{{ role.permissions.count }} permissions</span>
-                                </td>
-                                <td>{{ role.user_assignments.count }}</td>
-                                <td>
-                                    {% if role.is_system_role %}
-                                    <span class="badge bg-info-subtle text-info">System</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary-subtle text-secondary">Custom</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <a href="{% url 'roles:edit' tenant_slug=current_tenant.slug pk=role.pk %}" class="btn btn-sm btn-light">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">
-                                    No roles defined yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Total Roles</p>
+                        <h3 class="mb-0">{{ total_roles }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-shield-lock text-primary" style="font-size: 1.25rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">System Roles</p>
+                        <h3 class="mb-0">{{ system_roles }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-gear text-info" style="font-size: 1.25rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Custom Roles</p>
+                        <h3 class="mb-0">{{ custom_roles }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-gear text-secondary" style="font-size: 1.25rem;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Roles Table Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Roles</h5>
+        <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Add Role
+        </a>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="filter-toolbar" id="rolesFilterToolbar">
+        <div class="filter-search">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text"
+                   class="form-control"
+                   id="rolesSearchInput"
+                   placeholder="Search roles..."
+                   autocomplete="off">
+        </div>
+        <select class="form-select" id="rolesTypeFilter">
+            <option value="">All Types</option>
+            <option value="system">System</option>
+            <option value="custom">Custom</option>
+        </select>
+        <div class="filter-count" id="rolesFilterCount">
+            Showing <span id="rolesVisibleCount">{{ roles|length }}</span> roles
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="rolesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Role Name</th>
+                        <th>Description</th>
+                        <th>Permissions</th>
+                        <th>Users</th>
+                        <th>Type</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for role in roles %}
+                    <tr data-role-name="{{ role.name|lower }}"
+                        data-role-desc="{{ role.description|lower }}"
+                        data-role-type="{% if role.is_system_role %}system{% else %}custom{% endif %}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-shield-check text-primary"></i>
+                                </div>
+                                <strong>{{ role.name }}</strong>
+                            </div>
+                        </td>
+                        <td class="text-muted">{{ role.description|truncatewords:10|default:"-" }}</td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary">{{ role.permissions.count }} permissions</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary">{{ role.user_assignments.count }} users</span>
+                        </td>
+                        <td>
+                            {% if role.is_system_role %}
+                            <span class="badge-dot bg-info">System</span>
+                            {% else %}
+                            <span class="badge-dot bg-secondary">Custom</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="action-icons justify-content-end">
+                                <a href="{% url 'roles:edit' tenant_slug=current_tenant.slug pk=role.pk %}"
+                                   data-bs-toggle="tooltip"
+                                   title="Edit role">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="bi bi-shield"></i></div>
+                                <div class="empty-title">No roles defined yet</div>
+                                <div class="empty-text">Create your first role to start managing permissions.</div>
+                                <a href="{% url 'roles:create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-lg me-1"></i> Create Role
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- No filter results message -->
+        <div class="filter-no-results" id="rolesNoResults">
+            <i class="bi bi-search" style="font-size: 1.5rem;"></i>
+            <p class="mt-2 mb-0">No roles match your filters.</p>
+        </div>
+    </div>
+
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/roles.js' %}"></script>
 {% endblock %}
