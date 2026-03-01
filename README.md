@@ -32,7 +32,8 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **User Management** — Registration, login, forgot password, email verification, user invitation system
 - **Role-Based Access Control** — Permissions, roles, and tenant-level user role assignment
 - **Company Setup** — Company settings, fiscal years, fiscal periods, currency management
-- **Chart of Accounts** — Pre-built COA templates with hierarchical account structure
+- **Chart of Accounts** — Pre-built COA templates with hierarchical account structure, template import to tenant accounts
+- **General Ledger** — Double-entry journal entries, approval workflows, period close, reconciliation, allocations, audit trail, multi-currency exchange rates
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -81,6 +82,7 @@ NavAccounting/
 │   ├── accounts/                   # CustomUser, UserProfile, UserInvitation
 │   ├── roles/                      # Permission, Role, TenantUserRole
 │   ├── company/                    # CompanySettings, FiscalYear, Currency, COA
+│   ├── general_ledger/             # COA, Journal Entries, Approvals, Period Close, Reconciliation, Allocations, Audit Trail, Exchange Rates
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -89,6 +91,15 @@ NavAccounting/
 │   ├── accounts/                   # Login, register, forgot password, profile
 │   ├── dashboard/                  # Dashboard index + widget partials
 │   ├── company/                    # Company setup, fiscal years, COA
+│   ├── general_ledger/             # GL templates (18 files across 7 subdirectories)
+│   │   ├── chart_of_accounts/      # Account list, form, import template
+│   │   ├── journal_entries/        # Journal list, form, detail
+│   │   ├── approvals/              # Approval queue, detail
+│   │   ├── period_close/           # Period list, detail with checklist
+│   │   ├── reconciliation/         # Reconciliation list, form
+│   │   ├── allocation/             # Allocation list, form
+│   │   ├── audit_trail/            # Audit log list
+│   │   └── currency/               # Exchange rate list, form
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -214,6 +225,7 @@ python manage.py seed_data --users
 python manage.py seed_data --company
 python manage.py seed_data --coa
 python manage.py seed_data --dashboard
+python manage.py seed_data --gl
 ```
 
 ### What Gets Seeded
@@ -222,13 +234,14 @@ python manage.py seed_data --dashboard
 |----------|------|
 | Currencies | 30 currencies (USD, EUR, GBP, JPY, etc.) with ISO 4217 codes |
 | Account Types | 5 types — Asset, Liability, Equity, Revenue, Expense |
-| Permissions | 25 module-based permissions (view/manage dashboard, users, roles, etc.) |
+| Permissions | 33 module-based permissions (view/manage dashboard, users, roles, GL, etc.) |
 | COA Template | "Standard Business" template with 61 hierarchical accounts |
 | Tenants | 3 organizations — Acme Corporation, TechStart Solutions, Green Valley Farms |
 | Users | Superuser + 10 users per tenant (managers, accountants, viewers) |
 | Roles | 4 system roles per tenant — Admin, Manager, Accountant, Viewer |
 | Company Settings | Company info, fiscal years (2025-2026), 12 monthly periods |
 | Dashboard | 12 alerts + 5 widget configurations per tenant |
+| General Ledger | COA imported from template, 3 exchange rates, 3 sample posted journal entries per tenant |
 
 ---
 
@@ -274,7 +287,10 @@ These paths skip tenant resolution:
 | Tenant, TenantMembership | CompanySettings, FiscalYear, FiscalPeriod |
 | Currency, AccountType | Role, TenantUserRole |
 | Permission | DashboardWidgetConfig, Alert |
-| ChartOfAccountsTemplate | — |
+| ChartOfAccountsTemplate | Account, JournalEntry, JournalEntryLine |
+| — | JournalApproval, PeriodCloseChecklist |
+| — | AccountReconciliation, AllocationRule, AllocationRuleLine |
+| — | AuditTrail, ExchangeRate |
 
 ---
 
@@ -321,7 +337,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL) |
 | `/` | Redirects to tenant select or login |
 
 ### Tenant-Scoped URLs (`/t/<tenant_slug>/...`)
@@ -343,6 +359,32 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/roles/create/` | Create role | New role form |
 | `/t/<slug>/roles/<pk>/edit/` | Edit role | Edit role permissions |
 | `/t/<slug>/roles/assign/` | Assign role | Assign role to user |
+| `/t/<slug>/gl/accounts/` | Account list | Chart of accounts (tree view) |
+| `/t/<slug>/gl/accounts/create/` | Create account | New GL account form |
+| `/t/<slug>/gl/accounts/<pk>/edit/` | Edit account | Edit GL account |
+| `/t/<slug>/gl/accounts/<pk>/delete/` | Delete account | Delete GL account |
+| `/t/<slug>/gl/accounts/import-template/` | Import template | Import COA from template |
+| `/t/<slug>/gl/journal/` | Journal list | All journal entries |
+| `/t/<slug>/gl/journal/create/` | Create journal | New journal entry with lines |
+| `/t/<slug>/gl/journal/<pk>/` | Journal detail | View entry detail + approval history |
+| `/t/<slug>/gl/journal/<pk>/edit/` | Edit journal | Edit draft journal entry |
+| `/t/<slug>/gl/journal/<pk>/submit/` | Submit journal | Submit entry for approval |
+| `/t/<slug>/gl/journal/<pk>/post/` | Post journal | Post approved entry |
+| `/t/<slug>/gl/approvals/` | Approval queue | Pending entries for approval |
+| `/t/<slug>/gl/approvals/<pk>/` | Approval detail | Review entry + approve/reject |
+| `/t/<slug>/gl/period-close/` | Period close list | Fiscal periods with close status |
+| `/t/<slug>/gl/period-close/<pk>/` | Period close detail | Checklist + close/reopen actions |
+| `/t/<slug>/gl/reconciliation/` | Reconciliation list | Account reconciliations |
+| `/t/<slug>/gl/reconciliation/create/` | Create reconciliation | New reconciliation |
+| `/t/<slug>/gl/reconciliation/<pk>/` | Reconciliation form | Reconcile account balance |
+| `/t/<slug>/gl/allocations/` | Allocation list | Cost allocation rules |
+| `/t/<slug>/gl/allocations/create/` | Create allocation | New allocation rule |
+| `/t/<slug>/gl/allocations/<pk>/edit/` | Edit allocation | Edit allocation rule |
+| `/t/<slug>/gl/allocations/<pk>/run/` | Run allocation | Execute allocation (creates JE) |
+| `/t/<slug>/gl/exchange-rates/` | Exchange rate list | Currency exchange rates |
+| `/t/<slug>/gl/exchange-rates/create/` | Create rate | New exchange rate |
+| `/t/<slug>/gl/exchange-rates/<pk>/edit/` | Edit rate | Edit exchange rate |
+| `/t/<slug>/gl/audit-trail/` | Audit trail | Immutable audit log |
 
 ---
 
@@ -380,7 +422,28 @@ On user registration, the `NavAccountingAdapter` automatically:
 - **AccountType** — 5 standard types (Asset, Liability, Equity, Revenue, Expense)
 - **ChartOfAccountsTemplate** — Pre-built COA with hierarchical accounts
 
-### 6. `dashboard` — Dashboard & Analytics
+### 6. `general_ledger` — General Ledger Module
+
+The backbone of double-entry accounting with 8 submodules, 10 models, 28 views, and 18 templates.
+
+- **Account** — Tenant-scoped chart of accounts with hierarchical parent-child structure, imported from COA templates
+- **JournalEntry** — Double-entry journal entries with status workflow (Draft → Pending → Approved → Posted), auto-generated entry numbers (`JE-YYYY-NNNN`)
+- **JournalEntryLine** — Debit/credit lines linked to GL accounts, with multi-currency support
+- **JournalApproval** — Multi-level approval workflow with comments and approval history
+- **PeriodCloseChecklist** — Month-end/year-end closing procedures with step-by-step checklists and progress tracking
+- **AccountReconciliation** — Account balance verification with expected vs actual balance comparison, auto-difference calculation
+- **AllocationRule** / **AllocationRuleLine** — Automatic cost distribution rules with percentage/fixed-amount targets, generates journal entries on execution
+- **AuditTrail** — Immutable log of all GL changes via Django signals (pre_save/post_save), tracks field-level old/new values
+- **ExchangeRate** — Multi-currency exchange rate management with effective dates and source tracking
+
+#### Journal Entry Workflow
+
+```
+Draft → Submit for Approval → Pending Approval → Approve → Approved → Post → Posted
+                                                → Reject → Rejected
+```
+
+### 7. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -452,6 +515,7 @@ Permissions are organized by module:
 - `company` — view_company, manage_company
 - `coa` — view_coa, manage_coa
 - `journal` — view_journal, create_journal, approve_journal
+- `general_ledger` — post_journal, manage_coa_accounts, manage_periods, reconcile_accounts, manage_allocations, run_allocations, view_audit_trail, manage_exchange_rates
 - `ap` — view_ap, manage_ap
 - `ar` — view_ar, manage_ar
 - `bank` — view_bank, manage_bank
@@ -461,7 +525,7 @@ Permissions are organized by module:
 ### Access Control Decorators
 
 ```python
-from apps.tenants.decorators import tenant_required, role_required
+from apps.accounts.decorators import tenant_required, role_required, permission_required
 
 @tenant_required
 def my_view(request, tenant_slug):
@@ -469,6 +533,10 @@ def my_view(request, tenant_slug):
 
 @role_required('Admin', 'Manager')
 def admin_view(request, tenant_slug):
+    ...
+
+@permission_required('manage_coa_accounts', 'post_journal')
+def gl_view(request, tenant_slug):
     ...
 ```
 
@@ -480,7 +548,6 @@ The application is architected to support these additional accounting modules:
 
 | Module | Description |
 |--------|-------------|
-| General Ledger | Journal entries, period close, account reconciliation |
 | Accounts Payable | Vendor management, bill processing, payment scheduling |
 | Accounts Receivable | Customer management, invoicing, collections |
 | Cash Management | Bank feeds, reconciliation, cash positioning |
@@ -489,7 +556,6 @@ The application is architected to support these additional accounting modules:
 | Tax | Sales tax engine, tax returns, compliance |
 | Reporting | Financial statements, custom report builder, XBRL |
 | Budgeting | Budget creation, variance analysis, forecasting |
-| Audit & Controls | SOX controls, segregation of duties, audit trail |
 
 ---
 
