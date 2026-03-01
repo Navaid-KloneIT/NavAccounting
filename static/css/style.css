@@ -4,10 +4,10 @@
    ============================================ */
 
 :root {
-    --primary: #4b38b3;
-    --primary-rgb: 75, 56, 179;
-    --primary-dark: #3d2e95;
-    --primary-light: #6c5ce7;
+    --primary: #3577f1;
+    --primary-rgb: 53, 119, 241;
+    --primary-dark: #2a5cc0;
+    --primary-light: #5b8ef3;
     --secondary: #3b82f6;
     --success: #0ab39c;
     --info: #299cdb;
@@ -26,8 +26,8 @@
     --border-color: #e9ebec;
     --sidebar-bg: #ffffff;
     --sidebar-text: #6d7080;
-    --sidebar-active-text: #4b38b3;
-    --sidebar-active-bg: rgba(75, 56, 179, 0.08);
+    --sidebar-active-text: #3577f1;
+    --sidebar-active-bg: rgba(53, 119, 241, 0.08);
     --topbar-bg: #ffffff;
     --topbar-text: #495057;
 }
@@ -457,15 +457,15 @@ h1, h2, h3, h4, h5, h6 {
     color: #e2e8f0;
 }
 [data-sidebar="dark"] .sidebar-brand .brand-text span {
-    color: #7c8cf5;
+    color: #6ea8fe;
 }
 [data-sidebar="dark"] .menu-link.active {
     color: #fff;
-    background: rgba(124, 140, 245, 0.15);
+    background: rgba(53, 119, 241, 0.15);
 }
 [data-sidebar="dark"] .sub-menu .menu-link.active::before {
-    border-color: #7c8cf5;
-    background: #7c8cf5;
+    border-color: #6ea8fe;
+    background: #6ea8fe;
 }
 [data-sidebar="dark"] .sidebar-profile {
     border-top-color: rgba(255,255,255,0.06);
@@ -476,7 +476,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ---- Sidebar Colored ---- */
 [data-sidebar="colored"] .app-menu {
-    background: linear-gradient(180deg, #3b38b3 0%, #0a7b8c 100%);
+    background: linear-gradient(180deg, #3577f1 0%, #0a7b8c 100%);
     border-right: none;
     --sidebar-text: rgba(255,255,255,0.65);
     --sidebar-active-text: #ffffff;
@@ -796,7 +796,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ============================================
    BADGES & STATUS
    ============================================ */
-.badge-soft-primary { background: rgba(75, 56, 179, 0.1); color: #4b38b3; }
+.badge-soft-primary { background: rgba(53, 119, 241, 0.1); color: #3577f1; }
 .badge-soft-success { background: rgba(10, 179, 156, 0.1); color: #0ab39c; }
 .badge-soft-info { background: rgba(41, 156, 219, 0.1); color: #299cdb; }
 .badge-soft-warning { background: rgba(247, 184, 75, 0.1); color: #f7b84b; }
