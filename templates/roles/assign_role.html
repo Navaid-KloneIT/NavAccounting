@@ -1,15 +1,18 @@
-{% extends "layouts/vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Assign Role - NavAccounting{% endblock %}
-{% block page_title %}Assign Role{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-<li class="breadcrumb-item"><a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}">Roles</a></li>
-<li class="breadcrumb-item active">Assign</li>
-{% endblock %}
 
 {% block content %}
+<div class="page-title-box">
+    <h4>Assign Role</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}">Roles</a></li>
+        <li class="breadcrumb-item active">Assign</li>
+    </ol>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-lg-6">
         <div class="card">
@@ -19,31 +22,41 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="id_user" class="form-label">User *</label>
-                        <select class="form-select" id="id_user" name="user" required>
-                            <option value="">Select a user</option>
-                            {% for member in members %}
-                            <option value="{{ member.user.id }}" {% if selected_user == member.user.id|stringformat:"d" %}selected{% endif %}>
-                                {{ member.user.get_full_name }} ({{ member.user.email }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_role" class="form-label">Role *</label>
-                        <select class="form-select" id="id_role" name="role" required>
-                            <option value="">Select a role</option>
-                            {% for role in roles %}
-                            <option value="{{ role.id }}">{{ role.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-shield-check me-1"></i> Assign Role
-                        </button>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="id_user" class="form-label">User *</label>
+                            <select class="form-select {% if form.user.errors %}is-invalid{% endif %}" id="id_user" name="user" required>
+                                <option value="">Select a user</option>
+                                {% for member in members %}
+                                <option value="{{ member.user.id }}" {% if selected_user == member.user.id|stringformat:"d" %}selected{% endif %}>
+                                    {{ member.user.get_full_name }} ({{ member.user.email }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.user.errors %}
+                            <div class="invalid-feedback">{{ form.user.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="id_role" class="form-label">Role *</label>
+                            <select class="form-select {% if form.role.errors %}is-invalid{% endif %}" id="id_role" name="role" required>
+                                <option value="">Select a role</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.role.errors %}
+                            <div class="invalid-feedback">{{ form.role.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-shield-check-line me-1"></i> Assign Role
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
