@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Import Chart of Accounts{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Import Chart of Accounts</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'general_ledger:account_list' tenant_slug=current_tenant.slug %}">Chart of Accounts</a></li>
+        <li class="breadcrumb-item active">Import Template</li>
+    </ol>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-download-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">Import Template</h5>
+                <p class="text-muted small mb-0">Import a pre-built chart of accounts template into your organization. Existing accounts will not be duplicated.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        {% for template in templates %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">{{ template.name }}</h5>
+                        {% if template.country %}<span class="badge badge-soft-info mb-2">{{ template.country }}</span>{% endif %}
+                        {% if template.is_default %}<span class="badge badge-soft-success mb-2">Default</span>{% endif %}
+                        <p class="text-muted small mb-1">{{ template.description|default:"No description" }}</p>
+                        <small class="text-muted"><i class="ri-list-check me-1"></i>{{ template.items.count }} accounts</small>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="template_id" value="{{ template.pk }}">
+                        <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Import {{ template.items.count }} accounts from this template?');">
+                            <i class="ri-download-line me-1"></i> Import
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="mb-3"><i class="ri-file-list-3-line text-muted" style="font-size: 3rem;"></i></div>
+                <h5 class="text-muted">No templates available</h5>
+                <p class="text-muted">Run the seed command to create COA templates.</p>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="card">
+            <div class="card-body d-flex justify-content-end">
+                <a href="{% url 'general_ledger:account_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
