@@ -1,94 +1,136 @@
 {% load static %}
 
 <!-- Sidebar -->
-<aside class="sidebar" id="sidebar">
-    <!-- Logo / Brand -->
+<div class="app-menu">
+    <!-- Brand -->
     <div class="sidebar-brand">
-        <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="d-flex align-items-center text-decoration-none">
-            <span class="logo-icon">
-                <i class="bi bi-journal-bookmark-fill text-white" style="font-size: 1.5rem;"></i>
-            </span>
-            <span class="logo-text ms-2">NavAccounting</span>
+        <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo-lg">
+            <span class="brand-icon">N</span>
+            <span class="brand-text">Nav<span>Accounting</span></span>
+        </a>
+        <a href="{% if current_tenant %}{% url 'dashboard:index' tenant_slug=current_tenant.slug %}{% else %}/{% endif %}" class="logo-sm">
+            <span class="brand-icon">N</span>
         </a>
     </div>
 
-    <!-- Sidebar Content -->
-    <div class="sidebar-content" data-simplebar>
-        <ul class="sidebar-nav">
+    <!-- Menu -->
+    <div class="sidebar-menu" id="sidebar-menu">
+        <ul class="nav-list">
 
-            <li class="sidebar-header">Menu</li>
+            <li class="menu-title">Menu</li>
 
-            <!-- Dashboard -->
-            <li class="sidebar-item {{ nav_tags.dashboard }}">
+            <li class="nav-item">
                 {% if current_tenant %}
-                <a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                <a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'index' and request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
                 {% else %}
-                <a href="/" class="sidebar-link">
+                <a href="/" class="menu-link">
                 {% endif %}
-                    <i class="bi bi-speedometer2 sidebar-icon"></i>
-                    <span>Dashboard</span>
+                    <i class="ri-dashboard-2-line"></i>
+                    <span class="menu-text">Dashboard</span>
                 </a>
             </li>
 
-            <li class="sidebar-header">System Administration</li>
+            <li class="menu-title" data-toggle="menu-section">System Administration <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Company Setup -->
-            <li class="sidebar-item {{ nav_tags.company }}">
-                {% if current_tenant %}
-                <a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}" class="sidebar-link">
-                {% else %}
-                <a href="#" class="sidebar-link">
-                {% endif %}
-                    <i class="bi bi-building sidebar-icon"></i>
-                    <span>Company Setup</span>
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'company' %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-building-2-line"></i>
+                    <span class="menu-text">Company Setup</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
                 </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'company' %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'setup' %}active{% endif %}">
+                            <span class="menu-text">General</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'fiscal_year' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Fiscal Years</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'company:currencies' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'currencies' %}active{% endif %}">
+                            <span class="menu-text">Currencies</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'company:coa_template_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'coa_template' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Chart of Accounts</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
             </li>
 
             <!-- User Management -->
-            <li class="sidebar-item {{ nav_tags.users }}">
+            <li class="nav-item">
                 {% if current_tenant %}
-                <a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                <a href="{% url 'accounts:user_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_invite' %}active{% endif %}">
                 {% else %}
-                <a href="#" class="sidebar-link">
+                <a href="#" class="menu-link">
                 {% endif %}
-                    <i class="bi bi-people sidebar-icon"></i>
-                    <span>User Management</span>
+                    <i class="ri-team-line"></i>
+                    <span class="menu-text">User Management</span>
                 </a>
             </li>
 
             <!-- Roles & Permissions -->
-            <li class="sidebar-item {{ nav_tags.roles }}">
+            <li class="nav-item">
                 {% if current_tenant %}
-                <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}" class="sidebar-link">
+                <a href="{% url 'roles:list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'roles' %}active{% endif %}">
                 {% else %}
-                <a href="#" class="sidebar-link">
+                <a href="#" class="menu-link">
                 {% endif %}
-                    <i class="bi bi-shield-lock sidebar-icon"></i>
-                    <span>Roles &amp; Permissions</span>
+                    <i class="ri-shield-keyhole-line"></i>
+                    <span class="menu-text">Roles &amp; Permissions</span>
                 </a>
             </li>
 
-            <li class="sidebar-header">Analytics</li>
+            <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
-            <li class="sidebar-item {{ nav_tags.reports }}">
-                <a href="#" class="sidebar-link">
-                    <i class="bi bi-bar-chart sidebar-icon"></i>
-                    <span>Reports</span>
+            <li class="nav-item">
+                <a href="#" class="menu-link">
+                    <i class="ri-bar-chart-2-line"></i>
+                    <span class="menu-text">Reports</span>
                 </a>
             </li>
 
             <!-- Forecasting -->
-            <li class="sidebar-item {{ nav_tags.forecasting }}">
-                <a href="#" class="sidebar-link">
-                    <i class="bi bi-graph-up-arrow sidebar-icon"></i>
-                    <span>Forecasting</span>
+            <li class="nav-item">
+                <a href="#" class="menu-link">
+                    <i class="ri-line-chart-line"></i>
+                    <span class="menu-text">Forecasting</span>
                 </a>
             </li>
 
         </ul>
     </div>
-</aside>
-<!-- Sidebar Overlay (mobile) -->
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
-<!-- End Sidebar -->
+
+    <!-- Sidebar Profile -->
+    <div class="sidebar-profile">
+        <div class="sidebar-profile-avatar">
+            {% if user.first_name %}{{ user.first_name|first|upper }}{% else %}U{% endif %}
+        </div>
+        <div class="sidebar-profile-info">
+            <span class="sidebar-profile-name">
+                {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email|default:"User" }}{% endif %}
+            </span>
+            <span class="sidebar-profile-role">
+                {% if current_tenant %}{{ current_tenant.name|truncatechars:20 }}{% else %}No Tenant{% endif %}
+            </span>
+        </div>
+        <a href="{% url 'account_logout' %}" class="sidebar-profile-logout" title="Logout"
+           onclick="event.preventDefault(); document.getElementById('sidebar-logout-form').submit();">
+            <i class="ri-logout-box-r-line"></i>
+        </a>
+        <form id="sidebar-logout-form" action="{% url 'account_logout' %}" method="POST" class="d-none">
+            {% csrf_token %}
+        </form>
+    </div>
+</div>
+<!-- Vertical Overlay -->
+<div class="vertical-overlay"></div>
