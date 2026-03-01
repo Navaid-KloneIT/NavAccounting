@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exchange Rates{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Exchange Rates</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Exchange Rates</li>
+    </ol>
+</div>
+
+<!-- Stat Card -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Rates</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-exchange-dollar-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search Currency</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="USD, EUR..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'general_ledger:exchange_rate_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'general_ledger:exchange_rate_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> Add Rate</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th class="text-end">Rate</th>
+                        <th>Effective Date</th>
+                        <th>Source</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in exchange_rates %}
+                    <tr>
+                        <td><strong>{{ rate.from_currency.code }}</strong> <small class="text-muted">{{ rate.from_currency.name }}</small></td>
+                        <td><strong>{{ rate.to_currency.code }}</strong> <small class="text-muted">{{ rate.to_currency.name }}</small></td>
+                        <td class="text-end">{{ rate.rate }}</td>
+                        <td>{{ rate.effective_date|date:"M d, Y" }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ rate.source|default:"manual" }}</span></td>
+                        <td class="text-end">
+                            <a href="{% url 'general_ledger:exchange_rate_edit' tenant_slug=current_tenant.slug pk=rate.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-exchange-dollar-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No exchange rates found</h5>
+                                <p class="text-muted">Add exchange rates for multi-currency support.</p>
+                                <a href="{% url 'general_ledger:exchange_rate_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm"><i class="ri-add-line me-1"></i> Add Rate</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
