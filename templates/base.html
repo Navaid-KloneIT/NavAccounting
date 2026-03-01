@@ -126,9 +126,10 @@
     <!-- Custom App JS -->
     <script src="{% static 'js/app.js' %}"></script>
 
-    <!-- Initialize Django messages as toasts -->
+    <!-- Initialize Django messages as toasts + back-to-top -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Init pre-rendered Django message toasts
             var toastElements = document.querySelectorAll('#django-messages .toast');
             toastElements.forEach(function(toastEl) {
                 var toast = new bootstrap.Toast(toastEl, {
@@ -138,16 +139,7 @@
                 toast.show();
             });
 
-            var preloader = document.getElementById('preloader');
-            if (preloader) {
-                setTimeout(function() {
-                    preloader.classList.add('loaded');
-                    setTimeout(function() {
-                        preloader.style.display = 'none';
-                    }, 300);
-                }, 300);
-            }
-
+            // Back to top scroll listener
             var backToTopBtn = document.getElementById('back-to-top');
             if (backToTopBtn) {
                 window.addEventListener('scroll', function() {
@@ -155,19 +147,6 @@
                         backToTopBtn.style.display = 'block';
                     } else {
                         backToTopBtn.style.display = 'none';
-                    }
-                });
-            }
-
-            var fullscreenBtn = document.querySelector('[data-toggle="fullscreen"]');
-            if (fullscreenBtn) {
-                fullscreenBtn.addEventListener('click', function() {
-                    if (!document.fullscreenElement) {
-                        document.documentElement.requestFullscreen().catch(function(err) {
-                            console.log('Fullscreen request failed: ' + err.message);
-                        });
-                    } else {
-                        document.exitFullscreen();
                     }
                 });
             }
