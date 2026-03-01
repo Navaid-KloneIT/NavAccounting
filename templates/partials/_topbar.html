@@ -84,11 +84,11 @@
                 </button>
                 <div class="dropdown-menu dropdown-menu-end">
                     <h6 class="dropdown-header">Switch Company</h6>
-                    {% for tenant in user_tenants %}
-                    <a class="dropdown-item {% if current_tenant and current_tenant.pk == tenant.pk %}active{% endif %}"
-                       href="{% url 'tenants:switch' tenant_slug=tenant.slug %}">
+                    {% for membership in user_tenants %}
+                    <a class="dropdown-item {% if current_tenant and current_tenant.pk == membership.tenant.pk %}active{% endif %}"
+                       href="{% url 'tenants:switch' tenant_slug=membership.tenant.slug %}">
                         <i class="ri-building-2-line text-muted fs-16 align-middle me-1"></i>
-                        <span class="align-middle">{{ tenant.name }}</span>
+                        <span class="align-middle">{{ membership.tenant.name }}</span>
                     </a>
                     {% endfor %}
                 </div>
