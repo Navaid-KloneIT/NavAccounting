@@ -58,4 +58,28 @@
     .preloader-brand {
         animation: preloader-pulse 1.5s ease-in-out infinite;
     }
+
+    /* Failsafe: auto-hide preloader after 2s even if JS fails */
+    @keyframes preloader-failsafe {
+        0%, 99% { opacity: 1; visibility: visible; }
+        100% { opacity: 0; visibility: hidden; }
+    }
+
+    #preloader {
+        animation: preloader-failsafe 2s ease forwards;
+    }
+
+    #preloader.loaded,
+    #preloader[style*="display: none"] {
+        animation: none;
+    }
+
+    /* Hide preloader immediately when JS is disabled */
+    noscript + #preloader,
+    html:not([data-theme]) #preloader {
+        display: none !important;
+    }
 </style>
+<noscript>
+    <style>#preloader { display: none !important; }</style>
+</noscript>
