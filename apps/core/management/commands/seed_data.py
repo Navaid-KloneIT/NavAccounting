@@ -45,6 +45,7 @@ class Command(BaseCommand):
         parser.add_argument('--company', action='store_true', help='Seed company data only')
         parser.add_argument('--coa', action='store_true', help='Seed chart of accounts only')
         parser.add_argument('--dashboard', action='store_true', help='Seed dashboard data only')
+        parser.add_argument('--gl', action='store_true', help='Seed general ledger data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -53,7 +54,7 @@ class Command(BaseCommand):
 
         seed_all = not any([
             options['tenants'], options['users'], options['company'],
-            options['coa'], options['dashboard']
+            options['coa'], options['dashboard'], options['gl']
         ])
 
         # Always seed system-level data
@@ -82,9 +83,33 @@ class Command(BaseCommand):
             self.stdout.write('Seeding dashboard data...')
             self._seed_dashboard_data()
 
+        if seed_all or options['gl']:
+            self.stdout.write('Seeding general ledger data...')
+            self._seed_gl_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean GL data first (depends on other models)
+        try:
+            from apps.general_ledger.models import (
+                AuditTrail, AccountReconciliation, AllocationRuleLine, AllocationRule,
+                PeriodCloseChecklist, JournalApproval, JournalEntryLine, JournalEntry,
+                ExchangeRate, Account,
+            )
+            AuditTrail.unscoped.all().delete()
+            AccountReconciliation.unscoped.all().delete()
+            AllocationRuleLine.objects.all().delete()
+            AllocationRule.unscoped.all().delete()
+            PeriodCloseChecklist.unscoped.all().delete()
+            JournalApproval.unscoped.all().delete()
+            JournalEntryLine.objects.all().delete()
+            JournalEntry.unscoped.all().delete()
+            ExchangeRate.unscoped.all().delete()
+            Account.unscoped.all().delete()
+        except Exception:
+            pass
+
         Alert.unscoped.all().delete()
         DashboardWidgetConfig.unscoped.all().delete()
         FiscalPeriod.unscoped.all().delete()
@@ -175,6 +200,14 @@ class Command(BaseCommand):
             ('view_journal', 'View Journal Entries', 'general_ledger'),
             ('create_journal', 'Create Journal Entries', 'general_ledger'),
             ('approve_journal', 'Approve Journal Entries', 'general_ledger'),
+            ('post_journal', 'Post Journal Entries', 'general_ledger'),
+            ('manage_coa_accounts', 'Manage Chart of Accounts (GL)', 'general_ledger'),
+            ('manage_periods', 'Manage Period Close', 'general_ledger'),
+            ('reconcile_accounts', 'Reconcile Accounts', 'general_ledger'),
+            ('manage_allocations', 'Manage Allocation Rules', 'general_ledger'),
+            ('run_allocations', 'Run Allocations', 'general_ledger'),
+            ('view_audit_trail', 'View Audit Trail', 'general_ledger'),
+            ('manage_exchange_rates', 'Manage Exchange Rates', 'general_ledger'),
             ('view_ap', 'View Accounts Payable', 'accounts_payable'),
             ('manage_ap', 'Manage Accounts Payable', 'accounts_payable'),
             ('view_ar', 'View Accounts Receivable', 'accounts_receivable'),
@@ -531,3 +564,109 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write('  Created dashboard alerts and widget configs')
+
+    def _seed_gl_data(self):
+        """Seed general ledger data: import COA template, exchange rates, sample journal entries."""
+        from apps.general_ledger.models import Account, JournalEntry, JournalEntryLine, ExchangeRate
+
+        template = ChartOfAccountsTemplate.objects.filter(is_default=True).first()
+        if not template:
+            self.stdout.write('  No default COA template found, skipping GL seed.')
+            return
+
+        for tenant in Tenant.objects.all():
+            # Import accounts from default template
+            items = template.items.select_related('account_type', 'parent').order_by('display_order')
+            parent_map = {}
+            created_count = 0
+            for item in items:
+                parent = parent_map.get(item.parent_id) if item.parent_id else None
+                account, created = Account.unscoped.get_or_create(
+                    tenant=tenant,
+                    account_number=item.account_code,
+                    defaults={
+                        'name': item.account_name,
+                        'account_type': item.account_type,
+                        'parent': parent,
+                        'is_header': item.is_header,
+                        'description': item.description,
+                        'display_order': item.display_order,
+                    }
+                )
+                parent_map[item.pk] = account
+                if created:
+                    created_count += 1
+
+            # Seed exchange rates
+            usd = Currency.objects.filter(code='USD').first()
+            eur = Currency.objects.filter(code='EUR').first()
+            gbp = Currency.objects.filter(code='GBP').first()
+            if usd and eur and gbp:
+                for from_c, to_c, rate in [(usd, eur, '0.92000000'), (usd, gbp, '0.79000000'), (eur, gbp, '0.86000000')]:
+                    ExchangeRate.unscoped.get_or_create(
+                        tenant=tenant,
+                        from_currency=from_c,
+                        to_currency=to_c,
+                        effective_date=date(2025, 1, 1),
+                        defaults={'rate': Decimal(rate), 'source': 'seed'}
+                    )
+
+            # Seed sample journal entries
+            fy = FiscalYear.unscoped.filter(tenant=tenant, is_current=True).first()
+            if not fy:
+                continue
+            period = FiscalPeriod.unscoped.filter(fiscal_year=fy, tenant=tenant, period_number=1).first()
+            if not period:
+                continue
+
+            superuser = CustomUser.objects.filter(email='admin@navaccounting.com').first()
+            if not superuser or not usd:
+                continue
+
+            sample_entries = [
+                {
+                    'description': 'Initial Capital Investment',
+                    'date': date(2025, 1, 5),
+                    'lines': [('1110', Decimal('50000.00'), Decimal('0.00')), ('3300', Decimal('0.00'), Decimal('50000.00'))]
+                },
+                {
+                    'description': 'Office Rent Payment',
+                    'date': date(2025, 1, 10),
+                    'lines': [('6200', Decimal('2500.00'), Decimal('0.00')), ('1110', Decimal('0.00'), Decimal('2500.00'))]
+                },
+                {
+                    'description': 'Service Revenue from Client',
+                    'date': date(2025, 1, 15),
+                    'lines': [('1210', Decimal('15000.00'), Decimal('0.00')), ('4200', Decimal('0.00'), Decimal('15000.00'))]
+                },
+            ]
+
+            for i, entry_data in enumerate(sample_entries, start=1):
+                entry_number = f"JE-2025-{i:04d}"
+                je, created = JournalEntry.unscoped.get_or_create(
+                    tenant=tenant,
+                    entry_number=entry_number,
+                    defaults={
+                        'date': entry_data['date'],
+                        'description': entry_data['description'],
+                        'fiscal_period': period,
+                        'status': 'posted',
+                        'source': 'system',
+                        'currency': usd,
+                        'created_by': superuser,
+                        'posted_by': superuser,
+                        'posted_at': timezone.now(),
+                    }
+                )
+                if created:
+                    for acc_code, debit, credit in entry_data['lines']:
+                        account = Account.unscoped.filter(tenant=tenant, account_number=acc_code).first()
+                        if account:
+                            JournalEntryLine.objects.create(
+                                journal_entry=je,
+                                account=account,
+                                debit=debit,
+                                credit=credit,
+                            )
+
+        self.stdout.write(f'  Created GL data (accounts, exchange rates, journal entries)')
