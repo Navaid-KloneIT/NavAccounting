@@ -1,89 +1,179 @@
-{% extends "base.html" %}
 {% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Organization - NavAccounting</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css">
+    <style>
+        :root {
+            --primary: #4b38b3;
+            --primary-dark: #3c2d91;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f3f3f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .avatar-md {
+            width: 64px;
+            height: 64px;
+        }
+        .avatar-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .card {
+            border-radius: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .text-primary {
+            color: var(--primary) !important;
+        }
+        .bg-primary {
+            background-color: var(--primary) !important;
+        }
+        .brand-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .brand-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #495057;
+        }
+        .brand-text span {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo -->
+    <div class="text-center mb-4">
+        <a href="/" class="brand-logo">
+            <div class="brand-icon">N</div>
+            <div class="brand-text">Nav<span>Accounting</span></div>
+        </a>
+    </div>
 
-{% block layout %}
-<!-- Tenant Selection Layout -->
-<div class="auth-page">
-    <div class="container-fluid p-0">
-        <div class="row g-0 justify-content-center">
-            <div class="col-xxl-8 col-lg-10 col-md-12">
-                <div class="d-flex flex-column min-vh-100 py-4 px-3">
+    <!-- Page Heading -->
+    <div class="text-center mb-4">
+        <h4 class="fw-semibold">Select an Organization</h4>
+        <p class="text-muted">Choose an organization to continue, or create a new one.</p>
+    </div>
 
-                    <!-- Logo -->
-                    <div class="text-center mb-4">
-                        <a href="/">
-                            <img src="{% static 'images/logo-dark.png' %}" alt="NavAccounting" height="30" class="logo-dark-element">
-                            <img src="{% static 'images/logo-light.png' %}" alt="NavAccounting" height="30" class="logo-light-element">
-                        </a>
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert" style="max-width: 900px; width: 100%;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Tenant Cards Grid -->
+    <div class="row g-3 justify-content-center" style="max-width: 900px; width: 100%;">
+        {% for membership in memberships %}
+        <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
+            <div class="card border shadow-sm h-100">
+                <div class="card-body text-center p-4">
+                    <div class="avatar-md mx-auto mb-3">
+                        {% if membership.tenant.logo %}
+                        <img src="{{ membership.tenant.logo.url }}" alt="{{ membership.tenant.name }}"
+                             class="img-fluid rounded-circle">
+                        {% else %}
+                        <span class="avatar-title rounded-circle bg-primary bg-opacity-10 text-primary fs-3">
+                            {{ membership.tenant.name|first|upper }}
+                        </span>
+                        {% endif %}
                     </div>
-
-                    <!-- Page Heading -->
-                    <div class="text-center mb-4">
-                        <h4 class="fw-semibold">Select an Organization</h4>
-                        <p class="text-muted">Choose an organization to continue, or create a new one.</p>
-                    </div>
-
-                    {% include "partials/_alerts.html" %}
-
-                    <!-- Tenant Cards Grid -->
-                    <div class="row g-3 justify-content-center">
-                        {% for membership in memberships %}
-                        <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                            <div class="card border shadow-sm h-100">
-                                <div class="card-body text-center p-4">
-                                    <div class="avatar-md mx-auto mb-3">
-                                        {% if membership.tenant.logo %}
-                                        <img src="{{ membership.tenant.logo.url }}" alt="{{ membership.tenant.name }}"
-                                             class="img-fluid rounded-circle">
-                                        {% else %}
-                                        <span class="avatar-title rounded-circle bg-primary bg-opacity-10 text-primary fs-3">
-                                            {{ membership.tenant.name|first|upper }}
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                    <h5 class="card-title mb-1">{{ membership.tenant.name }}</h5>
-                                    {% if membership.is_default %}
-                                    <span class="badge bg-primary bg-opacity-10 text-primary mb-3">Default</span>
-                                    {% else %}
-                                    <div class="mb-3">&nbsp;</div>
-                                    {% endif %}
-                                    <a href="{% url 'tenants:switch' tenant_slug=membership.tenant.slug %}"
-                                       class="btn btn-primary w-100">
-                                        <i class="bi bi-box-arrow-in-right me-1"></i> Select
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="col-12">
-                            <div class="text-center py-5">
-                                <div class="mb-3">
-                                    <i class="bi bi-building fs-1 text-muted"></i>
-                                </div>
-                                <h5 class="text-muted">No organizations found</h5>
-                                <p class="text-muted mb-4">You are not a member of any organization yet.</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Create New Tenant -->
-                    <div class="text-center mt-4">
-                        <a href="{% url 'tenants:create' %}" class="btn btn-outline-primary">
-                            <i class="bi bi-plus-circle me-1"></i> Create New Organization
-                        </a>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="text-center mt-auto pt-4">
-                        {% now "Y" as current_year %}
-                        <p class="text-muted mb-0">&copy; {{ current_year }} NavAccounting. All rights reserved.</p>
-                    </div>
-
+                    <h5 class="card-title mb-1">{{ membership.tenant.name }}</h5>
+                    {% if membership.is_default %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary mb-3">Default</span>
+                    {% else %}
+                    <div class="mb-3">&nbsp;</div>
+                    {% endif %}
+                    <a href="{% url 'tenants:switch' tenant_slug=membership.tenant.slug %}"
+                       class="btn btn-primary w-100">
+                        <i class="ri-login-box-line me-1"></i> Select
+                    </a>
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="ri-building-line" style="font-size: 3rem; color: #878a99;"></i>
+                </div>
+                <h5 class="text-muted">No organizations found</h5>
+                <p class="text-muted mb-4">You are not a member of any organization yet.</p>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-</div>
-<!-- End Tenant Selection Layout -->
-{% endblock %}
+
+    <!-- Create New Tenant -->
+    <div class="text-center mt-4">
+        <a href="{% url 'tenants:create' %}" class="btn btn-outline-primary">
+            <i class="ri-add-circle-line me-1"></i> Create New Organization
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-auto pt-4">
+        {% now "Y" as current_year %}
+        <p class="text-muted mb-0">&copy; {{ current_year }} NavAccounting. All rights reserved.</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
