@@ -14,59 +14,139 @@
     </ol>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-8">
+<div class="row">
+    <!-- Left: Info Panel -->
+    <div class="col-lg-4">
         <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">{{ title }}</h5>
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-calendar-2-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ title }}</h5>
+                <p class="text-muted small mb-0">Define the start and end dates for your fiscal year. Periods will be auto-generated based on these dates.</p>
             </div>
+        </div>
+        <div class="card">
             <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
+                <h6 class="text-muted text-uppercase small mb-3">Tips</h6>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0">
+                        <i class="ri-lightbulb-line text-warning me-2"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="text-muted small mb-0">Use a descriptive name like "FY 2025-2026" or "Fiscal Year 2025".</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0">
+                        <i class="ri-lightbulb-line text-warning me-2"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="text-muted small mb-0">Only one fiscal year can be marked as "current" at a time.</p>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <i class="ri-lightbulb-line text-warning me-2"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="text-muted small mb-0">The fiscal year typically spans 12 months but can be customized.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Form -->
+    <div class="col-lg-8">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Fiscal Year Details -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-primary p-2 me-2">
+                            <i class="ri-calendar-2-line text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-0">Fiscal Year Details</h5>
+                    </div>
+                </div>
+                <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label for="id_name" class="form-label">Name *</label>
-                            <input type="text" class="form-control {% if form.name.errors %}is-invalid{% endif %}" id="id_name" name="name"
-                                   placeholder="e.g., FY 2025-2026" value="{{ form.name.value|default:'' }}" required>
+                            <label for="id_name" class="form-label">Fiscal Year Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+                                   id="id_name" name="name"
+                                   placeholder="e.g., FY 2025-2026"
+                                   value="{{ form.name.value|default:'' }}" required>
                             {% if form.name.errors %}
                             <div class="invalid-feedback">{{ form.name.errors.0 }}</div>
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="id_start_date" class="form-label">Start Date *</label>
-                            <input type="date" class="form-control {% if form.start_date.errors %}is-invalid{% endif %}" id="id_start_date" name="start_date"
-                                   value="{{ form.start_date.value|default:'' }}" required>
+                            <label for="id_start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                <input type="date" class="form-control {% if form.start_date.errors %}is-invalid{% endif %}"
+                                       id="id_start_date" name="start_date"
+                                       value="{{ form.start_date.value|default:'' }}" required>
+                            </div>
                             {% if form.start_date.errors %}
-                            <div class="invalid-feedback">{{ form.start_date.errors.0 }}</div>
+                            <div class="invalid-feedback d-block">{{ form.start_date.errors.0 }}</div>
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="id_end_date" class="form-label">End Date *</label>
-                            <input type="date" class="form-control {% if form.end_date.errors %}is-invalid{% endif %}" id="id_end_date" name="end_date"
-                                   value="{{ form.end_date.value|default:'' }}" required>
+                            <label for="id_end_date" class="form-label">End Date <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-calendar-check-line"></i></span>
+                                <input type="date" class="form-control {% if form.end_date.errors %}is-invalid{% endif %}"
+                                       id="id_end_date" name="end_date"
+                                       value="{{ form.end_date.value|default:'' }}" required>
+                            </div>
                             {% if form.end_date.errors %}
-                            <div class="invalid-feedback">{{ form.end_date.errors.0 }}</div>
+                            <div class="invalid-feedback d-block">{{ form.end_date.errors.0 }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="id_is_current" name="is_current"
-                                       {% if form.is_current.value %}checked{% endif %}>
-                                <label class="form-check-label" for="id_is_current">Set as current fiscal year</label>
-                            </div>
-                        </div>
                     </div>
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
-                            Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="ri-save-line me-1"></i> Save
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <!-- Options -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-success p-2 me-2">
+                            <i class="ri-settings-3-line text-success"></i>
+                        </div>
+                        <h5 class="card-title mb-0">Options</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" role="switch"
+                               id="id_is_current" name="is_current"
+                               {% if form.is_current.value %}checked{% endif %}>
+                        <label class="form-check-label" for="id_is_current">
+                            <strong>Set as current fiscal year</strong>
+                            <br><small class="text-muted">This will be used as the default period for new transactions.</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body d-flex justify-content-end gap-2">
+                    <a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                        <i class="ri-arrow-left-line me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ri-save-line me-1"></i> Save Fiscal Year
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
