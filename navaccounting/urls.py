@@ -18,6 +18,7 @@ urlpatterns = [
         path('company/', include('apps.company.urls')),
         path('users/', include('apps.accounts.urls_users')),
         path('roles/', include('apps.roles.urls')),
+        path('gl/', include('apps.general_ledger.urls')),
     ])),
 
     # Root redirect
