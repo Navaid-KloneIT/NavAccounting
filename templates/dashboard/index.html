@@ -1,35 +1,38 @@
-{% extends "layouts/vertical.html" %}
+{% extends "base.html" %}
 {% load static humanize %}
 
 {% block title %}Dashboard - NavAccounting{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Dashboard</li>
-{% endblock %}
 
 {% block content %}
+<div class="page-title-box">
+    <h4>Dashboard</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item active">Dashboard</li>
+    </ol>
+</div>
+
 <!-- KPI Cards Row -->
 <div class="row">
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted mb-1 small text-uppercase">Total Revenue</p>
                         <h3 class="mb-1">${{ kpi.total_revenue|intcomma }}</h3>
                         <span class="badge bg-success-subtle text-success">
-                            <i class="bi bi-arrow-up"></i> {{ kpi.revenue_change }}%
+                            <i class="ri-arrow-up-line"></i> {{ kpi.revenue_change }}%
                         </span>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-3">
-                        <i class="bi bi-currency-dollar text-primary" style="font-size: 1.5rem;"></i>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-money-dollar-circle-line text-primary" style="font-size: 1.5rem;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -37,33 +40,33 @@
                         <h3 class="mb-1">{{ kpi.outstanding_invoices }}</h3>
                         <span class="text-muted small">${{ kpi.invoices_amount|intcomma }} total</span>
                     </div>
-                    <div class="rounded-circle bg-warning bg-opacity-10 p-3">
-                        <i class="bi bi-receipt text-warning" style="font-size: 1.5rem;"></i>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-file-list-3-line text-warning" style="font-size: 1.5rem;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <p class="text-muted mb-1 small text-uppercase">Cash Balance</p>
                         <h3 class="mb-1">${{ kpi.cash_balance|intcomma }}</h3>
                         <span class="badge bg-danger-subtle text-danger">
-                            <i class="bi bi-arrow-down"></i> {{ kpi.cash_change }}%
+                            <i class="ri-arrow-down-line"></i> {{ kpi.cash_change }}%
                         </span>
                     </div>
-                    <div class="rounded-circle bg-success bg-opacity-10 p-3">
-                        <i class="bi bi-wallet2 text-success" style="font-size: 1.5rem;"></i>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-wallet-3-line text-success" style="font-size: 1.5rem;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -71,8 +74,8 @@
                         <h3 class="mb-1">{{ kpi.overdue_payables }}</h3>
                         <span class="text-muted small">${{ kpi.payables_amount|intcomma }} total</span>
                     </div>
-                    <div class="rounded-circle bg-danger bg-opacity-10 p-3">
-                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 1.5rem;"></i>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-error-warning-line text-danger" style="font-size: 1.5rem;"></i>
                     </div>
                 </div>
             </div>
@@ -83,7 +86,7 @@
 <!-- Cash Flow Chart + Alert Center -->
 <div class="row">
     <div class="col-xl-8 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Cash Flow Overview</h5>
                 <div class="dropdown">
@@ -103,7 +106,7 @@
         </div>
     </div>
     <div class="col-xl-4 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Alert Center</h5>
                 <span class="badge bg-danger">{{ alerts|length }}</span>
@@ -113,13 +116,13 @@
                 <div class="d-flex align-items-start p-3 border-bottom">
                     <div class="me-3">
                         {% if alert.severity == 'danger' %}
-                        <span class="badge bg-danger rounded-circle p-2"><i class="bi bi-exclamation-lg"></i></span>
+                        <span class="badge bg-danger rounded-circle p-2"><i class="ri-alert-line"></i></span>
                         {% elif alert.severity == 'warning' %}
-                        <span class="badge bg-warning rounded-circle p-2"><i class="bi bi-exclamation-triangle"></i></span>
+                        <span class="badge bg-warning rounded-circle p-2"><i class="ri-error-warning-line"></i></span>
                         {% elif alert.severity == 'success' %}
-                        <span class="badge bg-success rounded-circle p-2"><i class="bi bi-check-lg"></i></span>
+                        <span class="badge bg-success rounded-circle p-2"><i class="ri-check-line"></i></span>
                         {% else %}
-                        <span class="badge bg-info rounded-circle p-2"><i class="bi bi-info-lg"></i></span>
+                        <span class="badge bg-info rounded-circle p-2"><i class="ri-information-line"></i></span>
                         {% endif %}
                     </div>
                     <div class="flex-grow-1">
@@ -130,7 +133,7 @@
                 </div>
                 {% empty %}
                 <div class="text-center text-muted p-4">
-                    <i class="bi bi-bell-slash" style="font-size: 2rem;"></i>
+                    <i class="ri-notification-off-line" style="font-size: 2rem;"></i>
                     <p class="mt-2 mb-0">No alerts</p>
                 </div>
                 {% endfor %}
@@ -142,33 +145,33 @@
 <!-- Quick Actions + Executive Summary -->
 <div class="row">
     <div class="col-xl-4 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-header bg-transparent border-0">
                 <h5 class="card-title mb-0">Quick Actions</h5>
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <button class="btn btn-outline-primary text-start">
-                        <i class="bi bi-receipt me-2"></i> Create Invoice
+                        <i class="ri-file-list-3-line me-2"></i> Create Invoice
                     </button>
                     <button class="btn btn-outline-primary text-start">
-                        <i class="bi bi-cash-stack me-2"></i> Record Expense
+                        <i class="ri-money-dollar-box-line me-2"></i> Record Expense
                     </button>
                     <button class="btn btn-outline-primary text-start">
-                        <i class="bi bi-bank me-2"></i> Reconcile Bank
+                        <i class="ri-bank-line me-2"></i> Reconcile Bank
                     </button>
                     <button class="btn btn-outline-primary text-start">
-                        <i class="bi bi-journal-text me-2"></i> Journal Entry
+                        <i class="ri-book-2-line me-2"></i> Journal Entry
                     </button>
                     <button class="btn btn-outline-primary text-start">
-                        <i class="bi bi-file-earmark-bar-graph me-2"></i> Generate Report
+                        <i class="ri-file-chart-line me-2"></i> Generate Report
                     </button>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-8 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stats-card h-100">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Revenue vs Expenses</h5>
                 <div class="dropdown">
