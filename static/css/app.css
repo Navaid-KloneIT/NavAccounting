@@ -675,6 +675,102 @@ img {
 }
 
 /* =============================================================================
+   7b. FILTER TOOLBAR
+   ============================================================================= */
+
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--nav-border-color);
+}
+
+.filter-toolbar .filter-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+}
+
+.filter-toolbar .filter-search .form-control {
+  padding-left: 2.25rem;
+  border-radius: var(--nav-border-radius);
+  font-size: var(--nav-font-size-sm);
+  height: 38px;
+}
+
+.filter-toolbar .filter-search .search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--nav-gray-500);
+  pointer-events: none;
+  font-size: 0.875rem;
+}
+
+.filter-toolbar .form-select {
+  width: auto;
+  min-width: 140px;
+  height: 38px;
+  font-size: var(--nav-font-size-sm);
+}
+
+.filter-toolbar .filter-count {
+  margin-left: auto;
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-gray-600);
+}
+
+/* =============================================================================
+   7c. PAGINATION ENHANCEMENTS
+   ============================================================================= */
+
+.pagination .page-link {
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-body-color);
+  border-color: var(--nav-border-color);
+  padding: 0.375rem 0.625rem;
+  transition: all var(--nav-transition-speed) var(--nav-transition-fn);
+}
+
+.pagination .page-link:hover {
+  background-color: var(--nav-gray-100);
+  border-color: var(--nav-border-color);
+  color: var(--nav-primary);
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--nav-primary);
+  border-color: var(--nav-primary);
+  color: var(--nav-white);
+}
+
+.pagination .page-item.disabled .page-link {
+  color: var(--nav-gray-400);
+  background-color: transparent;
+}
+
+/* Table row visibility during client-side filtering */
+.table tbody tr.filter-hidden {
+  display: none !important;
+}
+
+/* No results message inside table */
+.filter-no-results {
+  display: none;
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--nav-gray-500);
+}
+
+.filter-no-results.show {
+  display: block;
+}
+
+/* =============================================================================
    8. FORMS
    ============================================================================= */
 
@@ -1304,6 +1400,19 @@ img {
 
   .topbar-search {
     display: none;
+  }
+
+  .filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-toolbar .filter-search {
+    max-width: 100%;
+  }
+
+  .filter-toolbar .filter-count {
+    margin-left: 0;
   }
 }
 
