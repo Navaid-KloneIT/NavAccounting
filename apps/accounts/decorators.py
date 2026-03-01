@@ -41,3 +41,29 @@ def role_required(*role_names):
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
+
+
+def permission_required(*permission_codenames):
+    """Decorator that checks if the user has one of the specified permissions."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            tenant = getattr(request, 'tenant', None)
+            if not tenant:
+                return redirect('tenants:select')
+
+            if request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+
+            has_perm = TenantUserRole.unscoped.filter(
+                user=request.user,
+                tenant=tenant,
+                role__permissions__codename__in=permission_codenames
+            ).exists()
+
+            if not has_perm:
+                raise PermissionDenied("You don't have the required permission.")
+
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
