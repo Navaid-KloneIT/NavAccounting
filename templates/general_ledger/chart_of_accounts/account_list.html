@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chart of Accounts{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Chart of Accounts</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Chart of Accounts</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Accounts</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-book-2-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Active</p>
+                        <h3 class="mb-0">{{ active_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Header Accounts</p>
+                        <h3 class="mb-0">{{ header_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-folder-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search accounts..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for at in account_types %}
+                    <option value="{{ at.pk }}" {% if request.GET.type == at.pk|stringformat:"d" %}selected{% endif %}>{{ at.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'general_ledger:account_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <div class="ms-auto d-flex gap-2">
+                    <a href="{% url 'general_ledger:account_import_template' tenant_slug=current_tenant.slug %}" class="btn btn-outline-primary"><i class="ri-download-line me-1"></i> Import</a>
+                    <a href="{% url 'general_ledger:account_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Add Account</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in accounts %}
+                    <tr>
+                        <td>
+                            <div style="padding-left: {{ account.level|default:0 }}rem;">
+                                {% if account.is_header %}
+                                <i class="ri-folder-line text-warning me-1"></i>
+                                <strong>{{ account.account_number }} - {{ account.name }}</strong>
+                                {% else %}
+                                <span class="ms-2">{{ account.account_number }} - {{ account.name }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td><span class="badge badge-soft-primary">{{ account.account_type.name }}</span></td>
+                        <td>
+                            {% if account.is_active %}
+                            <span class="badge badge-soft-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'general_ledger:account_edit' tenant_slug=current_tenant.slug pk=account.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                            {% if not account.is_header %}
+                            <form method="post" action="{% url 'general_ledger:account_delete' tenant_slug=current_tenant.slug pk=account.pk %}" class="d-inline" onsubmit="return confirm('Deactivate this account?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-soft-danger" title="Deactivate">
+                                    <i class="ri-close-line"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-book-2-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No accounts found</h5>
+                                <p class="text-muted">Import from a template or create your first account.</p>
+                                <a href="{% url 'general_ledger:account_import_template' tenant_slug=current_tenant.slug %}" class="btn btn-outline-primary btn-sm me-2">
+                                    <i class="ri-download-line me-1"></i> Import Template
+                                </a>
+                                <a href="{% url 'general_ledger:account_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> Add Account
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
