@@ -11,6 +11,7 @@ from allauth.account.views import (
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -123,6 +124,11 @@ def user_list(request, tenant_slug):
         tenant=tenant
     ).select_related('user')
 
+    # Compute stats before pagination
+    total_members = memberships.count()
+    active_members = memberships.filter(user__is_active=True).count()
+    inactive_members = total_members - active_members
+
     # Attach profile to each membership
     members = []
     for membership in memberships:
@@ -132,13 +138,28 @@ def user_list(request, tenant_slug):
         membership.profile = profile
         members.append(membership)
 
+    # Pagination
+    paginator = Paginator(members, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     invitations = UserInvitation.unscoped.filter(
         tenant=tenant, is_accepted=False
     )
+    pending_invitations = invitations.count()
+
+    # All roles for filter dropdown
+    all_roles = Role.objects.filter(tenant=tenant)
 
     return render(request, 'accounts/user_list.html', {
-        'members': members,
+        'members': page_obj,
+        'page_obj': page_obj,
         'invitations': invitations,
+        'total_members': total_members,
+        'active_members': active_members,
+        'inactive_members': inactive_members,
+        'pending_invitations': pending_invitations,
+        'all_roles': all_roles,
     })
 
 
