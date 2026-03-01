@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ title }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'general_ledger:journal_list' tenant_slug=current_tenant.slug %}">Journal Entries</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="row">
+        <!-- Left: Info Panel -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="ri-file-list-3-line text-primary" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="mb-1">{{ title }}</h5>
+                    <p class="text-muted small mb-0">Create a balanced journal entry. Total debits must equal total credits.</p>
+                </div>
+            </div>
+            <!-- Balance Summary Card -->
+            <div class="card">
+                <div class="card-header"><h6 class="card-title mb-0">Balance Summary</h6></div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Debits:</span>
+                        <strong id="total-debits">0.00</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Credits:</span>
+                        <strong id="total-credits">0.00</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Difference:</span>
+                        <strong id="balance-diff" class="text-danger">0.00</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small mb-3">Tips</h6>
+                    <div class="d-flex mb-3">
+                        <div class="flex-shrink-0"><i class="ri-lightbulb-line text-warning me-2"></i></div>
+                        <div class="flex-grow-1"><p class="text-muted small mb-0">Every entry must have at least 2 lines.</p></div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="flex-shrink-0"><i class="ri-lightbulb-line text-warning me-2"></i></div>
+                        <div class="flex-grow-1"><p class="text-muted small mb-0">Each line should have either a debit OR credit amount, not both.</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Form -->
+        <div class="col-lg-8">
+            <!-- Header Fields -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-list-3-line text-primary"></i></div>
+                        <h5 class="card-title mb-0">Entry Details</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_date" class="form-label">Date <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                {{ form.date }}
+                            </div>
+                            {% if form.date.errors %}<div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_fiscal_period" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                            {{ form.fiscal_period }}
+                            {% if form.fiscal_period.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="id_description" class="form-label">Description <span class="text-danger">*</span></label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_reference" class="form-label">Reference</label>
+                            {{ form.reference }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_currency" class="form-label">Currency <span class="text-danger">*</span></label>
+                            {{ form.currency }}
+                            {% if form.currency.errors %}<div class="invalid-feedback d-block">{{ form.currency.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_exchange_rate" class="form-label">Exchange Rate</label>
+                            {{ form.exchange_rate }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entry Lines -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-success p-2 me-2"><i class="ri-list-check text-success"></i></div>
+                        <h5 class="card-title mb-0">Entry Lines</h5>
+                    </div>
+                    <button type="button" id="add-line" class="btn btn-sm btn-outline-primary">
+                        <i class="ri-add-line me-1"></i> Add Line
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {{ formset.management_form }}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width: 250px;">Account</th>
+                                    <th style="min-width: 200px;">Description</th>
+                                    <th style="min-width: 130px;">Debit</th>
+                                    <th style="min-width: 130px;">Credit</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="lines-container">
+                                {% for line_form in formset %}
+                                <tr class="line-row">
+                                    <td>
+                                        {{ line_form.account }}
+                                        {{ line_form.id }}
+                                        {% if line_form.account.errors %}<div class="invalid-feedback d-block">{{ line_form.account.errors.0 }}</div>{% endif %}
+                                    </td>
+                                    <td>{{ line_form.description }}</td>
+                                    <td>{{ line_form.debit }}</td>
+                                    <td>{{ line_form.credit }}</td>
+                                    <td>
+                                        {% if line_form.DELETE %}
+                                        <div class="form-check">
+                                            {{ line_form.DELETE }}
+                                            <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="2" class="text-end"><strong>Totals:</strong></td>
+                                    <td><strong id="footer-debits">0.00</strong></td>
+                                    <td><strong id="footer-credits">0.00</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty form template for JS cloning -->
+            <div id="empty-form" class="d-none">
+                <tr class="line-row">
+                    <td>{{ formset.empty_form.account }}{{ formset.empty_form.id }}</td>
+                    <td>{{ formset.empty_form.description }}</td>
+                    <td>{{ formset.empty_form.debit }}</td>
+                    <td>{{ formset.empty_form.credit }}</td>
+                    <td>
+                        {% if formset.empty_form.DELETE %}
+                        <div class="form-check">
+                            {{ formset.empty_form.DELETE }}
+                            <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body d-flex justify-content-end gap-2">
+                    <a href="{% url 'general_ledger:journal_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                        <i class="ri-arrow-left-line me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ri-save-line me-1"></i> Save Entry
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dynamic formset — add new lines
+    const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+    let formCount = {{ formset.total_form_count }};
+
+    document.getElementById('add-line').addEventListener('click', function() {
+        const container = document.getElementById('lines-container');
+        const newForm = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        formCount++;
+        document.getElementById('id_lines-TOTAL_FORMS').value = formCount;
+    });
+
+    // Recalculate totals on input change
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('[name$="-debit"], [name$="-credit"]')) {
+            recalculateTotals();
+        }
+    });
+
+    function recalculateTotals() {
+        let totalDebit = 0, totalCredit = 0;
+        document.querySelectorAll('[name$="-debit"]').forEach(function(el) {
+            totalDebit += parseFloat(el.value) || 0;
+        });
+        document.querySelectorAll('[name$="-credit"]').forEach(function(el) {
+            totalCredit += parseFloat(el.value) || 0;
+        });
+
+        document.getElementById('total-debits').textContent = totalDebit.toFixed(2);
+        document.getElementById('total-credits').textContent = totalCredit.toFixed(2);
+        document.getElementById('footer-debits').textContent = totalDebit.toFixed(2);
+        document.getElementById('footer-credits').textContent = totalCredit.toFixed(2);
+
+        var diff = Math.abs(totalDebit - totalCredit);
+        var diffEl = document.getElementById('balance-diff');
+        diffEl.textContent = diff.toFixed(2);
+        diffEl.className = diff === 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+    }
+
+    // Initial calculation
+    recalculateTotals();
+</script>
+{% endblock %}
