@@ -1,15 +1,19 @@
-{% extends "layouts/vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ title }} - NavAccounting{% endblock %}
-{% block page_title %}{{ title }}{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-<li class="breadcrumb-item"><a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}">Fiscal Years</a></li>
-<li class="breadcrumb-item active">{{ title }}</li>
-{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
+<div class="page-title-box">
+    <h4>{{ title }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'company:setup' tenant_slug=current_tenant.slug %}">Company</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}">Fiscal Years</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card">
@@ -19,34 +23,45 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="id_name" class="form-label">Name *</label>
-                        <input type="text" class="form-control" id="id_name" name="name"
-                               placeholder="e.g., FY 2025-2026" value="{{ form.name.value|default:'' }}" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="id_name" class="form-label">Name *</label>
+                            <input type="text" class="form-control {% if form.name.errors %}is-invalid{% endif %}" id="id_name" name="name"
+                                   placeholder="e.g., FY 2025-2026" value="{{ form.name.value|default:'' }}" required>
+                            {% if form.name.errors %}
+                            <div class="invalid-feedback">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
                             <label for="id_start_date" class="form-label">Start Date *</label>
-                            <input type="date" class="form-control" id="id_start_date" name="start_date"
+                            <input type="date" class="form-control {% if form.start_date.errors %}is-invalid{% endif %}" id="id_start_date" name="start_date"
                                    value="{{ form.start_date.value|default:'' }}" required>
+                            {% if form.start_date.errors %}
+                            <div class="invalid-feedback">{{ form.start_date.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6">
                             <label for="id_end_date" class="form-label">End Date *</label>
-                            <input type="date" class="form-control" id="id_end_date" name="end_date"
+                            <input type="date" class="form-control {% if form.end_date.errors %}is-invalid{% endif %}" id="id_end_date" name="end_date"
                                    value="{{ form.end_date.value|default:'' }}" required>
+                            {% if form.end_date.errors %}
+                            <div class="invalid-feedback">{{ form.end_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="id_is_current" name="is_current"
+                                       {% if form.is_current.value %}checked{% endif %}>
+                                <label class="form-check-label" for="id_is_current">Set as current fiscal year</label>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-check mb-3">
-                        <input type="checkbox" class="form-check-input" id="id_is_current" name="is_current"
-                               {% if form.is_current.value %}checked{% endif %}>
-                        <label class="form-check-label" for="id_is_current">Set as current fiscal year</label>
-                    </div>
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between mt-4">
                         <a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
                             Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i> Save
+                            <i class="ri-save-line me-1"></i> Save
                         </button>
                     </div>
                 </form>
