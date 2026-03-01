@@ -66,7 +66,7 @@
                     {% for entry in audit_entries %}
                     <tr>
                         <td><small>{{ entry.timestamp|date:"M d, Y H:i:s" }}</small></td>
-                        <td>{{ entry.user.get_full_name|default:entry.user.email|default:"-" }}</td>
+                        <td>{% if entry.user %}{{ entry.user.get_full_name|default:entry.user.email }}{% else %}-{% endif %}</td>
                         <td>
                             {% if entry.action == 'create' %}<span class="badge badge-soft-success">Create</span>
                             {% elif entry.action == 'update' %}<span class="badge badge-soft-info">Update</span>
