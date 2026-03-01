@@ -13,66 +13,142 @@
     </ol>
 </div>
 
+<!-- Stat Cards -->
 <div class="row">
-    <div class="col-12">
-        <div class="card table-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Fiscal Years</h5>
-                <a href="{% url 'company:fiscal_year_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
-                    <i class="ri-add-line me-1"></i> Add Fiscal Year
-                </a>
-            </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Periods</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for fy in fiscal_years %}
-                            <tr>
-                                <td>
-                                    <strong>{{ fy.name }}</strong>
-                                    {% if fy.is_current %}
-                                    <span class="badge badge-soft-primary ms-1">Current</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ fy.start_date|date:"M d, Y" }}</td>
-                                <td>{{ fy.end_date|date:"M d, Y" }}</td>
-                                <td>{{ fy.periods.count }}</td>
-                                <td>
-                                    {% if fy.is_closed %}
-                                    <span class="badge badge-soft-danger">Closed</span>
-                                    {% else %}
-                                    <span class="badge badge-soft-success">Open</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <a href="{% url 'company:fiscal_year_edit' tenant_slug=current_tenant.slug pk=fy.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
-                                        <i class="ri-pencil-line"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">
-                                    No fiscal years configured yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-calendar-2-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
                 </div>
-                {% include "partials/_pagination.html" %}
             </div>
         </div>
     </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Open</p>
+                        <h3 class="mb-0">{{ open_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-calendar-check-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Closed</p>
+                        <h3 class="mb-0">{{ closed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-calendar-close-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search by name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Open</option>
+                    <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>Closed</option>
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'company:fiscal_year_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'company:fiscal_year_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> Add Fiscal Year</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Periods</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fy in fiscal_years %}
+                    <tr>
+                        <td>
+                            <strong>{{ fy.name }}</strong>
+                            {% if fy.is_current %}
+                            <span class="badge badge-soft-primary ms-1">Current</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ fy.start_date|date:"M d, Y" }}</td>
+                        <td>{{ fy.end_date|date:"M d, Y" }}</td>
+                        <td>{{ fy.periods.count }}</td>
+                        <td>
+                            {% if fy.is_closed %}
+                            <span class="badge badge-soft-danger">Closed</span>
+                            {% else %}
+                            <span class="badge badge-soft-success">Open</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'company:fiscal_year_edit' tenant_slug=current_tenant.slug pk=fy.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-calendar-2-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No fiscal years found</h5>
+                                <p class="text-muted">Create your first fiscal year to get started.</p>
+                                <a href="{% url 'company:fiscal_year_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> Add Fiscal Year
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% include "partials/_pagination.html" %}
 </div>
 {% endblock %}
