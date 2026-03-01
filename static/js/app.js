@@ -21,13 +21,13 @@
     // Constants
     // =========================================================================
 
-    var STORAGE_KEY = "navaccounting-theme-v2";
+    var STORAGE_KEY = "navaccounting-theme-v3";
 
     var DEFAULTS = {
         theme: "light",
         layout: "vertical",
         sidebarSize: "default",
-        sidebarColor: "light",
+        sidebarColor: "dark",
         topbarColor: "light",
         layoutWidth: "fluid",
         layoutPosition: "fixed",
