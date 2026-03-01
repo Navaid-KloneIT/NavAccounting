@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Period Close: {{ period }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Period Close: {{ period }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'general_ledger:period_close_list' tenant_slug=current_tenant.slug %}">Period Close</a></li>
+        <li class="breadcrumb-item active">{{ period }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3 {% if period.is_closed %}bg-soft-danger{% else %}bg-soft-success{% endif %}" style="width: 80px; height: 80px;">
+                    <i class="{% if period.is_closed %}ri-lock-line text-danger{% else %}ri-lock-unlock-line text-success{% endif %}" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ period.name }}</h5>
+                {% if period.is_closed %}<span class="badge badge-soft-danger">Closed</span>
+                {% else %}<span class="badge badge-soft-success">Open</span>{% endif %}
+            </div>
+        </div>
+
+        <!-- Period Stats -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Period Summary</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Posted Entries</span>
+                    <span class="badge badge-soft-success">{{ posted_count }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Unposted Entries</span>
+                    <span class="badge badge-soft-warning">{{ unposted_count }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Checklist Progress</span>
+                    <span>{{ completed_steps }}/{{ total_steps }}</span>
+                </div>
+                {% if total_steps > 0 %}
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" style="width: {% widthratio completed_steps total_steps 100 %}%;"></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Close/Reopen Actions -->
+        <div class="card">
+            <div class="card-body">
+                {% if period.is_closed %}
+                <form method="post" action="{% url 'general_ledger:period_reopen_action' tenant_slug=current_tenant.slug pk=period.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Are you sure you want to reopen this period?');">
+                        <i class="ri-lock-unlock-line me-1"></i> Reopen Period
+                    </button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'general_ledger:period_close_action' tenant_slug=current_tenant.slug pk=period.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Are you sure you want to close this period?');">
+                        <i class="ri-lock-line me-1"></i> Close Period
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'general_ledger:period_close_list' tenant_slug=current_tenant.slug %}" class="btn btn-light w-100 mt-2">
+                    <i class="ri-arrow-left-line me-1"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-list-check text-primary"></i></div>
+                    <h5 class="card-title mb-0">Close Checklist</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;">Done</th>
+                                <th>Step</th>
+                                <th>Completed By</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for step in checklist %}
+                            <tr>
+                                <td>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="step_id" value="{{ step.pk }}">
+                                        <button type="submit" class="btn btn-sm {% if step.is_completed %}btn-success{% else %}btn-outline-secondary{% endif %}" title="Toggle">
+                                            <i class="{% if step.is_completed %}ri-checkbox-circle-fill{% else %}ri-checkbox-blank-circle-line{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <span class="{% if step.is_completed %}text-decoration-line-through text-muted{% endif %}">
+                                        {{ step.step_name }}
+                                    </span>
+                                </td>
+                                <td>{{ step.completed_by.get_full_name|default:"-" }}</td>
+                                <td>{{ step.completed_at|date:"M d, Y H:i"|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
