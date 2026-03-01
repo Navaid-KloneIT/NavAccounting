@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -124,10 +125,34 @@ def user_list(request, tenant_slug):
         tenant=tenant
     ).select_related('user')
 
-    # Compute stats before pagination
+    # Compute stats before filtering
     total_members = memberships.count()
     active_members = memberships.filter(user__is_active=True).count()
     inactive_members = total_members - active_members
+
+    # Server-side filters
+    search_query = request.GET.get('q', '').strip()
+    role_filter = request.GET.get('role', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    if search_query:
+        memberships = memberships.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+
+    if status_filter == 'active':
+        memberships = memberships.filter(user__is_active=True)
+    elif status_filter == 'inactive':
+        memberships = memberships.filter(user__is_active=False)
+
+    if role_filter:
+        from apps.roles.models import TenantUserRole
+        user_ids_with_role = TenantUserRole.unscoped.filter(
+            role_id=role_filter, tenant=tenant
+        ).values_list('user_id', flat=True)
+        memberships = memberships.filter(user_id__in=user_ids_with_role)
 
     # Attach profile to each membership
     members = []
@@ -160,6 +185,9 @@ def user_list(request, tenant_slug):
         'inactive_members': inactive_members,
         'pending_invitations': pending_invitations,
         'all_roles': all_roles,
+        'search_query': search_query,
+        'role_filter': role_filter,
+        'status_filter': status_filter,
     })
 
 
