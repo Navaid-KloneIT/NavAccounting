@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Allocation Rules{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Allocation Rules</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Allocation Rules</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Rules</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-pie-chart-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Active</p>
+                        <h3 class="mb-0">{{ active_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search rules..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-8 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'general_ledger:allocation_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'general_ledger:allocation_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> Add Rule</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Source Account</th>
+                        <th>Targets</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in allocations %}
+                    <tr>
+                        <td><strong>{{ rule.name }}</strong></td>
+                        <td>{{ rule.source_account }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ rule.lines.count }} targets</span></td>
+                        <td>
+                            {% if rule.is_active %}<span class="badge badge-soft-success">Active</span>
+                            {% else %}<span class="badge badge-soft-danger">Inactive</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'general_ledger:allocation_edit' tenant_slug=current_tenant.slug pk=rule.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                            {% if rule.is_active %}
+                            <form method="post" action="{% url 'general_ledger:allocation_run' tenant_slug=current_tenant.slug pk=rule.pk %}" class="d-inline" onsubmit="return confirm('Run this allocation?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-soft-success" title="Run Allocation">
+                                    <i class="ri-play-line"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-pie-chart-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No allocation rules found</h5>
+                                <p class="text-muted">Create rules to automatically distribute costs.</p>
+                                <a href="{% url 'general_ledger:allocation_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm"><i class="ri-add-line me-1"></i> Add Rule</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
