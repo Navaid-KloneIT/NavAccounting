@@ -46,6 +46,7 @@ class Command(BaseCommand):
         parser.add_argument('--coa', action='store_true', help='Seed chart of accounts only')
         parser.add_argument('--dashboard', action='store_true', help='Seed dashboard data only')
         parser.add_argument('--gl', action='store_true', help='Seed general ledger data only')
+        parser.add_argument('--ap', action='store_true', help='Seed accounts payable data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -54,7 +55,7 @@ class Command(BaseCommand):
 
         seed_all = not any([
             options['tenants'], options['users'], options['company'],
-            options['coa'], options['dashboard'], options['gl']
+            options['coa'], options['dashboard'], options['gl'], options['ap']
         ])
 
         # Always seed system-level data
@@ -87,10 +88,37 @@ class Command(BaseCommand):
             self.stdout.write('Seeding general ledger data...')
             self._seed_gl_data()
 
+        if seed_all or options['ap']:
+            self.stdout.write('Seeding accounts payable data...')
+            self._seed_ap_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
-        # Clean GL data first (depends on other models)
+        # Clean AP data first (depends on GL and other models)
+        try:
+            from apps.accounts_payable.models import (
+                VendorMessage, VendorPortalToken, ScheduledPayment,
+                PaymentBatch, PaymentAllocation, Payment, BillUpload,
+                BillApproval, BillLine, Bill, VendorContact, Vendor, PaymentTerm,
+            )
+            VendorMessage.unscoped.all().delete()
+            VendorPortalToken.unscoped.all().delete()
+            ScheduledPayment.unscoped.all().delete()
+            PaymentBatch.unscoped.all().delete()
+            PaymentAllocation.objects.all().delete()
+            Payment.unscoped.all().delete()
+            BillUpload.unscoped.all().delete()
+            BillApproval.unscoped.all().delete()
+            BillLine.objects.all().delete()
+            Bill.unscoped.all().delete()
+            VendorContact.objects.all().delete()
+            Vendor.unscoped.all().delete()
+            PaymentTerm.unscoped.all().delete()
+        except Exception:
+            pass
+
+        # Clean GL data (depends on other models)
         try:
             from apps.general_ledger.models import (
                 AuditTrail, AccountReconciliation, AllocationRuleLine, AllocationRule,
@@ -210,6 +238,13 @@ class Command(BaseCommand):
             ('manage_exchange_rates', 'Manage Exchange Rates', 'general_ledger'),
             ('view_ap', 'View Accounts Payable', 'accounts_payable'),
             ('manage_ap', 'Manage Accounts Payable', 'accounts_payable'),
+            ('create_bill', 'Create Bills', 'accounts_payable'),
+            ('approve_bill', 'Approve Bills', 'accounts_payable'),
+            ('create_payment', 'Create Payments', 'accounts_payable'),
+            ('void_payment', 'Void Payments', 'accounts_payable'),
+            ('manage_vendors', 'Manage Vendors', 'accounts_payable'),
+            ('view_ap_reports', 'View AP Reports', 'accounts_payable'),
+            ('manage_vendor_portal', 'Manage Vendor Portal', 'accounts_payable'),
             ('view_ar', 'View Accounts Receivable', 'accounts_receivable'),
             ('manage_ar', 'Manage Accounts Receivable', 'accounts_receivable'),
             ('view_bank', 'View Bank Accounts', 'cash_management'),
@@ -670,3 +705,327 @@ class Command(BaseCommand):
                             )
 
         self.stdout.write(f'  Created GL data (accounts, exchange rates, journal entries)')
+
+    def _seed_ap_data(self):
+        """Seed accounts payable data: payment terms, vendors, bills, payments."""
+        from apps.accounts_payable.models import (
+            PaymentTerm, Vendor, VendorContact, Bill, BillLine, Payment,
+            PaymentAllocation, VendorPortalToken,
+        )
+        from apps.general_ledger.models import Account
+
+        superuser = CustomUser.objects.filter(email='admin@navaccounting.com').first()
+        if not superuser:
+            self.stdout.write('  No superuser found, skipping AP seed.')
+            return
+
+        usd = Currency.objects.filter(code='USD').first()
+
+        for tenant in Tenant.objects.all():
+            # --- Payment Terms ---
+            terms_data = [
+                ('Net 15', 'NET15', 15, Decimal('0.00'), 0),
+                ('Net 30', 'NET30', 30, Decimal('0.00'), 0),
+                ('Net 45', 'NET45', 45, Decimal('0.00'), 0),
+                ('Net 60', 'NET60', 60, Decimal('0.00'), 0),
+                ('2/10 Net 30', '2/10N30', 30, Decimal('2.00'), 10),
+                ('1/10 Net 45', '1/10N45', 45, Decimal('1.00'), 10),
+                ('Due on Receipt', 'DOR', 0, Decimal('0.00'), 0),
+            ]
+
+            term_map = {}
+            for name, code, due_days, disc_pct, disc_days in terms_data:
+                term, _ = PaymentTerm.unscoped.get_or_create(
+                    tenant=tenant,
+                    code=code,
+                    defaults={
+                        'name': name,
+                        'due_days': due_days,
+                        'discount_percentage': disc_pct,
+                        'discount_days': disc_days,
+                    }
+                )
+                term_map[code] = term
+
+            # Lookup GL accounts
+            ap_account = Account.unscoped.filter(
+                tenant=tenant, account_number='2110'
+            ).first()
+            checking = Account.unscoped.filter(
+                tenant=tenant, account_number='1110'
+            ).first()
+            office_supplies = Account.unscoped.filter(
+                tenant=tenant, account_number='6600'
+            ).first()
+            rent_expense = Account.unscoped.filter(
+                tenant=tenant, account_number='6200'
+            ).first()
+            utilities_expense = Account.unscoped.filter(
+                tenant=tenant, account_number='6300'
+            ).first()
+            prof_services = Account.unscoped.filter(
+                tenant=tenant, account_number='6800'
+            ).first()
+            tech_software = Account.unscoped.filter(
+                tenant=tenant, account_number='7000'
+            ).first()
+
+            if not ap_account or not checking:
+                self.stdout.write(f'  Skipping {tenant.name}: missing AP or checking account')
+                continue
+
+            fy = FiscalYear.unscoped.filter(tenant=tenant, is_current=True).first()
+            period = FiscalPeriod.unscoped.filter(
+                fiscal_year=fy, tenant=tenant, period_number=1
+            ).first() if fy else None
+
+            # --- Vendors ---
+            vendors_data = [
+                {
+                    'company_name': 'Staples Office Supply',
+                    'display_name': 'Staples',
+                    'vendor_type': 'supplier',
+                    'tax_id': '12-3456789',
+                    'is_1099_eligible': False,
+                    'payment_term': 'NET30',
+                    'expense_account': office_supplies,
+                    'payment_method': 'ach',
+                    'contacts': [
+                        ('Sarah', 'Johnson', 'Account Manager', 'sarah.j@staples.example.com', '555-0101', True),
+                    ],
+                },
+                {
+                    'company_name': 'City Property Management LLC',
+                    'display_name': 'City Property Mgmt',
+                    'vendor_type': 'supplier',
+                    'tax_id': '98-7654321',
+                    'is_1099_eligible': True,
+                    'payment_term': 'NET15',
+                    'expense_account': rent_expense,
+                    'payment_method': 'check',
+                    'contacts': [
+                        ('Mike', 'Chen', 'Property Manager', 'mike@cityprop.example.com', '555-0201', True),
+                    ],
+                },
+                {
+                    'company_name': 'Pacific Gas & Electric',
+                    'display_name': 'PG&E',
+                    'vendor_type': 'utility',
+                    'tax_id': '55-1234567',
+                    'is_1099_eligible': False,
+                    'payment_term': 'NET15',
+                    'expense_account': utilities_expense,
+                    'payment_method': 'ach',
+                    'contacts': [
+                        ('Lisa', 'Wong', 'Billing', 'billing@pge.example.com', '555-0301', True),
+                    ],
+                },
+                {
+                    'company_name': 'Anderson & Associates CPA',
+                    'display_name': 'Anderson CPA',
+                    'vendor_type': 'contractor',
+                    'tax_id': '33-9876543',
+                    'is_1099_eligible': True,
+                    'payment_term': '2/10N30',
+                    'expense_account': prof_services,
+                    'payment_method': 'check',
+                    'contacts': [
+                        ('James', 'Anderson', 'Partner', 'james@andersoncpa.example.com', '555-0401', True),
+                        ('Emily', 'Park', 'Staff Accountant', 'emily@andersoncpa.example.com', '555-0402', False),
+                    ],
+                },
+                {
+                    'company_name': 'CloudTech Solutions Inc',
+                    'display_name': 'CloudTech',
+                    'vendor_type': 'supplier',
+                    'tax_id': '77-5555555',
+                    'is_1099_eligible': False,
+                    'payment_term': 'NET30',
+                    'expense_account': tech_software,
+                    'payment_method': 'ach',
+                    'contacts': [
+                        ('David', 'Kim', 'Sales Rep', 'david@cloudtech.example.com', '555-0501', True),
+                    ],
+                },
+            ]
+
+            vendor_objs = []
+            for i, vdata in enumerate(vendors_data, start=1):
+                vendor_number = f"VND-{i:04d}"
+                vendor, created = Vendor.unscoped.get_or_create(
+                    tenant=tenant,
+                    vendor_number=vendor_number,
+                    defaults={
+                        'company_name': vdata['company_name'],
+                        'display_name': vdata['display_name'],
+                        'vendor_type': vdata['vendor_type'],
+                        'tax_id': vdata['tax_id'],
+                        'is_1099_eligible': vdata['is_1099_eligible'],
+                        'address_line_1': fake.street_address(),
+                        'city': fake.city(),
+                        'state': fake.state_abbr(),
+                        'postal_code': fake.zipcode(),
+                        'country': 'US',
+                        'default_payment_term': term_map.get(vdata['payment_term']),
+                        'default_expense_account': vdata['expense_account'],
+                        'currency': usd,
+                        'preferred_payment_method': vdata['payment_method'],
+                    }
+                )
+                vendor_objs.append(vendor)
+
+                if created:
+                    for first, last, title, email, phone, is_primary in vdata['contacts']:
+                        VendorContact.objects.get_or_create(
+                            vendor=vendor,
+                            email=email,
+                            defaults={
+                                'first_name': first,
+                                'last_name': last,
+                                'title': title,
+                                'phone': phone,
+                                'is_primary': is_primary,
+                            }
+                        )
+
+                    # Create portal token for first vendor
+                    if i == 1:
+                        VendorPortalToken.unscoped.get_or_create(
+                            tenant=tenant,
+                            vendor=vendor,
+                            defaults={
+                                'is_active': True,
+                                'expires_at': timezone.now() + timedelta(days=365),
+                            }
+                        )
+
+            # --- Bills ---
+            if not period:
+                continue
+
+            bills_data = [
+                {
+                    'vendor': vendor_objs[0],  # Staples
+                    'invoice_number': 'INV-ST-20250105',
+                    'bill_date': date(2025, 1, 5),
+                    'description': 'Office supplies - January',
+                    'status': 'approved',
+                    'lines': [
+                        (office_supplies, 'Printer paper (10 reams)', 10, Decimal('24.99'), Decimal('249.90')),
+                        (office_supplies, 'Ink cartridges', 4, Decimal('35.00'), Decimal('140.00')),
+                        (office_supplies, 'Pens and markers', 1, Decimal('45.50'), Decimal('45.50')),
+                    ],
+                },
+                {
+                    'vendor': vendor_objs[1],  # City Property
+                    'invoice_number': 'CPM-2025-001',
+                    'bill_date': date(2025, 1, 1),
+                    'description': 'Office rent - January 2025',
+                    'status': 'paid',
+                    'lines': [
+                        (rent_expense, 'Monthly office rent', 1, Decimal('2500.00'), Decimal('2500.00')),
+                    ],
+                },
+                {
+                    'vendor': vendor_objs[2],  # PG&E
+                    'invoice_number': 'PGE-JAN2025',
+                    'bill_date': date(2025, 1, 15),
+                    'description': 'Electricity - January 2025',
+                    'status': 'approved',
+                    'lines': [
+                        (utilities_expense, 'Electricity service', 1, Decimal('385.00'), Decimal('385.00')),
+                    ],
+                },
+                {
+                    'vendor': vendor_objs[3],  # Anderson CPA
+                    'invoice_number': 'AC-2025-0042',
+                    'bill_date': date(2025, 1, 10),
+                    'description': 'Monthly bookkeeping services',
+                    'status': 'approved',
+                    'lines': [
+                        (prof_services, 'Bookkeeping - January', 1, Decimal('1500.00'), Decimal('1500.00')),
+                        (prof_services, 'Tax consultation', 2, Decimal('250.00'), Decimal('500.00')),
+                    ],
+                },
+                {
+                    'vendor': vendor_objs[4],  # CloudTech
+                    'invoice_number': 'CT-2025-1001',
+                    'bill_date': date(2025, 1, 20),
+                    'description': 'Cloud hosting & SaaS licenses',
+                    'status': 'pending_approval',
+                    'lines': [
+                        (tech_software, 'Cloud hosting (monthly)', 1, Decimal('299.00'), Decimal('299.00')),
+                        (tech_software, 'SaaS license seats (10)', 10, Decimal('19.99'), Decimal('199.90')),
+                    ],
+                },
+            ]
+
+            bill_objs = []
+            for i, bdata in enumerate(bills_data, start=1):
+                bill_number = f"BILL-2025-{i:04d}"
+                total = sum(line[4] for line in bdata['lines'])
+                due_date = bdata['bill_date'] + timedelta(days=30)
+                amount_paid = total if bdata['status'] == 'paid' else Decimal('0.00')
+
+                bill, created = Bill.unscoped.get_or_create(
+                    tenant=tenant,
+                    bill_number=bill_number,
+                    defaults={
+                        'vendor': bdata['vendor'],
+                        'vendor_invoice_number': bdata['invoice_number'],
+                        'bill_date': bdata['bill_date'],
+                        'due_date': due_date,
+                        'subtotal': total,
+                        'tax_amount': Decimal('0.00'),
+                        'total_amount': total,
+                        'amount_paid': amount_paid,
+                        'ap_account': ap_account,
+                        'fiscal_period': period,
+                        'description': bdata['description'],
+                        'status': bdata['status'],
+                        'currency': usd,
+                        'created_by': superuser,
+                    }
+                )
+                bill_objs.append(bill)
+
+                if created:
+                    for account, desc, qty, unit_price, amount in bdata['lines']:
+                        if account:
+                            BillLine.objects.create(
+                                bill=bill,
+                                account=account,
+                                description=desc,
+                                quantity=qty,
+                                unit_price=unit_price,
+                                amount=amount,
+                            )
+
+            # --- Payments (for the paid bill) ---
+            paid_bill = bill_objs[1]  # City Property rent
+            pay_number = "PAY-2025-0001"
+            payment, created = Payment.unscoped.get_or_create(
+                tenant=tenant,
+                payment_number=pay_number,
+                defaults={
+                    'vendor': paid_bill.vendor,
+                    'payment_date': date(2025, 1, 12),
+                    'amount': paid_bill.total_amount,
+                    'payment_method': 'check',
+                    'check_number': '10001',
+                    'bank_account': checking,
+                    'ap_account': ap_account,
+                    'fiscal_period': period,
+                    'status': 'completed',
+                    'created_by': superuser,
+                }
+            )
+
+            if created:
+                PaymentAllocation.objects.create(
+                    payment=payment,
+                    bill=paid_bill,
+                    amount=paid_bill.total_amount,
+                )
+
+        self.stdout.write(f'  Created AP data (terms, vendors, bills, payments)')
