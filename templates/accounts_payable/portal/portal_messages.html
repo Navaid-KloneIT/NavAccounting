@@ -91,7 +91,7 @@
                     <tr class="{% if not message.is_read %}table-light{% endif %}">
                         <td class="text-nowrap">{{ message.created_at|date:"M d, Y H:i" }}</td>
                         <td>
-                            <a href="{% url 'vendor_portal:portal_message_detail' message_id=message.pk %}" class="fw-semibold text-primary text-decoration-none">
+                            <a href="{% url 'vendor_portal:portal_message_detail' pk=message.pk %}" class="fw-semibold text-primary text-decoration-none">
                                 {{ message.subject }}
                             </a>
                         </td>
@@ -110,7 +110,7 @@
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            <a href="{% url 'vendor_portal:portal_message_detail' message_id=message.pk %}" class="btn btn-sm btn-outline-primary">
+                            <a href="{% url 'vendor_portal:portal_message_detail' pk=message.pk %}" class="btn btn-sm btn-outline-primary">
                                 <i class="ri-eye-line"></i>
                             </a>
                         </td>
