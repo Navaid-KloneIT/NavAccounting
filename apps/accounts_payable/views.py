@@ -220,7 +220,7 @@ def payment_term_list(request, tenant_slug):
     total_count = qs.count()
     active_count = qs.filter(is_active=True).count()
 
-    return render(request, 'accounts_payable/vendors/payment_term_list.html', {
+    return render(request, 'accounts_payable/payment_terms/payment_term_list.html', {
         'payment_terms': qs,
         'total_count': total_count,
         'active_count': active_count,
@@ -248,7 +248,7 @@ def payment_term_create(request, tenant_slug):
     else:
         form = PaymentTermForm()
 
-    return render(request, 'accounts_payable/vendors/payment_term_form.html', {
+    return render(request, 'accounts_payable/payment_terms/payment_term_form.html', {
         'form': form,
         'title': 'Create Payment Term',
     })
@@ -274,7 +274,7 @@ def payment_term_edit(request, tenant_slug, pk):
     else:
         form = PaymentTermForm(instance=term)
 
-    return render(request, 'accounts_payable/vendors/payment_term_form.html', {
+    return render(request, 'accounts_payable/payment_terms/payment_term_form.html', {
         'form': form,
         'title': f'Edit: {term.name}',
     })
@@ -885,7 +885,7 @@ def batch_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'accounts_payable/payments/batch_list.html', {
+    return render(request, 'accounts_payable/batches/batch_list.html', {
         'batches': page_obj,
         'page_obj': page_obj,
         'total_count': total_count,
@@ -944,7 +944,7 @@ def batch_create(request, tenant_slug):
     else:
         form = PaymentBatchForm(tenant=tenant)
 
-    return render(request, 'accounts_payable/payments/batch_form.html', {
+    return render(request, 'accounts_payable/batches/batch_form.html', {
         'form': form,
         'approved_bills': approved_bills,
         'title': 'Create Payment Batch',
@@ -975,7 +975,7 @@ def batch_detail(request, tenant_slug, pk):
         pk__in=selected_bill_ids, tenant=tenant
     ).select_related('vendor') if selected_bill_ids else Bill.unscoped.none()
 
-    return render(request, 'accounts_payable/payments/batch_detail.html', {
+    return render(request, 'accounts_payable/batches/batch_detail.html', {
         'batch': batch,
         'payments': payments,
         'selected_bills': selected_bills,
@@ -1092,7 +1092,7 @@ def bill_upload_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'accounts_payable/capture/upload_list.html', {
+    return render(request, 'accounts_payable/uploads/upload_list.html', {
         'uploads': page_obj,
         'page_obj': page_obj,
         'total_count': total_count,
@@ -1138,7 +1138,7 @@ def bill_upload_create(request, tenant_slug):
     else:
         form = BillUploadForm()
 
-    return render(request, 'accounts_payable/capture/upload_form.html', {
+    return render(request, 'accounts_payable/uploads/upload_form.html', {
         'form': form,
         'title': 'Upload Bill Document',
     })
@@ -1157,7 +1157,7 @@ def bill_upload_detail(request, tenant_slug, pk):
         pk=pk, tenant=tenant
     )
 
-    return render(request, 'accounts_payable/capture/upload_detail.html', {
+    return render(request, 'accounts_payable/uploads/upload_detail.html', {
         'upload': upload,
     })
 
@@ -1301,7 +1301,7 @@ def schedule_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'accounts_payable/scheduling/schedule_list.html', {
+    return render(request, 'accounts_payable/schedule/schedule_list.html', {
         'schedules': page_obj,
         'page_obj': page_obj,
         'total_count': total_count,
@@ -1335,7 +1335,7 @@ def schedule_create(request, tenant_slug):
     else:
         form = ScheduledPaymentForm(tenant=tenant)
 
-    return render(request, 'accounts_payable/scheduling/schedule_form.html', {
+    return render(request, 'accounts_payable/schedule/schedule_form.html', {
         'form': form,
         'title': 'Schedule Payment',
     })
@@ -1518,7 +1518,7 @@ def aging_summary(request, tenant_slug):
 
     aging_data = sorted(vendor_aging.values(), key=lambda x: x['vendor'].display_name)
 
-    return render(request, 'accounts_payable/aging/aging_summary.html', {
+    return render(request, 'accounts_payable/reports/aging_summary.html', {
         'form': form,
         'aging_data': aging_data,
         'grand_totals': grand_totals,
@@ -1579,7 +1579,7 @@ def aging_detail(request, tenant_slug, vendor_pk):
         })
         total_balance += balance
 
-    return render(request, 'accounts_payable/aging/aging_detail.html', {
+    return render(request, 'accounts_payable/reports/aging_detail.html', {
         'vendor': vendor,
         'bill_aging': bill_aging,
         'total_balance': total_balance,
@@ -1701,7 +1701,7 @@ def discount_opportunities(request, tenant_slug):
     # Sort by days remaining (most urgent first)
     opportunities.sort(key=lambda x: x['days_remaining'])
 
-    return render(request, 'accounts_payable/discounts/discount_opportunities.html', {
+    return render(request, 'accounts_payable/reports/discount_opportunities.html', {
         'opportunities': opportunities,
         'total_potential_savings': total_potential_savings,
         'today': today,
