@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ upload.upload_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ upload.upload_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:upload_list' tenant_slug=current_tenant.slug %}">Bill Uploads</a></li>
+        <li class="breadcrumb-item active">{{ upload.upload_number }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left: Summary -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-file-pdf-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ upload.upload_number }}</h5>
+                {% if upload.ocr_status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                {% elif upload.ocr_status == 'processing' %}<span class="badge badge-soft-info">Processing</span>
+                {% elif upload.ocr_status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                {% elif upload.ocr_status == 'failed' %}<span class="badge badge-soft-danger">Failed</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Upload Info -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Upload Details</h6>
+                <div class="mb-2"><small class="text-muted">Filename</small><br><strong>{{ upload.filename }}</strong></div>
+                <div class="mb-2"><small class="text-muted">File Size</small><br><strong>{{ upload.file_size|filesizeformat }}</strong></div>
+                <div class="mb-2"><small class="text-muted">File Type</small><br><strong>{{ upload.content_type }}</strong></div>
+                <div class="mb-2">
+                    <small class="text-muted">Status</small><br>
+                    {% if upload.ocr_status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                    {% elif upload.ocr_status == 'processing' %}<span class="badge badge-soft-info">Processing</span>
+                    {% elif upload.ocr_status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                    {% elif upload.ocr_status == 'failed' %}<span class="badge badge-soft-danger">Failed</span>
+                    {% endif %}
+                </div>
+                <div class="mb-2"><small class="text-muted">Uploaded By</small><br><strong>{{ upload.uploaded_by.get_full_name|default:upload.uploaded_by.email }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Uploaded At</small><br><strong>{{ upload.created_at|date:"M d, Y H:i" }}</strong></div>
+                {% if upload.bill %}
+                <div class="mb-2">
+                    <small class="text-muted">Linked Bill</small><br>
+                    <a href="{% url 'accounts_payable:bill_detail' tenant_slug=current_tenant.slug pk=upload.bill.pk %}">
+                        <strong>{{ upload.bill.bill_number }}</strong>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Actions</h6>
+                {% if upload.ocr_status == 'completed' and not upload.bill %}
+                <form method="post" action="{% url 'accounts_payable:bill_upload_create_bill' tenant_slug=current_tenant.slug pk=upload.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2">
+                        <i class="ri-file-add-line me-1"></i> Create Bill
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'accounts_payable:upload_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Extracted Data -->
+    <div class="col-lg-8">
+        {% if upload.extracted_data %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-scan-2-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Extracted Data</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30%;">Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, value in upload.extracted_data.items %}
+                            <tr>
+                                <td><strong>{{ key }}</strong></td>
+                                <td>{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                {% if upload.ocr_status == 'pending' or upload.ocr_status == 'processing' %}
+                <div class="mb-3"><i class="ri-loader-4-line text-info" style="font-size: 3rem;"></i></div>
+                <h5 class="text-muted">Processing...</h5>
+                <p class="text-muted">The uploaded file is being processed. Please check back shortly.</p>
+                {% elif upload.ocr_status == 'failed' %}
+                <div class="mb-3"><i class="ri-error-warning-line text-danger" style="font-size: 3rem;"></i></div>
+                <h5 class="text-muted">Processing Failed</h5>
+                <p class="text-muted">An error occurred while processing this file. Please try uploading again.</p>
+                {% else %}
+                <div class="mb-3"><i class="ri-file-unknow-line text-muted" style="font-size: 3rem;"></i></div>
+                <h5 class="text-muted">No extracted data available</h5>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
