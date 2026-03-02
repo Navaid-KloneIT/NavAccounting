@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Payments{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Payments</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Payments</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-money-dollar-circle-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Draft</p>
+                        <h3 class="mb-0">{{ draft_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-draft-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Completed</p>
+                        <h3 class="mb-0">{{ completed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Void</p>
+                        <h3 class="mb-0">{{ void_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-close-circle-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Amount ($)</p>
+                        <h3 class="mb-0">{{ total_amount|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-funds-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Payment #, ref..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="void" {% if request.GET.status == 'void' %}selected{% endif %}>Void</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                    <option value="">All Methods</option>
+                    <option value="check" {% if request.GET.payment_method == 'check' %}selected{% endif %}>Check</option>
+                    <option value="ach" {% if request.GET.payment_method == 'ach' %}selected{% endif %}>ACH</option>
+                    <option value="wire" {% if request.GET.payment_method == 'wire' %}selected{% endif %}>Wire</option>
+                    <option value="credit_card" {% if request.GET.payment_method == 'credit_card' %}selected{% endif %}>Credit Card</option>
+                    <option value="cash" {% if request.GET.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="other" {% if request.GET.payment_method == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Vendor</label>
+                <select name="vendor" class="form-select">
+                    <option value="">All Vendors</option>
+                    {% for vendor in vendors %}
+                    <option value="{{ vendor.pk }}" {% if request.GET.vendor == vendor.pk|stringformat:"d" %}selected{% endif %}>{{ vendor.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'accounts_payable:payment_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'accounts_payable:payment_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> New Payment</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Payment #</th>
+                        <th>Vendor</th>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td><strong><a href="{% url 'accounts_payable:payment_detail' tenant_slug=current_tenant.slug pk=payment.pk %}">{{ payment.payment_number }}</a></strong></td>
+                        <td>{{ payment.vendor.display_name }}</td>
+                        <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                        <td class="text-end">{{ payment.amount|floatformat:2|intcomma }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ payment.get_payment_method_display }}</span></td>
+                        <td>
+                            {% if payment.status == 'draft' %}
+                            <span class="badge badge-soft-warning">Draft</span>
+                            {% elif payment.status == 'pending' %}
+                            <span class="badge badge-soft-info">Pending</span>
+                            {% elif payment.status == 'completed' %}
+                            <span class="badge badge-soft-success">Completed</span>
+                            {% elif payment.status == 'void' %}
+                            <span class="badge badge-soft-danger">Void</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'accounts_payable:payment_detail' tenant_slug=current_tenant.slug pk=payment.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-money-dollar-circle-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No payments found</h5>
+                                <p class="text-muted">Create your first payment to get started.</p>
+                                <a href="{% url 'accounts_payable:payment_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Payment
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
