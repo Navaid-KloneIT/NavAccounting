@@ -87,7 +87,7 @@
                     {% for bill in recent_bills %}
                     <tr>
                         <td>
-                            <a href="{% url 'vendor_portal:portal_bill_detail' bill_id=bill.pk %}" class="fw-semibold text-primary text-decoration-none">
+                            <a href="{% url 'vendor_portal:portal_bill_detail' pk=bill.pk %}" class="fw-semibold text-primary text-decoration-none">
                                 {{ bill.bill_number }}
                             </a>
                         </td>
