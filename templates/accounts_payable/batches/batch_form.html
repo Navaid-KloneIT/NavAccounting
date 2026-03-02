@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}New Payment Batch{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>New Payment Batch</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:batch_list' tenant_slug=current_tenant.slug %}">Payment Batches</a></li>
+        <li class="breadcrumb-item active">New Payment Batch</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Batch Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-stack-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Batch Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_payment_date" class="form-label">Payment Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.payment_date }}
+                    </div>
+                    {% if form.payment_date.errors %}<div class="invalid-feedback d-block">{{ form.payment_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_payment_method" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<div class="invalid-feedback d-block">{{ form.payment_method.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_bank_account" class="form-label">Bank Account <span class="text-danger">*</span></label>
+                    {{ form.bank_account }}
+                    {% if form.bank_account.errors %}<div class="invalid-feedback d-block">{{ form.bank_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bills Selection Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-file-list-3-line text-success"></i></div>
+                <h5 class="card-title mb-0">Select Bills to Pay</h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="selectAll">
+                                </div>
+                            </th>
+                            <th>Vendor</th>
+                            <th>Bill #</th>
+                            <th>Due Date</th>
+                            <th class="text-end">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td>
+                                <div class="form-check">
+                                    <input type="checkbox" name="bills" value="{{ bill.pk }}" class="form-check-input bill-checkbox">
+                                </div>
+                            </td>
+                            <td>{{ bill.vendor.display_name }}</td>
+                            <td><strong>{{ bill.bill_number }}</strong></td>
+                            <td>{{ bill.due_date|date:"M d, Y" }}</td>
+                            <td class="text-end">{{ bill.balance|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No approved or partially paid bills available for payment.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'accounts_payable:batch_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Create Batch
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('selectAll').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('.bill-checkbox');
+        checkboxes.forEach(function(cb) {
+            cb.checked = this.checked;
+        }.bind(this));
+    });
+</script>
+{% endblock %}
