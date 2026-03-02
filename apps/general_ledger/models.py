@@ -105,6 +105,7 @@ class JournalEntry(TenantAwareModel):
         ('recurring', 'Recurring'),
         ('allocation', 'Allocation'),
         ('closing', 'Period Close'),
+        ('ap_payment', 'AP Payment'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
@@ -117,7 +118,7 @@ class JournalEntry(TenantAwareModel):
         related_name='journal_entries'
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
-    source = models.CharField(max_length=15, choices=SOURCE_CHOICES, default='manual')
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual')
     currency = models.ForeignKey(
         'company.Currency',
         on_delete=models.PROTECT,
