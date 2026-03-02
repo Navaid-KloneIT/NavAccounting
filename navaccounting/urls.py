@@ -19,7 +19,11 @@ urlpatterns = [
         path('users/', include('apps.accounts.urls_users')),
         path('roles/', include('apps.roles.urls')),
         path('gl/', include('apps.general_ledger.urls')),
+        path('ap/', include('apps.accounts_payable.urls')),
     ])),
+
+    # Vendor Portal (outside tenant scope, token-based auth)
+    path('vendor-portal/', include('apps.accounts_payable.urls_portal')),
 
     # Root redirect
     path('', include('apps.accounts.urls_root')),
