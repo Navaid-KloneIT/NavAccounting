@@ -693,6 +693,11 @@ class VendorPortalToken(TenantAwareModel):
     def __str__(self):
         return f"Portal token for {self.vendor.display_name}"
 
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = self.generate_token()
+        super().save(*args, **kwargs)
+
     @staticmethod
     def generate_token():
         return secrets.token_urlsafe(48)
