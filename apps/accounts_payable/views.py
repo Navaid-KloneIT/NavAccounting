@@ -545,7 +545,7 @@ def bill_approval_queue(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'accounts_payable/bills/approval_queue.html', {
+    return render(request, 'accounts_payable/bills/bill_approval_queue.html', {
         'bills': page_obj,
         'page_obj': page_obj,
         'pending_count': pending_count,
