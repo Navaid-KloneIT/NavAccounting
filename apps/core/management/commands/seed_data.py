@@ -707,10 +707,12 @@ class Command(BaseCommand):
         self.stdout.write(f'  Created GL data (accounts, exchange rates, journal entries)')
 
     def _seed_ap_data(self):
-        """Seed accounts payable data: payment terms, vendors, bills, payments."""
+        """Seed accounts payable data: payment terms, vendors, bills, payments,
+        batches, uploads, scheduled payments."""
         from apps.accounts_payable.models import (
             PaymentTerm, Vendor, VendorContact, Bill, BillLine, Payment,
-            PaymentAllocation, VendorPortalToken,
+            PaymentAllocation, PaymentBatch, BillUpload, ScheduledPayment,
+            VendorPortalToken,
         )
         from apps.general_ledger.models import Account
 
@@ -1029,4 +1031,224 @@ class Command(BaseCommand):
                     amount=paid_bill.total_amount,
                 )
 
-        self.stdout.write(f'  Created AP data (terms, vendors, bills, payments)')
+            # --- Assign payment_term to bills for discount opportunities ---
+            # Anderson CPA bill (index 3) uses 2/10 Net 30
+            if bill_objs[3]:
+                bill_objs[3].payment_term = term_map.get('2/10N30')
+                bill_objs[3].bill_date = date.today() - timedelta(days=3)
+                bill_objs[3].due_date = date.today() + timedelta(days=27)
+                bill_objs[3].save()
+            # PG&E bill (index 2) uses 1/10 Net 45
+            if bill_objs[2]:
+                bill_objs[2].payment_term = term_map.get('1/10N45')
+                bill_objs[2].bill_date = date.today() - timedelta(days=2)
+                bill_objs[2].due_date = date.today() + timedelta(days=43)
+                bill_objs[2].save()
+            # Staples bill (index 0) also gets 2/10 Net 30
+            if bill_objs[0]:
+                bill_objs[0].payment_term = term_map.get('2/10N30')
+                bill_objs[0].bill_date = date.today() - timedelta(days=1)
+                bill_objs[0].due_date = date.today() + timedelta(days=29)
+                bill_objs[0].save()
+
+            # --- Payment Batches ---
+            batches_data = [
+                {
+                    'number': 'BATCH-2025-0001',
+                    'description': 'January vendor payments - Checks',
+                    'payment_date': date(2025, 1, 15),
+                    'method': 'check',
+                    'status': 'completed',
+                    'total_amount': Decimal('2500.00'),
+                    'payment_count': 1,
+                },
+                {
+                    'number': 'BATCH-2025-0002',
+                    'description': 'January ACH batch',
+                    'payment_date': date(2025, 1, 25),
+                    'method': 'ach',
+                    'status': 'completed',
+                    'total_amount': Decimal('684.90'),
+                    'payment_count': 2,
+                },
+                {
+                    'number': 'BATCH-2025-0003',
+                    'description': 'February vendor payments - Checks',
+                    'payment_date': date.today() + timedelta(days=5),
+                    'method': 'check',
+                    'status': 'ready',
+                    'total_amount': Decimal('2000.00'),
+                    'payment_count': 1,
+                },
+                {
+                    'number': 'BATCH-2025-0004',
+                    'description': 'February ACH batch',
+                    'payment_date': date.today() + timedelta(days=7),
+                    'method': 'ach',
+                    'status': 'draft',
+                    'total_amount': Decimal('498.90'),
+                    'payment_count': 2,
+                },
+            ]
+
+            for bdata in batches_data:
+                PaymentBatch.unscoped.get_or_create(
+                    tenant=tenant,
+                    batch_number=bdata['number'],
+                    defaults={
+                        'description': bdata['description'],
+                        'payment_date': bdata['payment_date'],
+                        'payment_method': bdata['method'],
+                        'bank_account': checking,
+                        'status': bdata['status'],
+                        'total_amount': bdata['total_amount'],
+                        'payment_count': bdata['payment_count'],
+                        'created_by': superuser,
+                    }
+                )
+
+            # --- Bill Uploads ---
+            uploads_data = [
+                {
+                    'number': 'UPL-2025-0001',
+                    'filename': 'staples_invoice_jan2025.pdf',
+                    'file_size': 245_760,
+                    'mime_type': 'application/pdf',
+                    'ocr_status': 'completed',
+                    'extracted_data': {
+                        'vendor_name': 'Staples Office Supply',
+                        'invoice_number': 'INV-ST-20250105',
+                        'invoice_date': '2025-01-05',
+                        'total_amount': '$435.40',
+                        'line_items': '3 items detected',
+                    },
+                    'bill': bill_objs[0],
+                },
+                {
+                    'number': 'UPL-2025-0002',
+                    'filename': 'city_property_rent_jan.pdf',
+                    'file_size': 128_512,
+                    'mime_type': 'application/pdf',
+                    'ocr_status': 'completed',
+                    'extracted_data': {
+                        'vendor_name': 'City Property Management LLC',
+                        'invoice_number': 'CPM-2025-001',
+                        'invoice_date': '2025-01-01',
+                        'total_amount': '$2,500.00',
+                        'line_items': '1 item detected',
+                    },
+                    'bill': bill_objs[1],
+                },
+                {
+                    'number': 'UPL-2025-0003',
+                    'filename': 'pge_electric_jan2025.pdf',
+                    'file_size': 98_304,
+                    'mime_type': 'application/pdf',
+                    'ocr_status': 'completed',
+                    'extracted_data': {
+                        'vendor_name': 'Pacific Gas & Electric',
+                        'invoice_number': 'PGE-JAN2025',
+                        'invoice_date': '2025-01-15',
+                        'total_amount': '$385.00',
+                    },
+                    'bill': bill_objs[2],
+                },
+                {
+                    'number': 'UPL-2025-0004',
+                    'filename': 'anderson_cpa_feb_invoice.pdf',
+                    'file_size': 312_000,
+                    'mime_type': 'application/pdf',
+                    'ocr_status': 'pending',
+                    'extracted_data': {},
+                    'bill': None,
+                },
+                {
+                    'number': 'UPL-2025-0005',
+                    'filename': 'cloudtech_hosting_receipt.png',
+                    'file_size': 1_048_576,
+                    'mime_type': 'image/png',
+                    'ocr_status': 'processing',
+                    'extracted_data': {},
+                    'bill': None,
+                },
+                {
+                    'number': 'UPL-2025-0006',
+                    'filename': 'blurry_scan_receipt.jpg',
+                    'file_size': 2_097_152,
+                    'mime_type': 'image/jpeg',
+                    'ocr_status': 'failed',
+                    'extracted_data': {},
+                    'bill': None,
+                },
+            ]
+
+            for udata in uploads_data:
+                BillUpload.unscoped.get_or_create(
+                    tenant=tenant,
+                    upload_number=udata['number'],
+                    defaults={
+                        'file': f"ap/bill_uploads/2025/01/{udata['filename']}",
+                        'original_filename': udata['filename'],
+                        'file_size': udata['file_size'],
+                        'mime_type': udata['mime_type'],
+                        'ocr_status': udata['ocr_status'],
+                        'extracted_data': udata['extracted_data'],
+                        'bill': udata['bill'],
+                        'uploaded_by': superuser,
+                    }
+                )
+
+            # --- Scheduled Payments ---
+            approved_bills = [b for b in bill_objs if b.status == 'approved']
+            schedules_data = [
+                {
+                    'bill': approved_bills[0] if len(approved_bills) > 0 else None,
+                    'scheduled_date': date.today() + timedelta(days=3),
+                    'priority': 'high',
+                    'status': 'scheduled',
+                    'notes': 'Early payment to capture 2% discount',
+                },
+                {
+                    'bill': approved_bills[1] if len(approved_bills) > 1 else None,
+                    'scheduled_date': date.today() + timedelta(days=7),
+                    'priority': 'medium',
+                    'status': 'scheduled',
+                    'notes': 'Regular payment cycle',
+                },
+                {
+                    'bill': approved_bills[2] if len(approved_bills) > 2 else None,
+                    'scheduled_date': date.today() + timedelta(days=7),
+                    'priority': 'medium',
+                    'status': 'scheduled',
+                    'notes': 'Grouped with other ACH payments',
+                },
+                {
+                    'bill': bill_objs[1],  # paid bill - executed schedule
+                    'scheduled_date': date(2025, 1, 12),
+                    'priority': 'high',
+                    'status': 'executed',
+                    'notes': 'Rent payment - executed on time',
+                },
+            ]
+
+            for sdata in schedules_data:
+                if sdata['bill'] is None:
+                    continue
+                ScheduledPayment.unscoped.get_or_create(
+                    tenant=tenant,
+                    bill=sdata['bill'],
+                    scheduled_date=sdata['scheduled_date'],
+                    defaults={
+                        'amount': sdata['bill'].total_amount - sdata['bill'].amount_paid,
+                        'priority': sdata['priority'],
+                        'status': sdata['status'],
+                        'notes': sdata['notes'],
+                        'payment': payment if sdata['status'] == 'executed' else None,
+                        'created_by': superuser,
+                    }
+                )
+
+        self.stdout.write(
+            f'  Created AP data (terms, vendors, bills, payments, '
+            f'batches, uploads, schedules)'
+        )
