@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Vendors{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Vendors</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Vendors</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-store-2-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Active</p>
+                        <h3 class="mb-0">{{ active_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Inactive</p>
+                        <h3 class="mb-0">{{ inactive_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-close-circle-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">1099 Eligible</p>
+                        <h3 class="mb-0">{{ eligible_1099_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-file-text-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Name, number..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="supplier" {% if request.GET.type == 'supplier' %}selected{% endif %}>Supplier</option>
+                    <option value="contractor" {% if request.GET.type == 'contractor' %}selected{% endif %}>Contractor</option>
+                    <option value="service" {% if request.GET.type == 'service' %}selected{% endif %}>Service Provider</option>
+                    <option value="utility" {% if request.GET.type == 'utility' %}selected{% endif %}>Utility</option>
+                    <option value="government" {% if request.GET.type == 'government' %}selected{% endif %}>Government</option>
+                    <option value="other" {% if request.GET.type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'accounts_payable:vendor_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'accounts_payable:vendor_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> New Vendor</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Vendor #</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Payment Terms</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vendor in vendors %}
+                    <tr>
+                        <td><strong><a href="{% url 'accounts_payable:vendor_detail' tenant_slug=current_tenant.slug pk=vendor.pk %}">{{ vendor.vendor_number }}</a></strong></td>
+                        <td>{{ vendor.display_name }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ vendor.get_vendor_type_display }}</span></td>
+                        <td>{{ vendor.phone|default:"-" }}</td>
+                        <td>{{ vendor.email|default:"-" }}</td>
+                        <td>{{ vendor.default_payment_term|default:"-" }}</td>
+                        <td>
+                            {% if vendor.is_active %}
+                            <span class="badge badge-soft-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'accounts_payable:vendor_detail' tenant_slug=current_tenant.slug pk=vendor.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                            <a href="{% url 'accounts_payable:vendor_edit' tenant_slug=current_tenant.slug pk=vendor.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-store-2-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No vendors found</h5>
+                                <p class="text-muted">Add your first vendor to get started.</p>
+                                <a href="{% url 'accounts_payable:vendor_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Vendor
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
