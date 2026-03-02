@@ -1015,6 +1015,7 @@ class Command(BaseCommand):
                     'check_number': '10001',
                     'bank_account': checking,
                     'ap_account': ap_account,
+                    'currency': usd,
                     'fiscal_period': period,
                     'status': 'completed',
                     'created_by': superuser,
