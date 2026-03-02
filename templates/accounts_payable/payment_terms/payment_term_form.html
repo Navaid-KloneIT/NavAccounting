@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Payment Term{% else %}New Payment Term{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if form.instance.pk %}Edit Payment Term{% else %}New Payment Term{% endif %}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:payment_term_list' tenant_slug=current_tenant.slug %}">Payment Terms</a></li>
+        <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Payment Term Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.code.id_for_label }}" class="form-label">Code <span class="text-danger">*</span></label>
+                            {{ form.code }}
+                            {% if form.code.errors %}<div class="invalid-feedback d-block">{{ form.code.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.due_days.id_for_label }}" class="form-label">Due Days <span class="text-danger">*</span></label>
+                            {{ form.due_days }}
+                            {% if form.due_days.errors %}<div class="invalid-feedback d-block">{{ form.due_days.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.discount_percentage.id_for_label }}" class="form-label">Discount %</label>
+                            {{ form.discount_percentage }}
+                            {% if form.discount_percentage.errors %}<div class="invalid-feedback d-block">{{ form.discount_percentage.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.discount_days.id_for_label }}" class="form-label">Discount Days</label>
+                            {{ form.discount_days }}
+                            {% if form.discount_days.errors %}<div class="invalid-feedback d-block">{{ form.discount_days.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Help</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2"><strong>Net 30</strong> = Due in 30 days, no discount</p>
+                    <p class="text-muted small mb-2"><strong>2/10 Net 30</strong> = 2% discount if paid within 10 days, otherwise due in 30 days</p>
+                    <p class="text-muted small mb-0"><strong>1/15 Net 45</strong> = 1% discount if paid within 15 days, otherwise due in 45 days</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-primary">
+            <i class="ri-save-line me-1"></i> Save Payment Term
+        </button>
+        <a href="{% url 'accounts_payable:payment_term_list' tenant_slug=current_tenant.slug %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}
