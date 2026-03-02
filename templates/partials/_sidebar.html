@@ -191,6 +191,135 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Accounts Payable <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Vendors -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_payable:vendor_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_payable' and 'vendor' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-store-2-line"></i>
+                    <span class="menu-text">Vendors</span>
+                </a>
+            </li>
+
+            <!-- Bills -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'accounts_payable' and 'bill' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-bill-line"></i>
+                    <span class="menu-text">Bills</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'accounts_payable' and 'bill' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:bill_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'bill_list' %}active{% endif %}">
+                            <span class="menu-text">All Bills</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:bill_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'bill_create' %}active{% endif %}">
+                            <span class="menu-text">New Bill</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:bill_approval_queue' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'bill_approval_queue' %}active{% endif %}">
+                            <span class="menu-text">Approvals</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Payments -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'accounts_payable' and 'payment' in request.resolver_match.url_name or request.resolver_match.app_name == 'accounts_payable' and 'batch' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-money-dollar-box-line"></i>
+                    <span class="menu-text">Payments</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'accounts_payable' and 'payment' in request.resolver_match.url_name or request.resolver_match.app_name == 'accounts_payable' and 'batch' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:payment_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'payment_list' %}active{% endif %}">
+                            <span class="menu-text">All Payments</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:payment_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'payment_create' %}active{% endif %}">
+                            <span class="menu-text">New Payment</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:batch_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'batch' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Batches</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Bill Capture -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_payable:bill_upload_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_payable' and 'upload' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-scan-2-line"></i>
+                    <span class="menu-text">Bill Capture</span>
+                </a>
+            </li>
+
+            <!-- Payment Scheduling -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_payable:schedule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_payable' and 'schedule' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-calendar-schedule-line"></i>
+                    <span class="menu-text">Scheduling</span>
+                </a>
+            </li>
+
+            <!-- AP Reports -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'accounts_payable' and 'aging' in request.resolver_match.url_name or request.resolver_match.app_name == 'accounts_payable' and 'discount' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-bar-chart-2-line"></i>
+                    <span class="menu-text">AP Reports</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'accounts_payable' and 'aging' in request.resolver_match.url_name or request.resolver_match.app_name == 'accounts_payable' and 'discount' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:aging_summary' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'aging' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Aging Report</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_payable:discount_opportunities' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'discount' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Discount Opportunities</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Payment Terms -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_payable:payment_term_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_payable' and 'payment_term' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-time-line"></i>
+                    <span class="menu-text">Payment Terms</span>
+                </a>
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
