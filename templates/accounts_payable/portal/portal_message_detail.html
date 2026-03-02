@@ -1,0 +1,55 @@
+{% extends "accounts_payable/portal/portal_base.html" %}
+
+{% block title %}{{ message.subject }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Message Detail</h4>
+        <p class="text-muted mb-0">{{ message.subject }}</p>
+    </div>
+    <a href="{% url 'vendor_portal:portal_messages' %}" class="btn btn-outline-secondary">
+        <i class="ri-arrow-left-line me-1"></i> Back to Messages
+    </a>
+</div>
+
+<!-- Message Card -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-primary bg-opacity-10 p-2 me-2">
+                    <i class="ri-mail-open-line text-primary"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-0 fw-semibold">{{ message.subject }}</h5>
+                    <small class="text-muted">
+                        {% if message.sender_type == 'vendor' %}
+                            <i class="ri-user-line me-1"></i>From: Vendor
+                        {% else %}
+                            <i class="ri-building-line me-1"></i>From: Company
+                        {% endif %}
+                        &middot; {{ message.created_at|date:"M d, Y H:i" }}
+                    </small>
+                </div>
+            </div>
+            {% if message.is_read %}
+                <span class="badge bg-secondary bg-opacity-10 text-secondary">Read</span>
+            {% else %}
+                <span class="badge bg-primary bg-opacity-10 text-primary">Unread</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="py-2" style="white-space: pre-wrap; line-height: 1.7;">{{ message.body }}</div>
+    </div>
+</div>
+
+<!-- Back Link -->
+<div class="text-center mt-4">
+    <a href="{% url 'vendor_portal:portal_messages' %}" class="btn btn-outline-secondary">
+        <i class="ri-arrow-left-line me-1"></i> Back to Messages
+    </a>
+</div>
+{% endblock %}
