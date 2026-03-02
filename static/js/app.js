@@ -261,6 +261,7 @@
         this._bindHoverExpand();
         this._bindResize();
         this._highlightActiveItem();
+        this._collapseInactiveSections();
         this._handleMobileInit();
     };
 
