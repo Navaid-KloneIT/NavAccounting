@@ -34,9 +34,9 @@
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted text-uppercase small mb-3">Upload Details</h6>
-                <div class="mb-2"><small class="text-muted">Filename</small><br><strong>{{ upload.filename }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Filename</small><br><strong>{{ upload.original_filename }}</strong></div>
                 <div class="mb-2"><small class="text-muted">File Size</small><br><strong>{{ upload.file_size|filesizeformat }}</strong></div>
-                <div class="mb-2"><small class="text-muted">File Type</small><br><strong>{{ upload.content_type }}</strong></div>
+                <div class="mb-2"><small class="text-muted">File Type</small><br><strong>{{ upload.mime_type }}</strong></div>
                 <div class="mb-2">
                     <small class="text-muted">Status</small><br>
                     {% if upload.ocr_status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
