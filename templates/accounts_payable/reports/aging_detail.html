@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Aging Detail - {{ vendor.display_name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ vendor.display_name }} - Aging Detail</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:aging_summary' tenant_slug=current_tenant.slug %}">AP Aging</a></li>
+        <li class="breadcrumb-item active">{{ vendor.display_name }}</li>
+    </ol>
+</div>
+
+<!-- Summary Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Outstanding Bills</p>
+                        <h3 class="mb-0">{{ bills|length }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-file-list-3-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Outstanding</p>
+                        <h3 class="mb-0">${{ total_outstanding|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-money-dollar-circle-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Overdue</p>
+                        <h3 class="mb-0">{{ overdue_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-error-warning-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bills Table -->
+<div class="card table-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Outstanding Bills</h5>
+        <a href="{% url 'accounts_payable:vendor_detail' tenant_slug=current_tenant.slug pk=vendor.pk %}" class="btn btn-sm btn-soft-primary">
+            <i class="ri-store-2-line me-1"></i> View Vendor
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Bill #</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Paid</th>
+                        <th class="text-end">Balance</th>
+                        <th>Days Overdue</th>
+                        <th>Aging Bucket</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in bills %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounts_payable:bill_detail' tenant_slug=current_tenant.slug pk=item.bill.pk %}">
+                                <strong>{{ item.bill.bill_number }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ item.bill.bill_date|date:"M d, Y" }}</td>
+                        <td>{{ item.bill.due_date|date:"M d, Y" }}</td>
+                        <td class="text-end">${{ item.bill.total_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ item.bill.amount_paid|floatformat:2|intcomma }}</td>
+                        <td class="text-end"><strong>${{ item.balance|floatformat:2|intcomma }}</strong></td>
+                        <td>
+                            {% if item.days_overdue > 0 %}
+                            <span class="text-danger">{{ item.days_overdue }} days</span>
+                            {% else %}
+                            <span class="text-success">Current</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.bucket == 'current' %}
+                            <span class="badge badge-soft-success">Current</span>
+                            {% elif item.bucket == '1_30' %}
+                            <span class="badge badge-soft-info">1-30</span>
+                            {% elif item.bucket == '31_60' %}
+                            <span class="badge badge-soft-warning">31-60</span>
+                            {% elif item.bucket == '61_90' %}
+                            <span class="badge badge-soft-danger">61-90</span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">90+</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <h5 class="text-muted">No outstanding bills for this vendor</h5>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
