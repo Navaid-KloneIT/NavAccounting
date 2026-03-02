@@ -107,7 +107,7 @@
                         <td><strong><a href="{% url 'accounts_payable:bill_upload_detail' tenant_slug=current_tenant.slug pk=upload.pk %}">{{ upload.upload_number }}</a></strong></td>
                         <td>
                             <i class="ri-file-pdf-line text-danger me-1"></i>
-                            {{ upload.filename }}
+                            {{ upload.original_filename }}
                         </td>
                         <td>{{ upload.file_size|filesizeformat }}</td>
                         <td>
