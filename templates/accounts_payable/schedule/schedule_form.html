@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Schedule Payment{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Schedule Payment</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:schedule_list' tenant_slug=current_tenant.slug %}">Payment Schedule</a></li>
+        <li class="breadcrumb-item active">Schedule Payment</li>
+    </ol>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-calendar-schedule-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">Schedule Payment</h5>
+                <p class="text-muted small mb-0">Schedule a future payment for a bill.</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Tips</h6>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0"><i class="ri-lightbulb-line text-warning me-2"></i></div>
+                    <div class="flex-grow-1"><p class="text-muted small mb-0">High priority payments are processed first in batch runs.</p></div>
+                </div>
+                <div class="d-flex">
+                    <div class="flex-shrink-0"><i class="ri-lightbulb-line text-warning me-2"></i></div>
+                    <div class="flex-grow-1"><p class="text-muted small mb-0">Scheduled payments can be executed or cancelled before the scheduled date.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-calendar-schedule-line text-primary"></i></div>
+                        <h5 class="card-title mb-0">Schedule Details</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="id_bill" class="form-label">Bill <span class="text-danger">*</span></label>
+                            {{ form.bill }}
+                            {% if form.bill.errors %}<div class="invalid-feedback d-block">{{ form.bill.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_scheduled_date" class="form-label">Scheduled Date <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                {{ form.scheduled_date }}
+                            </div>
+                            {% if form.scheduled_date.errors %}<div class="invalid-feedback d-block">{{ form.scheduled_date.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.amount }}
+                            </div>
+                            {% if form.amount.errors %}<div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_priority" class="form-label">Priority <span class="text-danger">*</span></label>
+                            {{ form.priority }}
+                            {% if form.priority.errors %}<div class="invalid-feedback d-block">{{ form.priority.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            &nbsp;
+                        </div>
+                        <div class="col-12">
+                            <label for="id_notes" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body d-flex justify-content-end gap-2">
+                    <a href="{% url 'accounts_payable:schedule_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                        <i class="ri-arrow-left-line me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ri-save-line me-1"></i> Schedule Payment
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
