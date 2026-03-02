@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ bill.bill_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:bill_list' tenant_slug=current_tenant.slug %}">Bills</a></li>
+        <li class="breadcrumb-item active">Bill Detail</li>
+    </ol>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-3">
+    <div class="col-12 d-flex gap-2 flex-wrap">
+        {% if bill.status == 'draft' %}
+        <a href="{% url 'accounts_payable:bill_edit' tenant_slug=current_tenant.slug pk=bill.pk %}" class="btn btn-soft-primary">
+            <i class="ri-pencil-line me-1"></i> Edit
+        </a>
+        <form method="post" action="{% url 'accounts_payable:bill_submit' tenant_slug=current_tenant.slug pk=bill.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-soft-info">
+                <i class="ri-send-plane-line me-1"></i> Submit for Approval
+            </button>
+        </form>
+        {% endif %}
+        {% if bill.status != 'paid' and bill.status != 'void' %}
+        <form method="post" action="{% url 'accounts_payable:bill_void' tenant_slug=current_tenant.slug pk=bill.pk %}" class="d-inline" onsubmit="return confirm('Are you sure you want to void this bill? This action cannot be undone.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-soft-danger">
+                <i class="ri-close-circle-line me-1"></i> Void
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'accounts_payable:bill_list' tenant_slug=current_tenant.slug %}" class="btn btn-light ms-auto">
+            <i class="ri-arrow-left-line me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bill Info Card -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-text-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Bill Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Bill #</dt>
+                    <dd class="col-sm-7"><strong>{{ bill.bill_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Vendor</dt>
+                    <dd class="col-sm-7">{{ bill.vendor.display_name }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Vendor Invoice #</dt>
+                    <dd class="col-sm-7">{{ bill.vendor_invoice_number|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Bill Date</dt>
+                    <dd class="col-sm-7">{{ bill.bill_date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Due Date</dt>
+                    <dd class="col-sm-7">
+                        {{ bill.due_date|date:"M d, Y" }}
+                        {% if bill.is_overdue %}<span class="badge badge-soft-danger ms-1">Overdue</span>{% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if bill.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                        {% elif bill.status == 'pending_approval' %}<span class="badge badge-soft-info">Pending Approval</span>
+                        {% elif bill.status == 'approved' %}<span class="badge badge-soft-primary">Approved</span>
+                        {% elif bill.status == 'partially_paid' %}<span class="badge badge-soft-warning">Partially Paid</span>
+                        {% elif bill.status == 'paid' %}<span class="badge badge-soft-success">Paid</span>
+                        {% elif bill.status == 'void' %}<span class="badge badge-soft-danger">Void</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Currency</dt>
+                    <dd class="col-sm-7">{{ bill.currency.code }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Payment Terms</dt>
+                    <dd class="col-sm-7">{{ bill.payment_term|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">PO Reference</dt>
+                    <dd class="col-sm-7">{{ bill.po_reference|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Receipt Reference</dt>
+                    <dd class="col-sm-7">{{ bill.receipt_reference|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Description</dt>
+                    <dd class="col-sm-7">{{ bill.description|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Card -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-money-dollar-circle-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Financial Summary</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Subtotal</dt>
+                    <dd class="col-sm-7 text-end">{{ bill.subtotal|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Tax</dt>
+                    <dd class="col-sm-7 text-end">{{ bill.tax_amount|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Total</dt>
+                    <dd class="col-sm-7 text-end"><strong>{{ bill.total_amount|floatformat:2|intcomma }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Amount Paid</dt>
+                    <dd class="col-sm-7 text-end">{{ bill.amount_paid|floatformat:2|intcomma }}</dd>
+                </dl>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-muted">Balance Due</span>
+                    <span class="fs-4 fw-bold {% if bill.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ bill.balance_due|floatformat:2|intcomma }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Items Card -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check text-info"></i></div>
+            <h5 class="card-title mb-0">Line Items</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Account</th>
+                        <th>Description</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Unit Price</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Tax</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in bill.lines.all %}
+                    <tr>
+                        <td><strong>{{ line.account.account_number }}</strong> - {{ line.account.name }}</td>
+                        <td>{{ line.description|default:"-" }}</td>
+                        <td class="text-end">{{ line.quantity|floatformat:4 }}</td>
+                        <td class="text-end">{{ line.unit_price|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.tax_amount|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
+                        <td class="text-end"><strong>{{ bill.subtotal|floatformat:2|intcomma }}</strong></td>
+                        <td class="text-end"><strong>{{ bill.tax_amount|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                        <td class="text-end" colspan="2"><strong>{{ bill.total_amount|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Approval History Card -->
+{% if bill.approvals.all %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-shield-check-line text-warning"></i></div>
+            <h5 class="card-title mb-0">Approval History</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Approver</th>
+                        <th>Status</th>
+                        <th>Comments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in bill.approvals.all %}
+                    <tr>
+                        <td>{{ a.approved_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td>{{ a.approver.get_full_name|default:a.approver.email }}</td>
+                        <td>
+                            {% if a.status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                            {% elif a.status == 'approved' %}<span class="badge badge-soft-success">Approved</span>
+                            {% elif a.status == 'rejected' %}<span class="badge badge-soft-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ a.comments|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Approve / Reject Form (shown when pending approval) -->
+{% if bill.status == 'pending_approval' and approval_form %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-checkbox-circle-line text-primary"></i></div>
+            <h5 class="card-title mb-0">Review This Bill</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label for="id_comments" class="form-label">Comments</label>
+            {{ approval_form.comments }}
+        </div>
+        <div class="d-flex gap-2">
+            <form method="post" action="{% url 'accounts_payable:bill_approve' tenant_slug=current_tenant.slug pk=bill.pk %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="comments" id="approve-comments">
+                <button type="submit" class="btn btn-success" onclick="document.getElementById('approve-comments').value=document.getElementById('id_comments').value;">
+                    <i class="ri-check-line me-1"></i> Approve
+                </button>
+            </form>
+            <form method="post" action="{% url 'accounts_payable:bill_reject' tenant_slug=current_tenant.slug pk=bill.pk %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="comments" id="reject-comments">
+                <button type="submit" class="btn btn-danger" onclick="document.getElementById('reject-comments').value=document.getElementById('id_comments').value;">
+                    <i class="ri-close-line me-1"></i> Reject
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Payment History Card -->
+{% if bill.payment_allocations.all %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-success p-2 me-2"><i class="ri-bank-card-line text-success"></i></div>
+            <h5 class="card-title mb-0">Payment History</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Payment #</th>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Discount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alloc in bill.payment_allocations.all %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="{% url 'accounts_payable:payment_detail' tenant_slug=current_tenant.slug pk=alloc.payment.pk %}">
+                                    {{ alloc.payment.payment_number }}
+                                </a>
+                            </strong>
+                        </td>
+                        <td>{{ alloc.payment.payment_date|date:"M d, Y" }}</td>
+                        <td class="text-end">{{ alloc.amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ alloc.discount_taken|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
