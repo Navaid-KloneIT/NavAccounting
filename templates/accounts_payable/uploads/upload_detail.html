@@ -8,7 +8,7 @@
     <h4>{{ upload.upload_number }}</h4>
     <ol class="breadcrumb m-0">
         <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:upload_list' tenant_slug=current_tenant.slug %}">Bill Uploads</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_payable:bill_upload_list' tenant_slug=current_tenant.slug %}">Bill Uploads</a></li>
         <li class="breadcrumb-item active">{{ upload.upload_number }}</li>
     </ol>
 </div>
@@ -70,7 +70,7 @@
                     </button>
                 </form>
                 {% endif %}
-                <a href="{% url 'accounts_payable:upload_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                <a href="{% url 'accounts_payable:bill_upload_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
                     <i class="ri-arrow-left-line me-1"></i> Back to List
                 </a>
             </div>
