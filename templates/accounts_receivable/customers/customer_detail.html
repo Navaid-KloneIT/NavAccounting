@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ customer.customer_number }} - {{ customer.display_name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ customer.customer_number }} - {{ customer.display_name }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:customer_list' tenant_slug=current_tenant.slug %}">Customers</a></li>
+        <li class="breadcrumb-item active">Customer Detail</li>
+    </ol>
+</div>
+
+<!-- Credit Hold Alert Banner -->
+{% if customer.credit_hold %}
+<div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+    <i class="ri-alert-line me-2" style="font-size: 1.25rem;"></i>
+    <div>
+        <strong>Credit Hold</strong> -- This customer is currently on credit hold.
+        {% if customer.credit_hold_reason %}Reason: {{ customer.credit_hold_reason }}{% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons & Outstanding Balance -->
+<div class="row mb-3">
+    <div class="col-lg-8">
+        <div class="d-flex gap-2">
+            <a href="{% url 'accounts_receivable:customer_edit' tenant_slug=current_tenant.slug pk=customer.pk %}" class="btn btn-soft-primary">
+                <i class="ri-pencil-line me-1"></i> Edit Customer
+            </a>
+            <form method="post" action="{% url 'accounts_receivable:customer_toggle_active' tenant_slug=current_tenant.slug pk=customer.pk %}">
+                {% csrf_token %}
+                {% if customer.is_active %}
+                <button type="submit" class="btn btn-soft-warning">
+                    <i class="ri-forbid-line me-1"></i> Deactivate
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-soft-success">
+                    <i class="ri-checkbox-circle-line me-1"></i> Activate
+                </button>
+                {% endif %}
+            </form>
+            <form method="post" action="{% url 'accounts_receivable:customer_credit_hold' tenant_slug=current_tenant.slug pk=customer.pk %}">
+                {% csrf_token %}
+                {% if customer.credit_hold %}
+                <button type="submit" class="btn btn-soft-success">
+                    <i class="ri-lock-unlock-line me-1"></i> Remove Credit Hold
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-soft-danger">
+                    <i class="ri-lock-line me-1"></i> Place Credit Hold
+                </button>
+                {% endif %}
+            </form>
+            <a href="{% url 'accounts_receivable:customer_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Back
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card stats-card mb-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Outstanding Balance</p>
+                        <h3 class="mb-0">{{ customer.outstanding_balance|floatformat:2|intcomma|default:"0.00" }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-money-dollar-circle-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Column -->
+    <div class="col-lg-8">
+        <!-- Customer Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-user-3-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Customer Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Company Name</dt>
+                            <dd class="col-sm-7">{{ customer.company_name }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Display Name</dt>
+                            <dd class="col-sm-7">{{ customer.display_name }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Customer Type</dt>
+                            <dd class="col-sm-7"><span class="badge badge-soft-secondary">{{ customer.get_customer_type_display }}</span></dd>
+
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if customer.credit_hold %}
+                                <span class="badge badge-soft-danger">Credit Hold</span>
+                                {% elif customer.is_active %}
+                                <span class="badge badge-soft-success">Active</span>
+                                {% else %}
+                                <span class="badge badge-soft-secondary">Inactive</span>
+                                {% endif %}
+                            </dd>
+
+                            <dt class="col-sm-5 text-muted">Tax ID</dt>
+                            <dd class="col-sm-7">{{ customer.tax_id|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Tax Exempt</dt>
+                            <dd class="col-sm-7">
+                                {% if customer.tax_exempt %}
+                                <span class="badge badge-soft-success">Yes</span>
+                                {% else %}
+                                <span class="badge badge-soft-secondary">No</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Phone</dt>
+                            <dd class="col-sm-7">{{ customer.phone|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Email</dt>
+                            <dd class="col-sm-7">
+                                {% if customer.email %}
+                                <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                                {% else %}-{% endif %}
+                            </dd>
+
+                            <dt class="col-sm-5 text-muted">Website</dt>
+                            <dd class="col-sm-7">
+                                {% if customer.website %}
+                                <a href="{{ customer.website }}" target="_blank" rel="noopener">{{ customer.website }}</a>
+                                {% else %}-{% endif %}
+                            </dd>
+
+                            <dt class="col-sm-5 text-muted">Payment Terms</dt>
+                            <dd class="col-sm-7">{{ customer.default_payment_term|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Payment Method</dt>
+                            <dd class="col-sm-7">{{ customer.get_preferred_payment_method_display|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Currency</dt>
+                            <dd class="col-sm-7">{{ customer.currency|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Credit Rating</dt>
+                            <dd class="col-sm-7">{{ customer.credit_rating|default:"-" }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-money-dollar-circle-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Financial Summary</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <p class="text-muted mb-1 small text-uppercase">Credit Limit</p>
+                        <h4 class="mb-0">
+                            {% if customer.credit_limit %}
+                            {{ customer.credit_limit|floatformat:2|intcomma }}
+                            {% else %}-{% endif %}
+                        </h4>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <p class="text-muted mb-1 small text-uppercase">Outstanding Balance</p>
+                        <h4 class="mb-0">{{ customer.outstanding_balance|floatformat:2|intcomma|default:"0.00" }}</h4>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <p class="text-muted mb-1 small text-uppercase">Available Credit</p>
+                        <h4 class="mb-0">
+                            {% if customer.available_credit is not None %}
+                            {{ customer.available_credit|floatformat:2|intcomma }}
+                            {% else %}-{% endif %}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing Address -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-map-pin-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Billing Address</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if customer.billing_address_line_1 %}
+                <p class="mb-0">
+                    {{ customer.billing_address_line_1 }}<br>
+                    {% if customer.billing_address_line_2 %}{{ customer.billing_address_line_2 }}<br>{% endif %}
+                    {{ customer.billing_city }}{% if customer.billing_city and customer.billing_state %}, {% endif %}{{ customer.billing_state }} {{ customer.billing_postal_code }}<br>
+                    {{ customer.billing_country }}
+                </p>
+                {% else %}
+                <p class="text-muted mb-0">No billing address provided.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shipping Address -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-truck-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Shipping Address</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if customer.shipping_address_line_1 %}
+                <p class="mb-0">
+                    {{ customer.shipping_address_line_1 }}<br>
+                    {% if customer.shipping_address_line_2 %}{{ customer.shipping_address_line_2 }}<br>{% endif %}
+                    {{ customer.shipping_city }}{% if customer.shipping_city and customer.shipping_state %}, {% endif %}{{ customer.shipping_state }} {{ customer.shipping_postal_code }}<br>
+                    {{ customer.shipping_country }}
+                </p>
+                {% else %}
+                <p class="text-muted mb-0">No shipping address provided.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Notes -->
+        {% if customer.notes %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-secondary p-2 me-2"><i class="ri-sticky-note-line text-secondary"></i></div>
+                    <h5 class="card-title mb-0">Notes</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ customer.notes|linebreaksbr }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Invoices -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-file-list-3-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Recent Invoices</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Due Date</th>
+                                <th class="text-end">Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in recent_invoices %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=invoice.pk %}">{{ invoice.invoice_number }}</a>
+                                    </strong>
+                                </td>
+                                <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                                <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                                <td class="text-end">{{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                                <td>
+                                    {% if invoice.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                                    {% elif invoice.status == 'submitted' %}<span class="badge badge-soft-info">Submitted</span>
+                                    {% elif invoice.status == 'approved' %}<span class="badge badge-soft-primary">Approved</span>
+                                    {% elif invoice.status == 'sent' %}<span class="badge badge-soft-info">Sent</span>
+                                    {% elif invoice.status == 'partially_paid' %}<span class="badge badge-soft-warning">Partially Paid</span>
+                                    {% elif invoice.status == 'paid' %}<span class="badge badge-soft-success">Paid</span>
+                                    {% elif invoice.status == 'void' %}<span class="badge badge-soft-danger">Void</span>
+                                    {% elif invoice.status == 'written_off' %}<span class="badge badge-soft-danger">Written Off</span>
+                                    {% else %}<span class="badge badge-soft-secondary">{{ invoice.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No invoices found for this customer.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Receipts -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-money-dollar-box-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Recent Receipts</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Receipt #</th>
+                                <th>Date</th>
+                                <th class="text-end">Amount</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for receipt in recent_receipts %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        <a href="{% url 'accounts_receivable:receipt_detail' tenant_slug=current_tenant.slug pk=receipt.pk %}">{{ receipt.receipt_number }}</a>
+                                    </strong>
+                                </td>
+                                <td>{{ receipt.receipt_date|date:"M d, Y" }}</td>
+                                <td class="text-end">{{ receipt.amount|floatformat:2|intcomma }}</td>
+                                <td>{{ receipt.get_payment_method_display|default:"-" }}</td>
+                                <td>
+                                    {% if receipt.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                                    {% elif receipt.status == 'pending' %}<span class="badge badge-soft-info">Pending</span>
+                                    {% elif receipt.status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                                    {% elif receipt.status == 'void' %}<span class="badge badge-soft-danger">Void</span>
+                                    {% else %}<span class="badge badge-soft-secondary">{{ receipt.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No receipts found for this customer.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <!-- Contacts -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-contacts-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Contacts</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Title</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th class="text-center">Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contact in customer.contacts.all %}
+                            <tr>
+                                <td><strong>{{ contact.first_name }} {{ contact.last_name }}</strong></td>
+                                <td>{{ contact.title|default:"-" }}</td>
+                                <td>
+                                    {% if contact.email %}
+                                    <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td>{{ contact.phone|default:"-" }}</td>
+                                <td class="text-center">
+                                    {% if contact.is_primary %}
+                                    <span class="badge badge-soft-primary">Primary</span>
+                                    {% endif %}
+                                    {% if contact.is_billing_contact %}
+                                    <span class="badge badge-soft-warning">Billing</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No contacts added.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                <a href="{% url 'accounts_receivable:invoice_create' tenant_slug=current_tenant.slug %}" class="btn btn-soft-primary btn-sm w-100 mb-2">
+                    <i class="ri-add-line me-1"></i> New Invoice
+                </a>
+                <a href="{% url 'accounts_receivable:receipt_create' tenant_slug=current_tenant.slug %}" class="btn btn-soft-success btn-sm w-100 mb-2">
+                    <i class="ri-money-dollar-box-line me-1"></i> Record Receipt
+                </a>
+                <a href="{% url 'accounts_receivable:customer_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Customers
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
