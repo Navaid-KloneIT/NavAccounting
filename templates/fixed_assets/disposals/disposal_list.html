@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Asset Disposals{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Asset Disposals</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:asset_list' tenant_slug=current_tenant.slug %}">Fixed Assets</a></li>
+            <li class="breadcrumb-item active">Disposals</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Disposals</p>
+                <h3 class="mb-0">{{ total_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Proceeds</p>
+                <h3 class="mb-0">${{ total_proceeds|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Net Gain/Loss</p>
+                <h3 class="mb-0 {% if total_gain_loss >= 0 %}text-success{% else %}text-danger{% endif %}">${{ total_gain_loss|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Disposals</h5>
+        <a href="{% url 'fixed_assets:disposal_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Disposal</a>
+    </div>
+    <div class="card-body">
+        {% if disposals %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Disposal #</th>
+                        <th>Asset</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th class="text-end">Proceeds</th>
+                        <th class="text-end">NBV</th>
+                        <th class="text-end">Gain/Loss</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in disposals %}
+                    <tr>
+                        <td class="fw-semibold">{{ d.disposal_number }}</td>
+                        <td><a href="{% url 'fixed_assets:asset_detail' tenant_slug=current_tenant.slug pk=d.asset.pk %}">{{ d.asset.asset_number }}</a></td>
+                        <td><span class="badge bg-soft-info text-info">{{ d.get_disposal_type_display }}</span></td>
+                        <td>{{ d.disposal_date }}</td>
+                        <td class="text-end">${{ d.proceeds|intcomma }}</td>
+                        <td class="text-end">${{ d.net_book_value_at_disposal|intcomma }}</td>
+                        <td class="text-end {% if d.gain_loss >= 0 %}text-success{% else %}text-danger{% endif %}">${{ d.gain_loss|intcomma }}</td>
+                        <td>
+                            {% if d.status == 'completed' %}
+                                <span class="badge bg-soft-success text-success">Completed</span>
+                            {% elif d.status == 'draft' %}
+                                <span class="badge bg-soft-secondary text-secondary">Draft</span>
+                            {% else %}
+                                <span class="badge bg-soft-warning text-warning">{{ d.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if d.status == 'draft' %}
+                            <form method="post" action="{% url 'fixed_assets:disposal_process' tenant_slug=current_tenant.slug pk=d.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-soft-success" title="Process" onclick="return confirm('Process this disposal? This will create a GL journal entry.')"><i class="ri-check-double-line"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-delete-bin-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No disposals found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
