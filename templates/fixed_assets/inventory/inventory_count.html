@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inventory Count - {{ inventory.inventory_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Inventory Count - {{ inventory.inventory_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:inventory_list' tenant_slug=current_tenant.slug %}">Physical Inventory</a></li>
+            <li class="breadcrumb-item active">{{ inventory.inventory_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small">Total Items</p>
+                <h3 class="mb-0">{{ inventory.total_items }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small">Found</p>
+                <h3 class="mb-0 text-success">{{ inventory.found_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small">Missing</p>
+                <h3 class="mb-0 text-danger">{{ inventory.missing_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small">Status</p>
+                <span class="badge bg-soft-warning text-warning fs-6">{{ inventory.get_status_display }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">{{ inventory.name }}</h5>
+        <form method="post" action="{% url 'fixed_assets:inventory_reconcile' tenant_slug=current_tenant.slug pk=inventory.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Reconcile this inventory? Asset locations will be updated.')"><i class="ri-check-double-line me-1"></i>Reconcile</button>
+        </form>
+    </div>
+    <div class="card-body">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset #</th>
+                        <th>Asset Name</th>
+                        <th>Expected Location</th>
+                        <th>Found Location</th>
+                        <th>Barcode</th>
+                        <th>Condition</th>
+                        <th class="text-center">Found</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="{% if not item.is_found %}table-danger{% endif %}">
+                        <td class="fw-semibold">{{ item.asset.asset_number }}</td>
+                        <td>{{ item.asset.name }}</td>
+                        <td>{{ item.expected_location|default:"-" }}</td>
+                        <td>{{ item.found_location|default:"-" }}</td>
+                        <td>{{ item.scanned_barcode|default:"-" }}</td>
+                        <td>
+                            {% if item.condition == 'good' %}
+                                <span class="badge bg-soft-success text-success">Good</span>
+                            {% elif item.condition == 'fair' %}
+                                <span class="badge bg-soft-info text-info">Fair</span>
+                            {% elif item.condition == 'poor' %}
+                                <span class="badge bg-soft-warning text-warning">Poor</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">Damaged</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.is_found %}
+                                <i class="ri-check-line text-success" style="font-size: 1.2rem;"></i>
+                            {% else %}
+                                <i class="ri-close-line text-danger" style="font-size: 1.2rem;"></i>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <p class="text-muted">No items in this inventory count.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
