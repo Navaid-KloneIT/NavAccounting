@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Collections Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Collections Dashboard</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Accounts Receivable</li>
+        <li class="breadcrumb-item active">Collections</li>
+    </ol>
+</div>
+
+<!-- Total Overdue -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card stats-card border-danger mb-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Overdue</p>
+                        <h3 class="mb-0 text-danger">${{ total_overdue|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'accounts_receivable:collection_activity_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-primary">
+                            <i class="ri-list-check me-1"></i> All Activities
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aging Summary Stat Cards -->
+<div class="row">
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">Current</p>
+                <h4 class="mb-0 text-success">${{ aging_summary.current|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">1-30 Days</p>
+                <h4 class="mb-0 text-info">${{ aging_summary.1_30|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">31-60 Days</p>
+                <h4 class="mb-0 text-warning">${{ aging_summary.31_60|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">61-90 Days</p>
+                <h4 class="mb-0 text-danger">${{ aging_summary.61_90|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">Over 90 Days</p>
+                <h4 class="mb-0 text-danger">${{ aging_summary.90_plus|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Invoices Table -->
+<div class="card table-card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-danger p-2 me-2"><i class="ri-alarm-warning-line text-danger"></i></div>
+            <h5 class="card-title mb-0">Overdue Invoices</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Days Overdue</th>
+                        <th class="text-end">Balance Due</th>
+                        <th>Last Activity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in overdue_invoices %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=invoice.pk %}">{{ invoice.invoice_number }}</a>
+                            </strong>
+                        </td>
+                        <td>
+                            <a href="{% url 'accounts_receivable:collection_customer_detail' tenant_slug=current_tenant.slug pk=invoice.customer.pk %}">
+                                {{ invoice.customer.display_name }}
+                            </a>
+                        </td>
+                        <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                            {% if invoice.days_overdue > 90 %}
+                            <span class="badge badge-soft-danger">{{ invoice.days_overdue }} days</span>
+                            {% elif invoice.days_overdue > 60 %}
+                            <span class="badge badge-soft-danger">{{ invoice.days_overdue }} days</span>
+                            {% elif invoice.days_overdue > 30 %}
+                            <span class="badge badge-soft-warning">{{ invoice.days_overdue }} days</span>
+                            {% else %}
+                            <span class="badge badge-soft-info">{{ invoice.days_overdue }} days</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">${{ invoice.balance_due|floatformat:2|intcomma }}</td>
+                        <td>{{ invoice.last_activity|date:"M d, Y"|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'accounts_receivable:collection_add_activity' tenant_slug=current_tenant.slug pk=invoice.customer.pk %}" class="btn btn-soft-primary btn-sm">
+                                <i class="ri-add-line me-1"></i> Add Activity
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-checkbox-circle-line text-success" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No overdue invoices</h5>
+                                <p class="text-muted mb-0">All customer accounts are current.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Dunning Candidates -->
+{% if dunning_candidates %}
+<div class="card table-card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-mail-send-line text-warning"></i></div>
+            <h5 class="card-title mb-0">Dunning Candidates</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th class="text-end">Outstanding</th>
+                        <th class="text-end">Oldest Overdue</th>
+                        <th>Suggested Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for candidate in dunning_candidates %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounts_receivable:collection_customer_detail' tenant_slug=current_tenant.slug pk=candidate.customer.pk %}">
+                                <strong>{{ candidate.customer.display_name }}</strong>
+                            </a>
+                        </td>
+                        <td class="text-end">${{ candidate.total_outstanding|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ candidate.oldest_overdue_days }} days</td>
+                        <td><span class="badge badge-soft-warning">{{ candidate.suggested_action }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
