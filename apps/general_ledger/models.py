@@ -109,6 +109,8 @@ class JournalEntry(TenantAwareModel):
         ('ar_receipt', 'AR Receipt'),
         ('ar_credit_memo', 'AR Credit Memo'),
         ('ar_write_off', 'AR Write-Off'),
+        ('cm_transfer', 'Cash Management Transfer'),
+        ('cm_bank_fee', 'Bank Fee'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
