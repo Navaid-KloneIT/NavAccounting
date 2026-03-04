@@ -645,7 +645,11 @@ class Command(BaseCommand):
 
     def _seed_gl_data(self):
         """Seed general ledger data: import COA template, exchange rates, sample journal entries."""
-        from apps.general_ledger.models import Account, JournalEntry, JournalEntryLine, ExchangeRate
+        from apps.general_ledger.models import (
+            Account, JournalEntry, JournalEntryLine, JournalApproval,
+            ExchangeRate, AccountReconciliation, AllocationRule,
+            AllocationRuleLine, AuditTrail,
+        )
 
         template = ChartOfAccountsTemplate.objects.filter(is_default=True).first()
         if not template:
@@ -747,7 +751,333 @@ class Command(BaseCommand):
                                 credit=credit,
                             )
 
-        self.stdout.write(f'  Created GL data (accounts, exchange rates, journal entries)')
+            # --- Journal Entries Pending Approval ---
+            pending_entries_data = [
+                {
+                    'description': 'Marketing Campaign Expense - Q1',
+                    'date': date(2026, 2, 20),
+                    'reference': 'MKT-2026-Q1',
+                    'lines': [
+                        ('6400', Decimal('8500.00'), Decimal('0.00')),
+                        ('1110', Decimal('0.00'), Decimal('8500.00')),
+                    ],
+                },
+                {
+                    'description': 'Equipment Purchase - Server Hardware',
+                    'date': date(2026, 2, 25),
+                    'reference': 'PO-2026-0042',
+                    'lines': [
+                        ('1500', Decimal('12000.00'), Decimal('0.00')),
+                        ('1110', Decimal('0.00'), Decimal('12000.00')),
+                    ],
+                },
+                {
+                    'description': 'Quarterly Bonus Accrual',
+                    'date': date(2026, 3, 1),
+                    'reference': 'HR-BONUS-Q1',
+                    'lines': [
+                        ('6100', Decimal('15000.00'), Decimal('0.00')),
+                        ('2100', Decimal('0.00'), Decimal('15000.00')),
+                    ],
+                },
+                {
+                    'description': 'Office Supplies Restock',
+                    'date': date(2026, 3, 2),
+                    'reference': 'SUP-2026-0018',
+                    'lines': [
+                        ('6300', Decimal('1750.00'), Decimal('0.00')),
+                        ('1110', Decimal('0.00'), Decimal('1750.00')),
+                    ],
+                },
+            ]
+
+            for i, entry_data in enumerate(pending_entries_data, start=4):
+                entry_number = f"JE-2025-{i:04d}"
+                je, created = JournalEntry.unscoped.get_or_create(
+                    tenant=tenant,
+                    entry_number=entry_number,
+                    defaults={
+                        'date': entry_data['date'],
+                        'description': entry_data['description'],
+                        'reference': entry_data.get('reference', ''),
+                        'fiscal_period': period,
+                        'status': 'pending',
+                        'source': 'manual',
+                        'currency': usd,
+                        'created_by': superuser,
+                    }
+                )
+                if created:
+                    for acc_code, debit, credit in entry_data['lines']:
+                        account = Account.unscoped.filter(
+                            tenant=tenant, account_number=acc_code
+                        ).first()
+                        if account:
+                            JournalEntryLine.objects.create(
+                                journal_entry=je,
+                                account=account,
+                                debit=debit,
+                                credit=credit,
+                            )
+                    # Create pending approval record
+                    JournalApproval.unscoped.get_or_create(
+                        tenant=tenant,
+                        journal_entry=je,
+                        approver=superuser,
+                        defaults={
+                            'status': 'pending',
+                            'comments': '',
+                        }
+                    )
+
+            # --- Allocation Rules ---
+            checking_acct = Account.unscoped.filter(
+                tenant=tenant, account_number='1110'
+            ).first()
+            rent_acct = Account.unscoped.filter(
+                tenant=tenant, account_number='6200'
+            ).first()
+            salary_acct = Account.unscoped.filter(
+                tenant=tenant, account_number='6100'
+            ).first()
+            supplies_acct = Account.unscoped.filter(
+                tenant=tenant, account_number='6300'
+            ).first()
+            marketing_acct = Account.unscoped.filter(
+                tenant=tenant, account_number='6400'
+            ).first()
+            revenue_services_gl = Account.unscoped.filter(
+                tenant=tenant, account_number='4200'
+            ).first()
+            revenue_sales_gl = Account.unscoped.filter(
+                tenant=tenant, account_number='4100'
+            ).first()
+
+            allocation_rules_data = [
+                {
+                    'name': 'Overhead Cost Allocation',
+                    'source_account': rent_acct,
+                    'description': 'Allocate rent expense across departments based on headcount.',
+                    'is_active': True,
+                    'lines': [
+                        (salary_acct, Decimal('40.0000'), Decimal('0.00')),
+                        (marketing_acct, Decimal('25.0000'), Decimal('0.00')),
+                        (supplies_acct, Decimal('35.0000'), Decimal('0.00')),
+                    ],
+                },
+                {
+                    'name': 'Revenue Split - Product vs Services',
+                    'source_account': revenue_services_gl,
+                    'description': 'Split blended revenue between product sales and service revenue.',
+                    'is_active': True,
+                    'lines': [
+                        (revenue_sales_gl, Decimal('60.0000'), Decimal('0.00')),
+                        (revenue_services_gl, Decimal('40.0000'), Decimal('0.00')),
+                    ] if revenue_sales_gl and revenue_services_gl else [],
+                },
+                {
+                    'name': 'Marketing Budget Allocation (Inactive)',
+                    'source_account': marketing_acct,
+                    'description': 'Distribute marketing budget to sub-categories. Currently paused.',
+                    'is_active': False,
+                    'lines': [
+                        (supplies_acct, Decimal('50.0000'), Decimal('0.00')),
+                        (rent_acct, Decimal('50.0000'), Decimal('0.00')),
+                    ],
+                },
+            ]
+
+            for rdata in allocation_rules_data:
+                if not rdata['source_account']:
+                    continue
+                rule, created = AllocationRule.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=rdata['name'],
+                    defaults={
+                        'source_account': rdata['source_account'],
+                        'description': rdata['description'],
+                        'is_active': rdata['is_active'],
+                    }
+                )
+                if created:
+                    for target_account, percentage, fixed_amount in rdata['lines']:
+                        if target_account:
+                            AllocationRuleLine.objects.create(
+                                rule=rule,
+                                target_account=target_account,
+                                percentage=percentage,
+                                fixed_amount=fixed_amount,
+                            )
+
+            # --- Account Reconciliation ---
+            recon_accounts_data = [
+                {
+                    'account_number': '1110',
+                    'expected_balance': Decimal('35000.00'),
+                    'actual_balance': Decimal('35000.00'),
+                    'notes': 'Bank statement matches GL. All transactions verified.',
+                },
+                {
+                    'account_number': '1210',
+                    'expected_balance': Decimal('15000.00'),
+                    'actual_balance': Decimal('14750.00'),
+                    'notes': 'Difference of $250 — pending receipt not yet posted.',
+                },
+                {
+                    'account_number': '4200',
+                    'expected_balance': Decimal('15000.00'),
+                    'actual_balance': Decimal('15000.00'),
+                    'notes': 'Service revenue reconciled with sales report.',
+                },
+                {
+                    'account_number': '6200',
+                    'expected_balance': Decimal('2500.00'),
+                    'actual_balance': Decimal('2500.00'),
+                    'notes': 'Rent expense confirmed with lease agreement.',
+                },
+                {
+                    'account_number': '3300',
+                    'expected_balance': Decimal('50000.00'),
+                    'actual_balance': Decimal('50000.00'),
+                    'notes': 'Equity account reconciled.',
+                },
+            ]
+
+            for rdata in recon_accounts_data:
+                account = Account.unscoped.filter(
+                    tenant=tenant, account_number=rdata['account_number']
+                ).first()
+                if account:
+                    recon, created = AccountReconciliation.unscoped.get_or_create(
+                        tenant=tenant,
+                        account=account,
+                        fiscal_period=period,
+                        defaults={
+                            'expected_balance': rdata['expected_balance'],
+                            'actual_balance': rdata['actual_balance'],
+                            'notes': rdata['notes'],
+                            'reconciled_by': superuser if rdata['expected_balance'] == rdata['actual_balance'] else None,
+                            'reconciled_at': timezone.now() if rdata['expected_balance'] == rdata['actual_balance'] else None,
+                        }
+                    )
+
+            # --- Audit Trail ---
+            audit_entries_data = [
+                {
+                    'table_name': 'JournalEntry',
+                    'record_id': 1,
+                    'action': 'create',
+                    'field_name': '',
+                    'old_value': '',
+                    'new_value': 'Created journal entry JE-2025-0001: Initial Capital Investment',
+                },
+                {
+                    'table_name': 'JournalEntry',
+                    'record_id': 1,
+                    'action': 'update',
+                    'field_name': 'status',
+                    'old_value': 'draft',
+                    'new_value': 'posted',
+                },
+                {
+                    'table_name': 'Account',
+                    'record_id': 1,
+                    'action': 'update',
+                    'field_name': 'description',
+                    'old_value': '',
+                    'new_value': 'Primary operating checking account',
+                },
+                {
+                    'table_name': 'JournalEntry',
+                    'record_id': 2,
+                    'action': 'create',
+                    'field_name': '',
+                    'old_value': '',
+                    'new_value': 'Created journal entry JE-2025-0002: Office Rent Payment',
+                },
+                {
+                    'table_name': 'JournalEntry',
+                    'record_id': 2,
+                    'action': 'update',
+                    'field_name': 'status',
+                    'old_value': 'draft',
+                    'new_value': 'posted',
+                },
+                {
+                    'table_name': 'JournalEntry',
+                    'record_id': 3,
+                    'action': 'create',
+                    'field_name': '',
+                    'old_value': '',
+                    'new_value': 'Created journal entry JE-2025-0003: Service Revenue from Client',
+                },
+                {
+                    'table_name': 'JournalEntry',
+                    'record_id': 3,
+                    'action': 'update',
+                    'field_name': 'status',
+                    'old_value': 'draft',
+                    'new_value': 'posted',
+                },
+                {
+                    'table_name': 'Account',
+                    'record_id': 2,
+                    'action': 'update',
+                    'field_name': 'is_active',
+                    'old_value': 'True',
+                    'new_value': 'False',
+                },
+                {
+                    'table_name': 'Account',
+                    'record_id': 2,
+                    'action': 'update',
+                    'field_name': 'is_active',
+                    'old_value': 'False',
+                    'new_value': 'True',
+                },
+                {
+                    'table_name': 'JournalApproval',
+                    'record_id': 1,
+                    'action': 'create',
+                    'field_name': '',
+                    'old_value': '',
+                    'new_value': 'Approval request created for JE-2025-0004',
+                },
+                {
+                    'table_name': 'AccountReconciliation',
+                    'record_id': 1,
+                    'action': 'create',
+                    'field_name': '',
+                    'old_value': '',
+                    'new_value': 'Reconciliation started for account 1110 - Checking',
+                },
+                {
+                    'table_name': 'AccountReconciliation',
+                    'record_id': 1,
+                    'action': 'update',
+                    'field_name': 'status',
+                    'old_value': 'pending',
+                    'new_value': 'reconciled',
+                },
+            ]
+
+            for adata in audit_entries_data:
+                AuditTrail.unscoped.create(
+                    tenant=tenant,
+                    table_name=adata['table_name'],
+                    record_id=adata['record_id'],
+                    action=adata['action'],
+                    field_name=adata['field_name'],
+                    old_value=adata['old_value'],
+                    new_value=adata['new_value'],
+                    user=superuser,
+                    ip_address='127.0.0.1',
+                )
+
+        self.stdout.write(
+            f'  Created GL data (accounts, exchange rates, journal entries, '
+            f'approvals, allocations, reconciliations, audit trail)'
+        )
 
     def _seed_ap_data(self):
         """Seed accounts payable data: payment terms, vendors, bills, payments,
