@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Fixed Assets{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Fixed Assets</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Fixed Assets</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Assets</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-building-4-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">In Service</p>
+                        <h3 class="mb-0">{{ in_service_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-check-double-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Cost</p>
+                        <h3 class="mb-0">${{ total_cost|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-money-dollar-circle-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Net Book Value</p>
+                        <h3 class="mb-0">${{ total_nbv|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-bar-chart-box-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                {{ filter_form.q }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.category }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.status }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.location }}
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-filter-3-line me-1"></i>Filter</button>
+                <a href="{% url 'fixed_assets:asset_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Reset</a>
+                <a href="{% url 'fixed_assets:asset_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i>New Asset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Asset Table -->
+<div class="card">
+    <div class="card-body">
+        {% if assets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset #</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th class="text-end">Cost</th>
+                        <th class="text-end">NBV</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'fixed_assets:asset_detail' tenant_slug=current_tenant.slug pk=asset.pk %}" class="fw-semibold text-primary">
+                                {{ asset.asset_number }}
+                            </a>
+                        </td>
+                        <td>{{ asset.name }}</td>
+                        <td><span class="badge bg-soft-info text-info">{{ asset.category.name }}</span></td>
+                        <td>{{ asset.location.name|default:"-" }}</td>
+                        <td>
+                            {% if asset.status == 'in_service' %}
+                                <span class="badge bg-soft-success text-success">In Service</span>
+                            {% elif asset.status == 'disposed' %}
+                                <span class="badge bg-soft-danger text-danger">Disposed</span>
+                            {% elif asset.status == 'construction_in_progress' %}
+                                <span class="badge bg-soft-warning text-warning">CIP</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ asset.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">${{ asset.acquisition_cost|intcomma }}</td>
+                        <td class="text-end">${{ asset.net_book_value|intcomma }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'fixed_assets:asset_detail' tenant_slug=current_tenant.slug pk=asset.pk %}" class="btn btn-sm btn-soft-primary" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'fixed_assets:asset_edit' tenant_slug=current_tenant.slug pk=asset.pk %}" class="btn btn-sm btn-soft-info" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-building-4-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No assets found.</p>
+            <a href="{% url 'fixed_assets:asset_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
+                <i class="ri-add-line me-1"></i>Create First Asset
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
