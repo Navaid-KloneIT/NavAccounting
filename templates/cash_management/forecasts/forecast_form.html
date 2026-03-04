@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Forecast - {{ forecast.name }}{% else %}New Cash Forecast{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if is_edit %}Edit Forecast{% else %}New Cash Forecast{% endif %}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_account_list' tenant_slug=current_tenant.slug %}">Cash Management</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:forecast_list' tenant_slug=current_tenant.slug %}">Forecasts</a></li>
+        <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+    </ol>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Header Card -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="ri-line-chart-line me-1"></i> Forecast Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.forecast_type.id_for_label }}" class="form-label">Forecast Type</label>
+                    {{ form.forecast_type }}
+                    {% if form.forecast_type.errors %}
+                    <div class="invalid-feedback d-block">{{ form.forecast_type.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date</label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                    <div class="invalid-feedback d-block">{{ form.start_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date</label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}
+                    <div class="invalid-feedback d-block">{{ form.end_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                    <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Lines Card -->
+    <div class="card mb-3">
+        <div class="card-header bg-soft-info">
+            <h5 class="card-title mb-0"><i class="ri-list-check me-1"></i> Forecast Lines</h5>
+        </div>
+        <div class="card-body p-0">
+            {{ line_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Expected Amount</th>
+                            <th>Actual Amount</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line_form in line_formset %}
+                        <tr>
+                            <td>
+                                {{ line_form.id }}
+                                {{ line_form.date }}
+                                {% if line_form.date.errors %}
+                                <div class="invalid-feedback d-block">{{ line_form.date.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.category }}
+                                {% if line_form.category.errors %}
+                                <div class="invalid-feedback d-block">{{ line_form.category.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.description }}
+                                {% if line_form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ line_form.description.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.expected_amount }}
+                                {% if line_form.expected_amount.errors %}
+                                <div class="invalid-feedback d-block">{{ line_form.expected_amount.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.actual_amount }}
+                                {% if line_form.actual_amount.errors %}
+                                <div class="invalid-feedback d-block">{{ line_form.actual_amount.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.DELETE }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2">
+        <a href="{% url 'cash_management:forecast_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Save</button>
+    </div>
+</form>
+{% endblock %}
