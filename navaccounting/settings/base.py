@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'apps.dashboard',
     'apps.general_ledger',
     'apps.accounts_payable',
+    'apps.accounts_receivable',
 ]
 
 MIDDLEWARE = [
