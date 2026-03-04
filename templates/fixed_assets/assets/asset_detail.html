@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ asset.asset_number }} - {{ asset.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ asset.asset_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:asset_list' tenant_slug=current_tenant.slug %}">Fixed Assets</a></li>
+            <li class="breadcrumb-item active">{{ asset.asset_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Asset Summary Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Acquisition Cost</p>
+                <h3 class="mb-0">${{ asset.acquisition_cost|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Accumulated Depreciation</p>
+                <h3 class="mb-0">${{ asset.accumulated_depreciation|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Net Book Value</p>
+                <h3 class="mb-0 text-primary">${{ asset.net_book_value|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <p class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">Status</p>
+                <h3 class="mb-0">
+                    {% if asset.status == 'in_service' %}
+                        <span class="badge bg-soft-success text-success fs-6">In Service</span>
+                    {% elif asset.status == 'disposed' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Disposed</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ asset.get_status_display }}</span>
+                    {% endif %}
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Asset Details -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Asset Details</h5>
+                <a href="{% url 'fixed_assets:asset_edit' tenant_slug=current_tenant.slug pk=asset.pk %}" class="btn btn-sm btn-soft-primary"><i class="ri-pencil-line me-1"></i>Edit</a>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8 fw-semibold">{{ asset.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Category</div>
+                    <div class="col-sm-8">{{ asset.category }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Location</div>
+                    <div class="col-sm-8">{{ asset.location|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Custodian</div>
+                    <div class="col-sm-8">{{ asset.custodian.get_full_name|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Serial Number</div>
+                    <div class="col-sm-8">{{ asset.serial_number|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Barcode</div>
+                    <div class="col-sm-8">{{ asset.barcode|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Acquisition Date</div>
+                    <div class="col-sm-8">{{ asset.acquisition_date }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Depreciation Method</div>
+                    <div class="col-sm-8">{{ asset.get_depreciation_method_display }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Useful Life</div>
+                    <div class="col-sm-8">{{ asset.useful_life_months }} months</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Salvage Value</div>
+                    <div class="col-sm-8">${{ asset.salvage_value|intcomma }}</div>
+                </div>
+                {% if asset.manufacturer %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Manufacturer</div>
+                    <div class="col-sm-8">{{ asset.manufacturer }}</div>
+                </div>
+                {% endif %}
+                {% if asset.model_number %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Model</div>
+                    <div class="col-sm-8">{{ asset.model_number }}</div>
+                </div>
+                {% endif %}
+                {% if asset.description %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Description</div>
+                    <div class="col-sm-8">{{ asset.description }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Depreciation Schedule -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Depreciation Schedule</h5>
+                <a href="{% url 'fixed_assets:schedule_detail' tenant_slug=current_tenant.slug pk=asset.pk %}" class="btn btn-sm btn-soft-info">View Full Schedule</a>
+            </div>
+            <div class="card-body">
+                {% if schedules %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Period</th>
+                                <th class="text-end">Depreciation</th>
+                                <th class="text-end">Accumulated</th>
+                                <th class="text-end">NBV</th>
+                                <th class="text-center">Posted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in schedules %}
+                            <tr>
+                                <td>{{ s.period_number }}</td>
+                                <td>{{ s.period_start }} - {{ s.period_end }}</td>
+                                <td class="text-end">${{ s.depreciation_amount|intcomma }}</td>
+                                <td class="text-end">${{ s.accumulated_depreciation|intcomma }}</td>
+                                <td class="text-end">${{ s.net_book_value|intcomma }}</td>
+                                <td class="text-center">
+                                    {% if s.is_posted %}
+                                        <i class="ri-check-line text-success"></i>
+                                    {% else %}
+                                        <i class="ri-time-line text-muted"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">No depreciation schedule generated.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'fixed_assets:transfer_create' tenant_slug=current_tenant.slug %}" class="btn btn-outline-primary btn-sm"><i class="ri-arrow-left-right-line me-1"></i>Transfer Asset</a>
+                <a href="{% url 'fixed_assets:disposal_create' tenant_slug=current_tenant.slug %}" class="btn btn-outline-warning btn-sm"><i class="ri-delete-bin-line me-1"></i>Dispose Asset</a>
+                <a href="{% url 'fixed_assets:impairment_create' tenant_slug=current_tenant.slug %}" class="btn btn-outline-danger btn-sm"><i class="ri-alert-line me-1"></i>Impairment Test</a>
+            </div>
+        </div>
+
+        <!-- Transfer History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Transfer History</h5>
+            </div>
+            <div class="card-body">
+                {% if transfers %}
+                {% for t in transfers %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">{{ t.transfer_date }}</span>
+                    <span class="small">{{ t.from_location|default:"N/A" }} &rarr; {{ t.to_location|default:"N/A" }}</span>
+                    <span class="badge bg-soft-{% if t.status == 'completed' %}success{% else %}warning{% endif %} text-{% if t.status == 'completed' %}success{% else %}warning{% endif %}">{{ t.get_status_display }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center mb-0 small">No transfers.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Disposal History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Disposals</h5>
+            </div>
+            <div class="card-body">
+                {% if disposals %}
+                {% for d in disposals %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">{{ d.disposal_date }}</span>
+                    <span class="small">{{ d.get_disposal_type_display }}</span>
+                    <span class="small fw-semibold">${{ d.gain_loss|intcomma }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center mb-0 small">No disposals.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
