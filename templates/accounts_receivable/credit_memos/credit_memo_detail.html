@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ credit_memo.memo_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ credit_memo.memo_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:credit_memo_list' tenant_slug=current_tenant.slug %}">Credit Memos</a></li>
+        <li class="breadcrumb-item active">{{ credit_memo.memo_number }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left: Sidebar -->
+    <div class="col-lg-4">
+        <!-- Summary -->
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-file-damage-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ credit_memo.memo_number }}</h5>
+                {% if credit_memo.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                {% elif credit_memo.status == 'approved' %}<span class="badge badge-soft-success">Approved</span>
+                {% elif credit_memo.status == 'applied' %}<span class="badge badge-soft-info">Applied</span>
+                {% elif credit_memo.status == 'void' %}<span class="badge badge-soft-danger">Void</span>
+                {% endif %}
+                <h3 class="mt-3 mb-0">${{ credit_memo.amount|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+
+        <!-- Memo Info -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Memo Details</h6>
+                <div class="mb-2"><small class="text-muted">Customer</small><br><strong>{{ credit_memo.customer.display_name }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Memo Date</small><br><strong>{{ credit_memo.memo_date|date:"M d, Y" }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Amount</small><br><strong>${{ credit_memo.amount|floatformat:2|intcomma }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Currency</small><br><strong>{{ credit_memo.currency.code }}</strong></div>
+                {% if credit_memo.reference %}
+                <div class="mb-2"><small class="text-muted">Reference</small><br><strong>{{ credit_memo.reference }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Reason</small><br><strong>{{ credit_memo.reason }}</strong></div>
+                <div class="mb-2"><small class="text-muted">AR Account</small><br><strong>{{ credit_memo.ar_account }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Revenue Account</small><br><strong>{{ credit_memo.revenue_account }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Fiscal Period</small><br><strong>{{ credit_memo.fiscal_period }}</strong></div>
+                {% if credit_memo.memo %}
+                <div class="mb-2"><small class="text-muted">Memo</small><br><strong>{{ credit_memo.memo }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Created By</small><br><strong>{{ credit_memo.created_by.get_full_name|default:credit_memo.created_by.email }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Created At</small><br><strong>{{ credit_memo.created_at|date:"M d, Y H:i" }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if credit_memo.status == 'draft' %}
+                <form method="post" action="{% url 'accounts_receivable:credit_memo_approve' tenant_slug=current_tenant.slug pk=credit_memo.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2">
+                        <i class="ri-checkbox-circle-line me-1"></i> Approve Credit Memo
+                    </button>
+                </form>
+                <a href="{% url 'accounts_receivable:credit_memo_edit' tenant_slug=current_tenant.slug pk=credit_memo.pk %}" class="btn btn-soft-secondary btn-sm w-100 mb-2">
+                    <i class="ri-pencil-line me-1"></i> Edit Credit Memo
+                </a>
+                {% endif %}
+                {% if credit_memo.status == 'approved' %}
+                <button type="button" class="btn btn-soft-danger btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#voidModal">
+                    <i class="ri-close-circle-line me-1"></i> Void Credit Memo
+                </button>
+                {% endif %}
+                <a href="{% url 'accounts_receivable:credit_memo_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Main Content -->
+    <div class="col-lg-8">
+        <!-- Memo Info Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-damage-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Credit Memo Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted">Customer</small><br>
+                        <strong>{{ credit_memo.customer.display_name }}</strong>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted">Memo Date</small><br>
+                        <strong>{{ credit_memo.memo_date|date:"M d, Y" }}</strong>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted">Amount</small><br>
+                        <strong>${{ credit_memo.amount|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted">Status</small><br>
+                        {% if credit_memo.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                        {% elif credit_memo.status == 'approved' %}<span class="badge badge-soft-success">Approved</span>
+                        {% elif credit_memo.status == 'applied' %}<span class="badge badge-soft-info">Applied</span>
+                        {% elif credit_memo.status == 'void' %}<span class="badge badge-soft-danger">Void</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted">Reason</small><br>
+                        <strong>{{ credit_memo.reason }}</strong>
+                    </div>
+                    {% if credit_memo.reference %}
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted">Reference</small><br>
+                        <strong>{{ credit_memo.reference }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if credit_memo.memo %}
+                    <div class="col-12 mb-3">
+                        <small class="text-muted">Memo</small><br>
+                        <strong>{{ credit_memo.memo }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Journal Entry -->
+        {% if credit_memo.journal_entry %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-book-2-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Journal Entry</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ credit_memo.journal_entry.entry_number }}</strong>
+                        <span class="text-muted ms-2">{{ credit_memo.journal_entry.date|date:"M d, Y" }}</span>
+                    </div>
+                    <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=credit_memo.journal_entry.pk %}" class="btn btn-sm btn-soft-primary">
+                        <i class="ri-external-link-line me-1"></i> View Entry
+                    </a>
+                </div>
+                {% if credit_memo.journal_entry.description %}
+                <p class="text-muted small mt-2 mb-0">{{ credit_memo.journal_entry.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Void Modal -->
+{% if credit_memo.status == 'approved' %}
+<div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts_receivable:credit_memo_void' tenant_slug=current_tenant.slug pk=credit_memo.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="voidModalLabel">Void Credit Memo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="ri-error-warning-line me-2" style="font-size: 1.25rem;"></i>
+                        <div>Are you sure you want to void credit memo <strong>{{ credit_memo.memo_number }}</strong>? This action cannot be undone.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="void_reason" class="form-label">Reason for Voiding <span class="text-danger">*</span></label>
+                        <textarea name="void_reason" id="void_reason" class="form-control" rows="3" required placeholder="Enter the reason for voiding this credit memo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="ri-close-circle-line me-1"></i> Void Credit Memo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
