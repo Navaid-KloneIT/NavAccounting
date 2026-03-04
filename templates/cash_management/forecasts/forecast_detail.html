@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ forecast.forecast_number }} - {{ forecast.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ forecast.forecast_number }} - {{ forecast.name }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_account_list' tenant_slug=current_tenant.slug %}">Cash Management</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:forecast_list' tenant_slug=current_tenant.slug %}">Forecasts</a></li>
+        <li class="breadcrumb-item active">{{ forecast.forecast_number }}</li>
+    </ol>
+</div>
+
+<!-- Action Bar -->
+<div class="row mb-3">
+    <div class="col-12 d-flex align-items-center gap-2">
+        <a href="{% url 'cash_management:forecast_edit' tenant_slug=current_tenant.slug pk=forecast.pk %}" class="btn btn-primary">
+            <i class="ri-pencil-line me-1"></i> Edit
+        </a>
+        {% if forecast.status == 'draft' %}
+        <span class="badge badge-soft-warning fs-6">Draft</span>
+        {% elif forecast.status == 'active' %}
+        <span class="badge badge-soft-success fs-6">Active</span>
+        {% elif forecast.status == 'archived' %}
+        <span class="badge badge-soft-secondary fs-6">Archived</span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Info Card -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="ri-information-line me-1"></i> Forecast Information</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Type</dt>
+            <dd class="col-sm-9">{{ forecast.get_forecast_type_display }}</dd>
+            <dt class="col-sm-3">Period</dt>
+            <dd class="col-sm-9">{{ forecast.start_date|date:"M d, Y" }} - {{ forecast.end_date|date:"M d, Y" }}</dd>
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+                {% if forecast.status == 'draft' %}
+                <span class="badge badge-soft-warning">Draft</span>
+                {% elif forecast.status == 'active' %}
+                <span class="badge badge-soft-success">Active</span>
+                {% elif forecast.status == 'archived' %}
+                <span class="badge badge-soft-secondary">Archived</span>
+                {% endif %}
+            </dd>
+            <dt class="col-sm-3">Created By</dt>
+            <dd class="col-sm-9">{{ forecast.created_by.get_full_name|default:forecast.created_by.username }}</dd>
+            <dt class="col-sm-3">Created At</dt>
+            <dd class="col-sm-9">{{ forecast.created_at|date:"M d, Y H:i" }}</dd>
+        </dl>
+    </div>
+</div>
+
+<!-- Totals Row -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Expected Total</p>
+                        <h3 class="mb-0">{{ total_expected|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-funds-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Actual Total</p>
+                        <h3 class="mb-0">{{ total_actual|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-money-dollar-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Variance</p>
+                        {% with variance=total_actual|add:"-"|add:total_expected %}
+                        <h3 class="mb-0">{{ total_actual|floatformat:2|intcomma }}</h3>
+                        {% endwith %}
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-exchange-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Card -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="ri-bar-chart-2-line me-1"></i> Forecast vs Actual</h5>
+    </div>
+    <div class="card-body">
+        <div id="forecastChart" style="min-height: 350px;"></div>
+    </div>
+</div>
+
+<!-- Lines Table -->
+<div class="card table-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="ri-list-check me-1"></i> Forecast Lines</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th class="text-end">Expected</th>
+                        <th class="text-end">Actual</th>
+                        <th class="text-end">Variance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in lines %}
+                    <tr>
+                        <td>{{ line.date|date:"M d, Y" }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ line.category }}</span></td>
+                        <td>{{ line.description }}</td>
+                        <td class="text-end">{{ line.expected_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.actual_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">
+                            {% if line.variance >= 0 %}
+                            <span class="text-success">{{ line.variance|floatformat:2|intcomma }}</span>
+                            {% else %}
+                            <span class="text-danger">{{ line.variance|floatformat:2|intcomma }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-5">
+                                <h5 class="text-muted">No forecast lines</h5>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    var options = {
+        series: [
+            {
+                name: 'Expected',
+                data: {{ chart_expected|safe }}
+            },
+            {
+                name: 'Actual',
+                data: {{ chart_actual|safe }}
+            }
+        ],
+        chart: {
+            type: 'line',
+            height: 350,
+            toolbar: { show: true }
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 2
+        },
+        xaxis: {
+            categories: {{ chart_labels|safe }}
+        },
+        yaxis: {
+            labels: {
+                formatter: function(val) {
+                    return val.toLocaleString();
+                }
+            }
+        },
+        colors: ['#3b82f6', '#22c55e'],
+        legend: {
+            position: 'top'
+        },
+        tooltip: {
+            y: {
+                formatter: function(val) {
+                    return val.toLocaleString(undefined, {minimumFractionDigits: 2});
+                }
+            }
+        }
+    };
+    var chart = new ApexCharts(document.querySelector("#forecastChart"), options);
+    chart.render();
+</script>
+{% endblock %}
