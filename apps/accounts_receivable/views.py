@@ -1169,7 +1169,7 @@ def credit_memo_detail(request, tenant_slug, pk):
     )
 
     return render(request, 'accounts_receivable/credit_memos/credit_memo_detail.html', {
-        'memo': memo,
+        'credit_memo': memo,
     })
 
 
