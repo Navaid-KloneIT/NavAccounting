@@ -35,6 +35,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Chart of Accounts** — Pre-built COA templates with hierarchical account structure, template import to tenant accounts
 - **General Ledger** — Double-entry journal entries, approval workflows, period close, reconciliation, allocations, audit trail, multi-currency exchange rates
 - **Accounts Payable** — Vendor management, bill capture & processing, payment processing & batching, payment scheduling, aging reports, vendor portal, early payment discounts
+- **Accounts Receivable** — Customer management, invoice generation & approvals, payment collection (receipts), recurring invoicing, cash application, collections & dunning, credit management, aging analysis, customer portal
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -85,6 +86,7 @@ NavAccounting/
 │   ├── company/                    # CompanySettings, FiscalYear, Currency, COA
 │   ├── general_ledger/             # COA, Journal Entries, Approvals, Period Close, Reconciliation, Allocations, Audit Trail, Exchange Rates
 │   ├── accounts_payable/           # Vendors, Bills, Payments, Batches, Uploads, Scheduling, Aging, Vendor Portal
+│   ├── accounts_receivable/        # Customers, Invoices, Receipts, Recurring, Cash Application, Collections, Credit Memos, Aging, Customer Portal
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -112,6 +114,16 @@ NavAccounting/
 │   │   ├── schedule/               # Schedule list, form
 │   │   ├── reports/                # Aging summary, aging detail, discount opportunities
 │   │   └── portal/                 # Portal base, login, dashboard, bill detail, messages
+│   ├── accounts_receivable/        # AR templates (31 files across 10 subdirectories)
+│   │   ├── customers/              # Customer list, form, detail
+│   │   ├── invoices/               # Invoice list, form, detail, approval queue
+│   │   ├── receipts/               # Receipt list, form, detail
+│   │   ├── recurring/              # Recurring template list, form, detail
+│   │   ├── credit_memos/           # Credit memo list, form, detail
+│   │   ├── collections/            # Dashboard, customer detail, activity form, activity list
+│   │   ├── cash_application/       # Cash application interface
+│   │   ├── reports/                # AR aging summary, aging detail
+│   │   └── portal/                 # Portal base, login, dashboard, invoice list/detail, payment, messages
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -239,6 +251,7 @@ python manage.py seed_data --coa
 python manage.py seed_data --dashboard
 python manage.py seed_data --gl
 python manage.py seed_data --ap
+python manage.py seed_data --ar
 ```
 
 ### What Gets Seeded
@@ -256,6 +269,7 @@ python manage.py seed_data --ap
 | Dashboard | 12 alerts + 5 widget configurations per tenant |
 | General Ledger | COA imported from template, 3 exchange rates, 3 sample posted journal entries per tenant |
 | Accounts Payable | 7 payment terms, 5 vendors with contacts, 5 bills with line items, 1 completed payment with allocation, 1 vendor portal token |
+| Accounts Receivable | 5 customers with contacts, 6 invoices with line items, 2 receipts with allocations, 1 recurring invoice template, 2 collection activities, 1 customer portal token |
 
 ---
 
@@ -292,6 +306,7 @@ These paths skip tenant resolution:
 - `/admin/` — Django admin (superusers only)
 - `/tenants/` — Tenant selection and creation
 - `/vendor-portal/` — Vendor portal (token-based auth, no Django user required)
+- `/customer-portal/` — Customer portal (token-based auth, no Django user required)
 - `/static/`, `/media/` — Static assets
 
 ### System-Wide vs Tenant-Scoped Models
@@ -309,6 +324,11 @@ These paths skip tenant resolution:
 | — | PaymentTerm, Vendor, Bill, BillApproval, BillUpload |
 | — | Payment, PaymentBatch, ScheduledPayment |
 | — | VendorPortalToken, VendorMessage |
+| — | Customer, CustomerContact, Invoice, InvoiceLine |
+| — | InvoiceApproval, Receipt, ReceiptAllocation |
+| — | RecurringInvoiceTemplate, RecurringInvoiceTemplateLine |
+| — | CreditMemo, CollectionActivity, WriteOff |
+| — | CustomerPortalToken, CustomerMessage |
 
 ---
 
@@ -355,8 +375,9 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
+| `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
 
 ### Tenant-Scoped URLs (`/t/<tenant_slug>/...`)
@@ -447,6 +468,56 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/ap/reports/aging/<vendor_pk>/` | Aging detail | Vendor aging detail |
 | `/t/<slug>/ap/reports/aging/export/` | Aging export | Export aging report CSV |
 | `/t/<slug>/ap/reports/discounts/` | Discount opportunities | Early payment discounts |
+| **Accounts Receivable — Customers** | | |
+| `/t/<slug>/ar/customers/` | Customer list | All customers with filters |
+| `/t/<slug>/ar/customers/create/` | Create customer | New customer form with contacts |
+| `/t/<slug>/ar/customers/<pk>/` | Customer detail | Customer info, invoices, receipts |
+| `/t/<slug>/ar/customers/<pk>/edit/` | Edit customer | Edit customer details |
+| `/t/<slug>/ar/customers/<pk>/toggle/` | Toggle active | Activate/deactivate customer |
+| `/t/<slug>/ar/customers/<pk>/credit-hold/` | Credit hold | Toggle credit hold on customer |
+| **Accounts Receivable — Invoices** | | |
+| `/t/<slug>/ar/invoices/` | Invoice list | All invoices with status filters |
+| `/t/<slug>/ar/invoices/create/` | Create invoice | New invoice with line items |
+| `/t/<slug>/ar/invoices/<pk>/` | Invoice detail | Invoice info, lines, receipts |
+| `/t/<slug>/ar/invoices/<pk>/edit/` | Edit invoice | Edit draft invoice |
+| `/t/<slug>/ar/invoices/<pk>/submit/` | Submit invoice | Submit for approval |
+| `/t/<slug>/ar/invoices/<pk>/send/` | Send invoice | Mark invoice as sent |
+| `/t/<slug>/ar/invoices/<pk>/void/` | Void invoice | Void an invoice |
+| `/t/<slug>/ar/invoices/approvals/` | Approval queue | Pending invoices for approval |
+| `/t/<slug>/ar/invoices/approvals/<pk>/approve/` | Approve invoice | Approve an invoice |
+| `/t/<slug>/ar/invoices/approvals/<pk>/reject/` | Reject invoice | Reject an invoice |
+| **Accounts Receivable — Receipts** | | |
+| `/t/<slug>/ar/receipts/` | Receipt list | All receipts with filters |
+| `/t/<slug>/ar/receipts/create/` | Create receipt | New receipt with allocations |
+| `/t/<slug>/ar/receipts/<pk>/` | Receipt detail | Receipt info, allocations, JE |
+| `/t/<slug>/ar/receipts/<pk>/complete/` | Complete receipt | Mark receipt completed |
+| `/t/<slug>/ar/receipts/<pk>/void/` | Void receipt | Void a receipt |
+| **Accounts Receivable — Credit Memos** | | |
+| `/t/<slug>/ar/credit-memos/` | Credit memo list | All credit memos |
+| `/t/<slug>/ar/credit-memos/create/` | Create credit memo | New credit memo form |
+| `/t/<slug>/ar/credit-memos/<pk>/` | Credit memo detail | View credit memo details |
+| `/t/<slug>/ar/credit-memos/<pk>/approve/` | Approve credit memo | Approve a credit memo |
+| **Accounts Receivable — Recurring Invoicing** | | |
+| `/t/<slug>/ar/recurring/` | Recurring list | All recurring templates |
+| `/t/<slug>/ar/recurring/create/` | Create template | New recurring invoice template |
+| `/t/<slug>/ar/recurring/<pk>/` | Template detail | View recurring template |
+| `/t/<slug>/ar/recurring/<pk>/edit/` | Edit template | Edit recurring template |
+| `/t/<slug>/ar/recurring/<pk>/pause/` | Pause template | Pause recurring generation |
+| `/t/<slug>/ar/recurring/<pk>/cancel/` | Cancel template | Cancel recurring template |
+| `/t/<slug>/ar/recurring/<pk>/generate/` | Generate invoice | Manually generate next invoice |
+| **Accounts Receivable — Cash Application & Collections** | | |
+| `/t/<slug>/ar/cash-application/` | Cash application | Auto-match receipts to invoices |
+| `/t/<slug>/ar/cash-application/<pk>/auto-match/` | Auto-match | FIFO auto-match for a receipt |
+| `/t/<slug>/ar/collections/` | Collections dashboard | Overdue invoices, dunning overview |
+| `/t/<slug>/ar/collections/activities/` | Activity list | All collection activities |
+| `/t/<slug>/ar/collections/<pk>/` | Customer detail | Collection detail for a customer |
+| `/t/<slug>/ar/collections/<pk>/add-activity/` | Add activity | Log collection activity |
+| `/t/<slug>/ar/invoices/<pk>/write-off/` | Create write-off | Write off an invoice |
+| `/t/<slug>/ar/write-offs/<pk>/approve/` | Approve write-off | Approve bad debt write-off |
+| **Accounts Receivable — Reports** | | |
+| `/t/<slug>/ar/reports/aging/` | Aging summary | AR aging by customer |
+| `/t/<slug>/ar/reports/aging/<customer_pk>/` | Aging detail | Customer aging detail |
+| `/t/<slug>/ar/reports/aging/export/` | Aging export | Export aging report CSV |
 | **Vendor Portal (outside tenant scope)** | | |
 | `/vendor-portal/login/` | Portal login | Token-based vendor login |
 | `/vendor-portal/dashboard/` | Portal dashboard | Vendor bills & payments overview |
@@ -454,6 +525,15 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/vendor-portal/messages/` | Portal messages | Send/receive messages |
 | `/vendor-portal/messages/<pk>/` | Portal message detail | View message |
 | `/vendor-portal/logout/` | Portal logout | Clear portal session |
+| **Customer Portal (outside tenant scope)** | | |
+| `/customer-portal/login/` | Portal login | Token-based customer login |
+| `/customer-portal/dashboard/` | Portal dashboard | Customer invoices & payments overview |
+| `/customer-portal/invoices/` | Portal invoice list | View all invoices |
+| `/customer-portal/invoices/<pk>/` | Portal invoice detail | View invoice (read-only) |
+| `/customer-portal/invoices/<pk>/pay/` | Portal make payment | Submit payment for invoice |
+| `/customer-portal/messages/` | Portal messages | Send/receive messages |
+| `/customer-portal/messages/<pk>/` | Portal message detail | View message |
+| `/customer-portal/logout/` | Portal logout | Clear portal session |
 
 ---
 
@@ -561,7 +641,78 @@ A standalone portal outside the tenant-scoped URLs (`/vendor-portal/...`) that u
 - Two-way messaging system
 - Session-based with automatic expiration
 
-### 8. `dashboard` — Dashboard & Analytics
+### 8. `accounts_receivable` — Accounts Receivable Module
+
+Full accounts receivable lifecycle with 9 submodules, 14 models, 43 views, 9 portal views, and 31 templates.
+
+- **Customer** — Customer profiles with auto-generated numbers (`CUST-NNNN`), tax ID, credit limits, credit hold management, billing & shipping addresses, preferred payment method, default revenue account
+- **CustomerContact** — Multiple contacts per customer with primary and billing contact flags
+- **Invoice** — Customer invoices with status workflow (Draft → Submitted → Approved → Sent → Partially Paid → Paid → Void/Written Off), auto-generated numbers (`INV-YYYY-NNNN`), line items linked to GL revenue accounts
+- **InvoiceLine** — Individual line items with account, quantity, unit price, auto-calculated amounts
+- **InvoiceApproval** — Invoice approval workflow with approver, status, and comments
+- **Receipt** — Incoming payments with multiple methods (check, ACH, wire, credit card, cash, online), auto-generated numbers (`RCT-YYYY-NNNN`), GL journal entry creation via services
+- **ReceiptAllocation** — Links receipts to invoices with amount and discount tracking
+- **RecurringInvoiceTemplate** — Automated invoice generation on configurable schedules (weekly/biweekly/monthly/quarterly/semiannual/annual), auto-generated numbers (`REC-YYYY-NNNN`)
+- **RecurringInvoiceTemplateLine** — Line items for recurring templates
+- **CreditMemo** — Credit adjustments with approval workflow, auto-generated numbers (`CM-YYYY-NNNN`), optional link to original invoice
+- **CollectionActivity** — Dunning workflow with 4 escalation levels (Reminder → Past Due → Urgent → Final Notice), activity types include phone calls, emails, letters, promise-to-pay tracking
+- **WriteOff** — Bad debt write-offs with approval workflow, GL journal entry for bad debt expense
+- **CustomerPortalToken** — Token-based customer portal authentication (no Django user required), with expiration
+- **CustomerMessage** — Two-way messaging between customers and internal staff
+
+#### Invoice Workflow
+
+```
+Draft → Submit for Approval → Submitted → Approve → Approved → Send → Sent → Pay → Partially Paid / Paid
+                                         → Reject → Rejected
+                                                                                  → Void
+                                                                                  → Write Off
+```
+
+#### Receipt Workflow
+
+```
+Draft → Submit → Pending → Complete → Completed
+                                   → Void
+```
+
+#### GL Integration
+
+When a receipt is completed, `services.py` creates a posted journal entry:
+- **Debit**: Bank/Cash Account (1110)
+- **Credit**: Accounts Receivable (1210)
+- **Debit**: Sales Discount (if early payment discount given)
+
+When a credit memo is approved:
+- **Debit**: Sales Returns/AR Control
+- **Credit**: Accounts Receivable (1210)
+
+When a write-off is approved:
+- **Debit**: Bad Debt Expense
+- **Credit**: Accounts Receivable (1210)
+
+#### Cash Application
+
+Auto-match engine uses FIFO logic to allocate unmatched receipts to open invoices, matching by customer and applying payments to the oldest invoices first.
+
+#### Collections & Dunning
+
+- 4-level dunning escalation (Reminder → Past Due → Urgent → Final Notice)
+- Activity tracking: phone calls, emails, dunning letters, meetings, promise-to-pay
+- Follow-up date tracking and resolution flags
+- Dashboard showing overdue invoices grouped by aging bucket
+
+#### Customer Portal
+
+A standalone portal outside the tenant-scoped URLs (`/customer-portal/...`) that uses token-based authentication:
+- Customers access via a unique 64-character token (no Django user account needed)
+- Dashboard shows outstanding invoices, recent payments, and unread messages
+- Invoice list with filtering and invoice detail views
+- Payment submission interface
+- Two-way messaging system
+- Session-based with automatic expiration
+
+### 9. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -582,6 +733,27 @@ A standalone portal outside the tenant-scoped URLs (`/vendor-portal/...`) that u
 | `manage_vendors` | Create/edit/deactivate vendors |
 | `view_ap_reports` | View aging reports and discount opportunities |
 | `manage_vendor_portal` | Manage vendor portal tokens and settings |
+
+---
+
+## Accounts Receivable Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_ar` | View Accounts Receivable module |
+| `manage_ar` | Full AR management access |
+| `create_invoice` | Create customer invoices |
+| `approve_invoice` | Approve/reject invoices |
+| `send_invoice` | Send invoices to customers |
+| `create_receipt` | Create receipts (incoming payments) |
+| `void_receipt` | Void completed receipts |
+| `manage_customers` | Create/edit/deactivate customers |
+| `view_ar_reports` | View AR aging reports |
+| `manage_collections` | Manage collection activities and dunning |
+| `approve_write_off` | Approve bad debt write-offs |
+| `manage_credit` | Manage credit limits and holds |
+| `manage_recurring` | Manage recurring invoice templates |
+| `manage_customer_portal` | Manage customer portal tokens and settings |
 
 ---
 
@@ -651,7 +823,7 @@ Permissions are organized by module:
 - `journal` — view_journal, create_journal, approve_journal
 - `general_ledger` — post_journal, manage_coa_accounts, manage_periods, reconcile_accounts, manage_allocations, run_allocations, view_audit_trail, manage_exchange_rates
 - `accounts_payable` — view_ap, manage_ap, create_bill, approve_bill, create_payment, void_payment, manage_vendors, view_ap_reports, manage_vendor_portal
-- `ar` — view_ar, manage_ar
+- `ar` — view_ar, manage_ar, create_invoice, approve_invoice, send_invoice, create_receipt, void_receipt, manage_customers, view_ar_reports, manage_collections, approve_write_off, manage_credit, manage_recurring, manage_customer_portal
 - `bank` — view_bank, manage_bank
 - `assets` — view_assets, manage_assets
 - `admin` — admin_full
@@ -682,7 +854,6 @@ The application is architected to support these additional accounting modules:
 
 | Module | Description |
 |--------|-------------|
-| Accounts Receivable | Customer management, invoicing, collections |
 | Cash Management | Bank feeds, reconciliation, cash positioning |
 | Fixed Assets | Asset register, depreciation, disposals |
 | Inventory | Item master, valuation (FIFO/LIFO), purchase orders |
