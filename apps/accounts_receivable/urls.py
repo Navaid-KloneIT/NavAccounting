@@ -44,7 +44,9 @@ urlpatterns = [
     path('credit-memos/', views.credit_memo_list, name='credit_memo_list'),
     path('credit-memos/create/', views.credit_memo_create, name='credit_memo_create'),
     path('credit-memos/<int:pk>/', views.credit_memo_detail, name='credit_memo_detail'),
+    path('credit-memos/<int:pk>/edit/', views.credit_memo_edit, name='credit_memo_edit'),
     path('credit-memos/<int:pk>/approve/', views.credit_memo_approve, name='credit_memo_approve'),
+    path('credit-memos/<int:pk>/void/', views.credit_memo_void, name='credit_memo_void'),
 
     # Cash Application
     path('cash-application/', views.cash_application, name='cash_application'),
