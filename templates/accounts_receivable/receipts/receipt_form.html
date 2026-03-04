@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{% if form.instance.pk %}Edit Receipt{% else %}Record Receipt{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if form.instance.pk %}Edit Receipt{% else %}Record Receipt{% endif %}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:receipt_list' tenant_slug=current_tenant.slug %}">Receipts</a></li>
+        <li class="breadcrumb-item active">{% if form.instance.pk %}Edit Receipt{% else %}Record Receipt{% endif %}</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Receipt Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-money-dollar-circle-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Receipt Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_customer" class="form-label">Customer <span class="text-danger">*</span></label>
+                    {{ form.customer }}
+                    {% if form.customer.errors %}<div class="invalid-feedback d-block">{{ form.customer.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_receipt_date" class="form-label">Receipt Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.receipt_date }}
+                    </div>
+                    {% if form.receipt_date.errors %}<div class="invalid-feedback d-block">{{ form.receipt_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        {{ form.amount }}
+                    </div>
+                    {% if form.amount.errors %}<div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_currency" class="form-label">Currency <span class="text-danger">*</span></label>
+                    {{ form.currency }}
+                    {% if form.currency.errors %}<div class="invalid-feedback d-block">{{ form.currency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_exchange_rate" class="form-label">Exchange Rate</label>
+                    {{ form.exchange_rate }}
+                    {% if form.exchange_rate.errors %}<div class="invalid-feedback d-block">{{ form.exchange_rate.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_reference" class="form-label">Reference</label>
+                    {{ form.reference }}
+                    {% if form.reference.errors %}<div class="invalid-feedback d-block">{{ form.reference.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_fiscal_period" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_memo" class="form-label">Memo</label>
+                    {{ form.memo }}
+                    {% if form.memo.errors %}<div class="invalid-feedback d-block">{{ form.memo.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-bank-card-line text-warning"></i></div>
+                <h5 class="card-title mb-0">Payment Method</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_payment_method" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<div class="invalid-feedback d-block">{{ form.payment_method.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_check_number" class="form-label">Check Number</label>
+                    {{ form.check_number }}
+                    {% if form.check_number.errors %}<div class="invalid-feedback d-block">{{ form.check_number.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_deposit_to_account" class="form-label">Deposit To Account</label>
+                    {{ form.deposit_to_account }}
+                    {% if form.deposit_to_account.errors %}<div class="invalid-feedback d-block">{{ form.deposit_to_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GL Accounts Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-book-2-line text-info"></i></div>
+                <h5 class="card-title mb-0">GL Accounts</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_bank_account" class="form-label">Bank Account <span class="text-danger">*</span></label>
+                    {{ form.bank_account }}
+                    {% if form.bank_account.errors %}<div class="invalid-feedback d-block">{{ form.bank_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_ar_account" class="form-label">AR Account <span class="text-danger">*</span></label>
+                    {{ form.ar_account }}
+                    {% if form.ar_account.errors %}<div class="invalid-feedback d-block">{{ form.ar_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Allocation Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-file-list-3-line text-success"></i></div>
+                <h5 class="card-title mb-0">Invoice Allocation</h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {{ allocation_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 250px;">Invoice</th>
+                            <th style="min-width: 150px;">Amount Applied</th>
+                            <th style="min-width: 150px;">Discount Given</th>
+                            <th style="width: 50px;">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alloc_form in allocation_formset %}
+                        <tr>
+                            <td>
+                                {{ alloc_form.invoice }}
+                                {{ alloc_form.id }}
+                                {% if alloc_form.invoice.errors %}<div class="invalid-feedback d-block">{{ alloc_form.invoice.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ alloc_form.amount_applied }}
+                                {% if alloc_form.amount_applied.errors %}<div class="invalid-feedback d-block">{{ alloc_form.amount_applied.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ alloc_form.discount_given }}
+                                {% if alloc_form.discount_given.errors %}<div class="invalid-feedback d-block">{{ alloc_form.discount_given.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {% if alloc_form.DELETE %}
+                                <div class="form-check">
+                                    {{ alloc_form.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'accounts_receivable:receipt_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Receipt
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
