@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tax Depreciation Books{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Tax Depreciation Books</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:asset_list' tenant_slug=current_tenant.slug %}">Fixed Assets</a></li>
+            <li class="breadcrumb-item active">Tax Books</li>
+        </ol>
+    </div>
+</div>
+
+{% if show_form %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">New Tax Depreciation Book</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Code <span class="text-danger">*</span></label>
+                    {{ form.code }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Tax Method</label>
+                    {{ form.tax_method }}
+                </div>
+                <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>Create Book</button>
+            <a href="{% url 'fixed_assets:tax_book_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Tax Books ({{ total_count }})</h5>
+        <a href="{% url 'fixed_assets:tax_book_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Tax Book</a>
+    </div>
+    <div class="card-body">
+        {% if books %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Tax Method</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr>
+                        <td class="fw-semibold">{{ book.code }}</td>
+                        <td>{{ book.name }}</td>
+                        <td><span class="badge bg-soft-info text-info">{{ book.get_tax_method_display }}</span></td>
+                        <td>
+                            {% if book.is_active %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'fixed_assets:tax_book_detail' tenant_slug=current_tenant.slug pk=book.pk %}" class="btn btn-sm btn-soft-primary"><i class="ri-eye-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-government-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No tax depreciation books found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
