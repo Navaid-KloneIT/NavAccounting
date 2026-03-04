@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Bank Fee Analysis{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Bank Fee Analysis</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_account_list' tenant_slug=current_tenant.slug %}">Cash Management</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_fee_list' tenant_slug=current_tenant.slug %}">Bank Fees</a></li>
+        <li class="breadcrumb-item active">Analysis</li>
+    </ol>
+</div>
+
+<!-- Total Fees Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-soft-primary">
+            <div class="card-body d-flex justify-content-between align-items-center py-4">
+                <div>
+                    <p class="text-muted mb-1 text-uppercase">Total Bank Fees</p>
+                    <h2 class="mb-0 text-primary">{{ total_fees|floatformat:2|intcomma }}</h2>
+                </div>
+                <a href="{% url 'cash_management:bank_fee_list' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Fees
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-pie-chart-line me-1"></i> Fee by Type</h5>
+            </div>
+            <div class="card-body">
+                <div id="feeByTypeChart" style="min-height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-bar-chart-horizontal-line me-1"></i> Fee by Account</h5>
+            </div>
+            <div class="card-body">
+                <div id="feeByAccountChart" style="min-height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-line-chart-line me-1"></i> Monthly Trend</h5>
+            </div>
+            <div class="card-body">
+                <div id="monthlyTrendChart" style="min-height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    // Fee by Type - Doughnut Chart
+    var typeOptions = {
+        series: {{ type_values|safe }},
+        chart: {
+            type: 'donut',
+            height: 300
+        },
+        labels: {{ type_labels|safe }},
+        colors: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+        legend: {
+            position: 'bottom'
+        },
+        tooltip: {
+            y: {
+                formatter: function(val) {
+                    return val.toLocaleString(undefined, {minimumFractionDigits: 2});
+                }
+            }
+        }
+    };
+    new ApexCharts(document.querySelector("#feeByTypeChart"), typeOptions).render();
+
+    // Fee by Account - Horizontal Bar Chart
+    var accountOptions = {
+        series: [{
+            name: 'Total Fees',
+            data: {{ account_values|safe }}
+        }],
+        chart: {
+            type: 'bar',
+            height: 300
+        },
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                borderRadius: 4
+            }
+        },
+        xaxis: {
+            categories: {{ account_labels|safe }},
+            labels: {
+                formatter: function(val) {
+                    return val.toLocaleString();
+                }
+            }
+        },
+        colors: ['#3b82f6'],
+        tooltip: {
+            y: {
+                formatter: function(val) {
+                    return val.toLocaleString(undefined, {minimumFractionDigits: 2});
+                }
+            }
+        }
+    };
+    new ApexCharts(document.querySelector("#feeByAccountChart"), accountOptions).render();
+
+    // Monthly Trend - Line Chart
+    var trendOptions = {
+        series: [{
+            name: 'Monthly Fees',
+            data: {{ trend_values|safe }}
+        }],
+        chart: {
+            type: 'line',
+            height: 300,
+            toolbar: { show: false }
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 2
+        },
+        xaxis: {
+            categories: {{ trend_labels|safe }}
+        },
+        yaxis: {
+            labels: {
+                formatter: function(val) {
+                    return val.toLocaleString();
+                }
+            }
+        },
+        colors: ['#ef4444'],
+        tooltip: {
+            y: {
+                formatter: function(val) {
+                    return val.toLocaleString(undefined, {minimumFractionDigits: 2});
+                }
+            }
+        }
+    };
+    new ApexCharts(document.querySelector("#monthlyTrendChart"), trendOptions).render();
+</script>
+{% endblock %}
