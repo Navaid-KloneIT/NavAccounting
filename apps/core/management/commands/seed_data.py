@@ -48,6 +48,7 @@ class Command(BaseCommand):
         parser.add_argument('--gl', action='store_true', help='Seed general ledger data only')
         parser.add_argument('--ap', action='store_true', help='Seed accounts payable data only')
         parser.add_argument('--ar', action='store_true', help='Seed accounts receivable data only')
+        parser.add_argument('--cm', action='store_true', help='Seed cash management data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -57,7 +58,7 @@ class Command(BaseCommand):
         seed_all = not any([
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
-            options['ar'],
+            options['ar'], options['cm'],
         ])
 
         # Always seed system-level data
@@ -98,9 +99,34 @@ class Command(BaseCommand):
             self.stdout.write('Seeding accounts receivable data...')
             self._seed_ar_data()
 
+        if seed_all or options['cm']:
+            self.stdout.write('Seeding cash management data...')
+            self._seed_cm_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean CM data first
+        try:
+            from apps.cash_management.models import (
+                BankFee, IntercompanyTransfer, CashForecastLine, CashForecast,
+                ReconciliationItem, AutoMatchRule, BankReconciliation,
+                BankTransaction, BankFeed, BankAccountSignatory, BankAccount,
+            )
+            BankFee.unscoped.all().delete()
+            IntercompanyTransfer.unscoped.all().delete()
+            CashForecastLine.objects.all().delete()
+            CashForecast.unscoped.all().delete()
+            ReconciliationItem.objects.all().delete()
+            AutoMatchRule.unscoped.all().delete()
+            BankReconciliation.unscoped.all().delete()
+            BankTransaction.unscoped.all().delete()
+            BankFeed.unscoped.all().delete()
+            BankAccountSignatory.objects.all().delete()
+            BankAccount.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean AR data first (depends on GL and other models)
         try:
             from apps.accounts_receivable.models import (
@@ -293,6 +319,12 @@ class Command(BaseCommand):
             ('view_bank', 'View Bank Accounts', 'cash_management'),
             ('manage_bank', 'Manage Bank Accounts', 'cash_management'),
             ('reconcile_bank', 'Reconcile Bank Accounts', 'cash_management'),
+            ('manage_bank_feeds', 'Manage Bank Feeds', 'cash_management'),
+            ('view_cash_position', 'View Cash Position', 'cash_management'),
+            ('manage_forecasts', 'Manage Cash Forecasts', 'cash_management'),
+            ('manage_transfers', 'Manage Intercompany Transfers', 'cash_management'),
+            ('approve_transfers', 'Approve Intercompany Transfers', 'cash_management'),
+            ('view_bank_fees', 'View Bank Fees', 'cash_management'),
             ('view_assets', 'View Fixed Assets', 'fixed_assets'),
             ('manage_assets', 'Manage Fixed Assets', 'fixed_assets'),
             ('admin_full', 'Full Administration Access', 'system'),
@@ -2414,4 +2446,280 @@ class Command(BaseCommand):
         self.stdout.write(
             f'  Created AR data (customers, invoices, receipts, '
             f'recurring templates, credit memos, collection activities)'
+        )
+
+    def _seed_cm_data(self):
+        """Seed cash management data for each tenant."""
+        from apps.cash_management.models import (
+            BankAccount, BankAccountSignatory, BankFeed, BankTransaction,
+            BankReconciliation, ReconciliationItem, AutoMatchRule,
+            CashForecast, CashForecastLine, IntercompanyTransfer, BankFee,
+        )
+        from apps.general_ledger.models import Account
+
+        superuser = CustomUser.objects.filter(is_superuser=True).first()
+        if not superuser:
+            return
+
+        tenants = Tenant.objects.all()
+        for tenant in tenants:
+            usd = Currency.objects.filter(code='USD').first()
+            if not usd:
+                continue
+
+            # Get GL bank/cash accounts
+            checking_gl = Account.unscoped.filter(
+                tenant=tenant, account_number='1110'
+            ).first()
+            savings_gl = Account.unscoped.filter(
+                tenant=tenant, account_number='1120'
+            ).first()
+            petty_cash_gl = Account.unscoped.filter(
+                tenant=tenant, account_number='1100'
+            ).first()
+
+            if not checking_gl:
+                continue
+
+            # --- Bank Accounts ---
+            checking, _ = BankAccount.unscoped.get_or_create(
+                tenant=tenant,
+                account_number_display='BNK-0001',
+                defaults={
+                    'gl_account': checking_gl,
+                    'bank_name': 'First National Bank',
+                    'account_number': '4521893067',
+                    'account_number_masked': '****3067',
+                    'routing_number': '021000021',
+                    'account_type': 'checking',
+                    'currency': usd,
+                    'opening_balance': Decimal('50000.00'),
+                    'current_balance': Decimal('47250.00'),
+                    'is_active': True,
+                }
+            )
+
+            savings_acct = None
+            if savings_gl:
+                savings_acct, _ = BankAccount.unscoped.get_or_create(
+                    tenant=tenant,
+                    account_number_display='BNK-0002',
+                    defaults={
+                        'gl_account': savings_gl,
+                        'bank_name': 'First National Bank',
+                        'account_number': '4521893068',
+                        'account_number_masked': '****3068',
+                        'routing_number': '021000021',
+                        'account_type': 'savings',
+                        'currency': usd,
+                        'opening_balance': Decimal('100000.00'),
+                        'current_balance': Decimal('100000.00'),
+                        'is_active': True,
+                    }
+                )
+
+            credit_line = None
+            if petty_cash_gl:
+                credit_line, _ = BankAccount.unscoped.get_or_create(
+                    tenant=tenant,
+                    account_number_display='BNK-0003',
+                    defaults={
+                        'gl_account': petty_cash_gl,
+                        'bank_name': 'Metro Business Bank',
+                        'account_number': '7789012345',
+                        'account_number_masked': '****2345',
+                        'routing_number': '026009593',
+                        'account_type': 'credit_line',
+                        'currency': usd,
+                        'opening_balance': Decimal('0.00'),
+                        'current_balance': Decimal('-5000.00'),
+                        'is_active': True,
+                    }
+                )
+
+            # --- Signatories ---
+            BankAccountSignatory.objects.get_or_create(
+                bank_account=checking,
+                name='John Smith',
+                defaults={
+                    'title': 'CEO',
+                    'signature_level': 'primary',
+                    'authorization_limit': Decimal('100000.00'),
+                }
+            )
+            BankAccountSignatory.objects.get_or_create(
+                bank_account=checking,
+                name='Jane Doe',
+                defaults={
+                    'title': 'CFO',
+                    'signature_level': 'primary',
+                    'authorization_limit': Decimal('50000.00'),
+                }
+            )
+
+            # --- Bank Feed ---
+            BankFeed.unscoped.get_or_create(
+                tenant=tenant,
+                bank_account=checking,
+                feed_source='manual_csv',
+                defaults={
+                    'status': 'active',
+                    'notes': 'Manual CSV import for checking account',
+                }
+            )
+
+            # --- Bank Transactions ---
+            txn_data = [
+                ('BTX-2026-0001', date(2026, 1, 5), Decimal('5000.00'), 'credit', 'Customer Payment - INV-2026-0001'),
+                ('BTX-2026-0002', date(2026, 1, 8), Decimal('1250.00'), 'debit', 'Vendor Payment - Check #1042'),
+                ('BTX-2026-0003', date(2026, 1, 12), Decimal('3500.00'), 'credit', 'Wire Transfer - Client ABC'),
+                ('BTX-2026-0004', date(2026, 1, 15), Decimal('800.00'), 'debit', 'ACH - Utility Bill'),
+                ('BTX-2026-0005', date(2026, 1, 20), Decimal('2200.00'), 'credit', 'Customer Payment - INV-2026-0003'),
+                ('BTX-2026-0006', date(2026, 1, 22), Decimal('450.00'), 'debit', 'Office Supplies - Card'),
+                ('BTX-2026-0007', date(2026, 1, 25), Decimal('6000.00'), 'credit', 'Transfer from Savings'),
+                ('BTX-2026-0008', date(2026, 1, 28), Decimal('3200.00'), 'debit', 'Payroll - January'),
+                ('BTX-2026-0009', date(2026, 2, 1), Decimal('1800.00'), 'credit', 'Customer Payment - INV-2026-0005'),
+                ('BTX-2026-0010', date(2026, 2, 5), Decimal('950.00'), 'debit', 'Insurance Premium'),
+                ('BTX-2026-0011', date(2026, 2, 10), Decimal('4200.00'), 'credit', 'Customer Payment - Wire'),
+                ('BTX-2026-0012', date(2026, 2, 15), Decimal('1500.00'), 'debit', 'Rent Payment'),
+                ('BTX-2026-0013', date(2026, 2, 18), Decimal('750.00'), 'debit', 'Software Subscription'),
+                ('BTX-2026-0014', date(2026, 2, 22), Decimal('8500.00'), 'credit', 'Large Client Payment'),
+                ('BTX-2026-0015', date(2026, 2, 28), Decimal('3200.00'), 'debit', 'Payroll - February'),
+            ]
+            for txn_num, txn_date, amount, txn_type, desc in txn_data:
+                BankTransaction.unscoped.get_or_create(
+                    tenant=tenant,
+                    transaction_number=txn_num,
+                    defaults={
+                        'bank_account': checking,
+                        'transaction_date': txn_date,
+                        'amount': amount,
+                        'transaction_type': txn_type,
+                        'description': desc,
+                        'is_matched': txn_num in ('BTX-2026-0001', 'BTX-2026-0002', 'BTX-2026-0003'),
+                    }
+                )
+
+            # --- Auto Match Rules ---
+            AutoMatchRule.unscoped.get_or_create(
+                tenant=tenant,
+                name='Exact Amount Match',
+                defaults={
+                    'rule_type': 'exact_amount',
+                    'pattern': {'tolerance': 0},
+                    'priority': 10,
+                    'is_active': True,
+                }
+            )
+            AutoMatchRule.unscoped.get_or_create(
+                tenant=tenant,
+                name='Reference Number Match',
+                defaults={
+                    'rule_type': 'reference_match',
+                    'pattern': {'field': 'reference'},
+                    'priority': 20,
+                    'is_active': True,
+                }
+            )
+
+            # --- Cash Forecast ---
+            forecast, _ = CashForecast.unscoped.get_or_create(
+                tenant=tenant,
+                forecast_number='FCT-2026-0001',
+                defaults={
+                    'name': 'Q1 2026 Cash Forecast',
+                    'forecast_type': 'short_term',
+                    'start_date': date(2026, 1, 1),
+                    'end_date': date(2026, 3, 31),
+                    'created_by': superuser,
+                    'status': 'active',
+                }
+            )
+            forecast_lines = [
+                (date(2026, 1, 15), 'ar_collections', 'January AR Collections', Decimal('25000.00'), Decimal('23500.00')),
+                (date(2026, 1, 30), 'ap_payments', 'January AP Payments', Decimal('-18000.00'), Decimal('-17200.00')),
+                (date(2026, 1, 31), 'payroll', 'January Payroll', Decimal('-12000.00'), Decimal('-12000.00')),
+                (date(2026, 2, 15), 'ar_collections', 'February AR Collections', Decimal('28000.00'), Decimal('30100.00')),
+                (date(2026, 2, 28), 'ap_payments', 'February AP Payments', Decimal('-20000.00'), Decimal('-19500.00')),
+                (date(2026, 2, 28), 'payroll', 'February Payroll', Decimal('-12000.00'), Decimal('-12000.00')),
+                (date(2026, 3, 1), 'tax', 'Q1 Estimated Tax', Decimal('-5000.00'), None),
+                (date(2026, 3, 15), 'ar_collections', 'March AR Collections', Decimal('30000.00'), None),
+                (date(2026, 3, 30), 'ap_payments', 'March AP Payments', Decimal('-22000.00'), None),
+                (date(2026, 3, 31), 'payroll', 'March Payroll', Decimal('-12000.00'), None),
+            ]
+            for line_date, category, desc, expected, actual in forecast_lines:
+                variance = Decimal('0.00')
+                if actual is not None:
+                    variance = actual - expected
+                CashForecastLine.objects.get_or_create(
+                    forecast=forecast,
+                    line_date=line_date,
+                    category=category,
+                    defaults={
+                        'description': desc,
+                        'expected_amount': expected,
+                        'actual_amount': actual,
+                        'variance': variance,
+                    }
+                )
+
+            # --- Intercompany Transfers ---
+            if savings_acct:
+                IntercompanyTransfer.unscoped.get_or_create(
+                    tenant=tenant,
+                    transfer_number='ICT-2026-0001',
+                    defaults={
+                        'from_bank_account': savings_acct,
+                        'to_bank_account': checking,
+                        'amount': Decimal('6000.00'),
+                        'currency': usd,
+                        'transfer_date': date(2026, 1, 25),
+                        'reference': 'Cash sweep',
+                        'status': 'completed',
+                        'created_by': superuser,
+                        'approved_by': superuser,
+                    }
+                )
+                IntercompanyTransfer.unscoped.get_or_create(
+                    tenant=tenant,
+                    transfer_number='ICT-2026-0002',
+                    defaults={
+                        'from_bank_account': checking,
+                        'to_bank_account': savings_acct,
+                        'amount': Decimal('10000.00'),
+                        'currency': usd,
+                        'transfer_date': date(2026, 3, 1),
+                        'reference': 'Excess cash to savings',
+                        'status': 'draft',
+                        'created_by': superuser,
+                    }
+                )
+
+            # --- Bank Fees ---
+            fee_data = [
+                (date(2026, 1, 31), 'monthly_maintenance', 'Monthly Service Charge', Decimal('25.00'), True),
+                (date(2026, 1, 15), 'wire', 'Incoming Wire Fee', Decimal('15.00'), False),
+                (date(2026, 1, 22), 'transaction', 'ACH Processing Fee', Decimal('0.50'), False),
+                (date(2026, 2, 5), 'foreign_exchange', 'FX Conversion Fee', Decimal('35.00'), False),
+                (date(2026, 2, 28), 'monthly_maintenance', 'Monthly Service Charge', Decimal('25.00'), True),
+                (date(2026, 2, 10), 'wire', 'Outgoing Wire Fee', Decimal('25.00'), False),
+                (date(2026, 1, 20), 'overdraft', 'Overdraft Protection Fee', Decimal('35.00'), False),
+                (date(2026, 2, 15), 'atm', 'Out-of-Network ATM', Decimal('3.00'), False),
+            ]
+            for fee_date, fee_type, desc, amount, recurring in fee_data:
+                BankFee.unscoped.get_or_create(
+                    tenant=tenant,
+                    bank_account=checking,
+                    fee_date=fee_date,
+                    fee_type=fee_type,
+                    defaults={
+                        'description': desc,
+                        'amount': amount,
+                        'is_recurring': recurring,
+                    }
+                )
+
+        self.stdout.write(
+            f'  Created CM data (bank accounts, signatories, feeds, '
+            f'transactions, match rules, forecasts, transfers, fees)'
         )
