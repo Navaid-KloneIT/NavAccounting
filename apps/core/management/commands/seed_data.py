@@ -49,6 +49,7 @@ class Command(BaseCommand):
         parser.add_argument('--ap', action='store_true', help='Seed accounts payable data only')
         parser.add_argument('--ar', action='store_true', help='Seed accounts receivable data only')
         parser.add_argument('--cm', action='store_true', help='Seed cash management data only')
+        parser.add_argument('--fa', action='store_true', help='Seed fixed assets data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -58,7 +59,7 @@ class Command(BaseCommand):
         seed_all = not any([
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
-            options['ar'], options['cm'],
+            options['ar'], options['cm'], options['fa'],
         ])
 
         # Always seed system-level data
@@ -102,6 +103,10 @@ class Command(BaseCommand):
         if seed_all or options['cm']:
             self.stdout.write('Seeding cash management data...')
             self._seed_cm_data()
+
+        if seed_all or options['fa']:
+            self.stdout.write('Seeding fixed assets data...')
+            self._seed_fa_data()
 
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
@@ -2722,4 +2727,220 @@ class Command(BaseCommand):
         self.stdout.write(
             f'  Created CM data (bank accounts, signatories, feeds, '
             f'transactions, match rules, forecasts, transfers, fees)'
+        )
+
+    def _seed_fa_data(self):
+        """Seed fixed assets sample data."""
+        from apps.fixed_assets.models import (
+            AssetCategory, AssetLocation, Asset, AssetAcquisition,
+            DepreciationProfile, AssetTransfer, AssetDisposal,
+            PhysicalInventory, PhysicalInventoryItem,
+            TaxDepreciationBook, TaxDepreciationEntry,
+        )
+        from apps.fixed_assets.services import generate_depreciation_schedule
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found. Skipping FA seeding.')
+            return
+
+        for tenant in tenants:
+            from apps.tenants.managers import set_current_tenant
+            set_current_tenant(tenant)
+
+            # Get GL accounts for category mapping
+            from apps.general_ledger.models import Account
+            gl_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False
+            )[:10])
+            if len(gl_accounts) < 3:
+                self.stdout.write(f'  Skipping FA for {tenant.name}: not enough GL accounts.')
+                continue
+
+            # Get currency
+            default_currency = Currency.objects.first()
+            if not default_currency:
+                continue
+
+            # Get a user
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
+                continue
+
+            # --- Asset Categories ---
+            categories_data = [
+                {'code': 'BLDG', 'name': 'Buildings', 'method': 'straight_line', 'life': 360, 'salvage': Decimal('10.00')},
+                {'code': 'VEHI', 'name': 'Vehicles', 'method': 'declining_balance', 'life': 60, 'salvage': Decimal('15.00')},
+                {'code': 'FURN', 'name': 'Furniture & Fixtures', 'method': 'straight_line', 'life': 84, 'salvage': Decimal('5.00')},
+                {'code': 'COMP', 'name': 'Computer Equipment', 'method': 'straight_line', 'life': 36, 'salvage': Decimal('0.00')},
+                {'code': 'MACH', 'name': 'Machinery', 'method': 'units_of_production', 'life': 120, 'salvage': Decimal('5.00')},
+            ]
+            categories = []
+            for i, cd in enumerate(categories_data):
+                cat, _ = AssetCategory.unscoped.get_or_create(
+                    tenant=tenant, code=cd['code'],
+                    defaults={
+                        'name': cd['name'],
+                        'depreciation_method': cd['method'],
+                        'default_useful_life_months': cd['life'],
+                        'default_salvage_percentage': cd['salvage'],
+                        'asset_gl_account': gl_accounts[min(i, len(gl_accounts) - 1)],
+                        'depreciation_gl_account': gl_accounts[min(i + 1, len(gl_accounts) - 1)],
+                        'accumulated_depreciation_gl_account': gl_accounts[min(i + 2, len(gl_accounts) - 1)],
+                    }
+                )
+                categories.append(cat)
+
+            # --- Asset Locations ---
+            locations_data = [
+                {'code': 'HQ', 'name': 'Head Office', 'address': '123 Main Street'},
+                {'code': 'WH1', 'name': 'Warehouse 1', 'address': '456 Industrial Blvd'},
+                {'code': 'BR1', 'name': 'Branch Office 1', 'address': '789 Commerce Ave'},
+            ]
+            locations = []
+            for ld in locations_data:
+                loc, _ = AssetLocation.unscoped.get_or_create(
+                    tenant=tenant, code=ld['code'],
+                    defaults={'name': ld['name'], 'address': ld['address']}
+                )
+                locations.append(loc)
+
+            # --- Assets ---
+            assets_data = [
+                {'name': 'Office Building - Main', 'cat': 0, 'loc': 0, 'cost': Decimal('500000.00'), 'life': 360, 'salvage': Decimal('50000.00'), 'method': 'straight_line'},
+                {'name': 'Delivery Van #1', 'cat': 1, 'loc': 1, 'cost': Decimal('35000.00'), 'life': 60, 'salvage': Decimal('5250.00'), 'method': 'declining_balance'},
+                {'name': 'Executive Desk Set', 'cat': 2, 'loc': 0, 'cost': Decimal('2500.00'), 'life': 84, 'salvage': Decimal('125.00'), 'method': 'straight_line'},
+                {'name': 'Dell Server Rack', 'cat': 3, 'loc': 0, 'cost': Decimal('15000.00'), 'life': 36, 'salvage': Decimal('0.00'), 'method': 'straight_line'},
+                {'name': 'MacBook Pro Fleet (10 units)', 'cat': 3, 'loc': 0, 'cost': Decimal('25000.00'), 'life': 36, 'salvage': Decimal('2500.00'), 'method': 'straight_line'},
+                {'name': 'CNC Milling Machine', 'cat': 4, 'loc': 1, 'cost': Decimal('85000.00'), 'life': 120, 'salvage': Decimal('4250.00'), 'method': 'units_of_production'},
+                {'name': 'Conference Room Furniture', 'cat': 2, 'loc': 2, 'cost': Decimal('8000.00'), 'life': 84, 'salvage': Decimal('400.00'), 'method': 'straight_line'},
+                {'name': 'Forklift', 'cat': 4, 'loc': 1, 'cost': Decimal('28000.00'), 'life': 96, 'salvage': Decimal('3000.00'), 'method': 'declining_balance'},
+            ]
+            assets = []
+            for ad in assets_data:
+                asset_number = Asset.generate_asset_number(tenant)
+                acq_date = date.today() - timedelta(days=random.randint(90, 730))
+                asset, created = Asset.unscoped.get_or_create(
+                    tenant=tenant, name=ad['name'],
+                    defaults={
+                        'asset_number': asset_number,
+                        'category': categories[ad['cat']],
+                        'location': locations[ad['loc']],
+                        'custodian': random.choice(users),
+                        'serial_number': f'SN-{fake.bothify(text="####-????-####")}',
+                        'barcode': f'BC{fake.numerify(text="##########")}',
+                        'acquisition_date': acq_date,
+                        'acquisition_cost': ad['cost'],
+                        'salvage_value': ad['salvage'],
+                        'useful_life_months': ad['life'],
+                        'depreciation_method': ad['method'],
+                        'status': 'in_service',
+                        'manufacturer': fake.company(),
+                        'model_number': fake.bothify(text='MOD-####'),
+                    }
+                )
+                if created:
+                    # Create depreciation profile
+                    end_date = acq_date + timedelta(days=ad['life'] * 30)
+                    DepreciationProfile.unscoped.get_or_create(
+                        tenant=tenant, asset=asset,
+                        defaults={
+                            'method': ad['method'],
+                            'useful_life_months': ad['life'],
+                            'start_date': acq_date,
+                            'end_date': end_date,
+                            'salvage_value': ad['salvage'],
+                            'total_units': 100000 if ad['method'] == 'units_of_production' else None,
+                            'declining_balance_rate': Decimal('200.00') if ad['method'] == 'declining_balance' else Decimal('0.00'),
+                        }
+                    )
+                    # Generate depreciation schedule
+                    generate_depreciation_schedule(asset)
+
+                assets.append(asset)
+
+            # --- Acquisitions ---
+            for asset in assets[:4]:
+                AssetAcquisition.unscoped.get_or_create(
+                    tenant=tenant, asset=asset,
+                    defaults={
+                        'acquisition_number': AssetAcquisition.generate_acquisition_number(tenant),
+                        'acquisition_type': 'purchase',
+                        'vendor_name': fake.company(),
+                        'invoice_reference': f'INV-{fake.numerify(text="######")}',
+                        'acquisition_date': asset.acquisition_date,
+                        'amount': asset.acquisition_cost,
+                        'currency': default_currency,
+                        'is_capitalized': True,
+                        'capitalization_date': asset.acquisition_date,
+                    }
+                )
+
+            # --- Transfers ---
+            if len(assets) >= 3:
+                AssetTransfer.unscoped.get_or_create(
+                    tenant=tenant, asset=assets[2],
+                    transfer_number=AssetTransfer.generate_transfer_number(tenant),
+                    defaults={
+                        'from_location': locations[0],
+                        'to_location': locations[2],
+                        'transfer_date': date.today() - timedelta(days=30),
+                        'reason': 'Relocated to branch office',
+                        'status': 'completed',
+                        'created_by': users[0],
+                        'approved_by': users[0],
+                    }
+                )
+
+            # --- Tax Depreciation Book ---
+            macrs_book, _ = TaxDepreciationBook.unscoped.get_or_create(
+                tenant=tenant, code='MACRS',
+                defaults={
+                    'name': 'MACRS Tax Book',
+                    'tax_method': 'macrs',
+                    'description': 'Modified Accelerated Cost Recovery System',
+                }
+            )
+
+            for asset in assets[:3]:
+                TaxDepreciationEntry.unscoped.get_or_create(
+                    tenant=tenant, tax_book=macrs_book, asset=asset,
+                    fiscal_year=date.today().year,
+                    defaults={
+                        'depreciation_amount': (asset.acquisition_cost * Decimal('0.20')).quantize(Decimal('0.01')),
+                        'accumulated_depreciation': (asset.acquisition_cost * Decimal('0.20')).quantize(Decimal('0.01')),
+                        'recovery_period_years': 5,
+                        'convention': 'half_year',
+                        'property_class': '5-year property',
+                    }
+                )
+
+            # --- Physical Inventory ---
+            if assets:
+                inv, inv_created = PhysicalInventory.unscoped.get_or_create(
+                    tenant=tenant, inventory_number=PhysicalInventory.generate_inventory_number(tenant),
+                    defaults={
+                        'name': f'Annual Inventory Count {date.today().year}',
+                        'location': locations[0],
+                        'count_date': date.today() - timedelta(days=15),
+                        'status': 'reconciled',
+                        'conducted_by': users[0],
+                    }
+                )
+                if inv_created:
+                    for asset in assets[:5]:
+                        PhysicalInventoryItem.objects.get_or_create(
+                            inventory=inv, asset=asset,
+                            defaults={
+                                'expected_location': asset.location,
+                                'found_location': asset.location,
+                                'is_found': True,
+                                'condition': random.choice(['good', 'good', 'good', 'fair']),
+                                'scanned_barcode': asset.barcode,
+                            }
+                        )
+
+        self.stdout.write(
+            f'  Created FA data (categories, locations, assets, acquisitions, '
+            f'depreciation schedules, transfers, tax books, inventories)'
         )
