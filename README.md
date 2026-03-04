@@ -37,6 +37,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Accounts Payable** — Vendor management, bill capture & processing, payment processing & batching, payment scheduling, aging reports, vendor portal, early payment discounts
 - **Accounts Receivable** — Customer management, invoice generation & approvals, payment collection (receipts), recurring invoicing, cash application, collections & dunning, credit management, aging analysis, customer portal
 - **Cash Management** — Bank account management, bank feeds, transaction import (CSV), bank reconciliation with auto-match, cash positioning dashboard, treasury forecasting, intercompany transfers with GL integration, bank fee analysis
+- **Fixed Assets** — Asset register with categories & locations, acquisition tracking (purchase/lease/donation/CIP), depreciation engine (straight-line, declining balance, units of production), asset transfers with approval workflow, disposals & retirements (sale/scrap/write-off with gain/loss GL posting), impairment testing, physical inventory with barcode scanning & reconciliation, tax depreciation books (MACRS/bonus/Section 179)
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -89,6 +90,7 @@ NavAccounting/
 │   ├── accounts_payable/           # Vendors, Bills, Payments, Batches, Uploads, Scheduling, Aging, Vendor Portal
 │   ├── accounts_receivable/        # Customers, Invoices, Receipts, Recurring, Cash Application, Collections, Credit Memos, Aging, Customer Portal
 │   ├── cash_management/            # Bank Accounts, Feeds, Transactions, Reconciliation, Cash Position, Forecasts, Transfers, Bank Fees
+│   ├── fixed_assets/               # Asset Register, Acquisitions, Depreciation, Transfers, Disposals, Impairment, Inventory, Tax Books
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -135,6 +137,17 @@ NavAccounting/
 │   │   ├── forecasts/              # Forecast list, form, detail
 │   │   ├── transfers/              # Transfer list, form, detail
 │   │   └── bank_fees/              # Fee list, form, analysis dashboard
+│   ├── fixed_assets/               # FA templates (20 files across 9 subdirectories)
+│   │   ├── assets/                 # Asset list, create, detail, edit
+│   │   ├── categories/             # Category list, form
+│   │   ├── locations/              # Location list, form
+│   │   ├── acquisitions/           # Acquisition list, form
+│   │   ├── depreciation/           # Depreciation dashboard, run depreciation, schedule detail
+│   │   ├── transfers/              # Transfer list, form
+│   │   ├── disposals/              # Disposal list, form
+│   │   ├── impairment/             # Impairment list, form
+│   │   ├── inventory/              # Inventory list, form, count
+│   │   └── tax_depreciation/       # Tax book list, book detail
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -264,6 +277,7 @@ python manage.py seed_data --gl
 python manage.py seed_data --ap
 python manage.py seed_data --ar
 python manage.py seed_data --cm
+python manage.py seed_data --fa
 ```
 
 ### What Gets Seeded
@@ -283,6 +297,7 @@ python manage.py seed_data --cm
 | Accounts Payable | 7 payment terms, 5 vendors with contacts, 5 bills with line items, 1 completed payment with allocation, 1 vendor portal token |
 | Accounts Receivable | 5 customers with contacts, 6 invoices with line items, 2 receipts with allocations, 1 recurring invoice template, 2 collection activities, 1 customer portal token |
 | Cash Management | 2 bank accounts with signatories, 2 bank feeds, 15 transactions, 2 auto-match rules, 1 forecast with 10 lines, 2 intercompany transfers, 8 bank fees |
+| Fixed Assets | 5 asset categories (BLDG, VEHI, FURN, COMP, MACH), 3 locations (HQ, WH1, BR1), 8 assets with depreciation profiles and schedules, 4 acquisitions, 1 asset transfer, 1 MACRS tax book with entries, 1 physical inventory with items |
 
 ---
 
@@ -346,6 +361,11 @@ These paths skip tenant resolution:
 | — | BankTransaction, BankReconciliation, ReconciliationItem |
 | — | AutoMatchRule, CashForecast, CashForecastLine |
 | — | IntercompanyTransfer, BankFee |
+| — | AssetCategory, AssetLocation, Asset |
+| — | AssetAcquisition, DepreciationProfile, DepreciationSchedule |
+| — | DepreciationEntry, AssetTransfer, AssetDisposal |
+| — | ImpairmentTest, PhysicalInventory, TaxDepreciationBook |
+| — | TaxDepreciationEntry |
 
 ---
 
@@ -392,7 +412,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -593,6 +613,47 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/cm/bank-fees/create/` | Create bank fee | New bank fee record |
 | `/t/<slug>/cm/bank-fees/<pk>/edit/` | Edit bank fee | Edit bank fee details |
 | `/t/<slug>/cm/bank-fees/analysis/` | Fee analysis | Bank fee analysis dashboard with charts |
+| **Fixed Assets — Asset Register** | | |
+| `/t/<slug>/fa/categories/` | Category list | Asset categories with GL mapping |
+| `/t/<slug>/fa/categories/create/` | Create category | New asset category form |
+| `/t/<slug>/fa/categories/<pk>/edit/` | Edit category | Edit asset category |
+| `/t/<slug>/fa/locations/` | Location list | Asset locations |
+| `/t/<slug>/fa/locations/create/` | Create location | New asset location form |
+| `/t/<slug>/fa/locations/<pk>/edit/` | Edit location | Edit asset location |
+| `/t/<slug>/fa/assets/` | Asset list | All assets with stat cards and filters |
+| `/t/<slug>/fa/assets/create/` | Create asset | New asset form |
+| `/t/<slug>/fa/assets/<pk>/` | Asset detail | Asset info, depreciation, history |
+| `/t/<slug>/fa/assets/<pk>/edit/` | Edit asset | Edit asset details |
+| **Fixed Assets — Acquisitions** | | |
+| `/t/<slug>/fa/acquisitions/` | Acquisition list | All acquisitions with filters |
+| `/t/<slug>/fa/acquisitions/create/` | Create acquisition | New acquisition form |
+| `/t/<slug>/fa/acquisitions/<pk>/capitalize/` | Capitalize | Capitalize acquisition (creates GL JE) |
+| **Fixed Assets — Depreciation** | | |
+| `/t/<slug>/fa/depreciation/` | Depreciation dashboard | Overview with stat cards and recent entries |
+| `/t/<slug>/fa/depreciation/run/` | Run depreciation | Batch depreciation run (creates GL JE) |
+| `/t/<slug>/fa/depreciation/schedule/<pk>/` | Schedule detail | Asset depreciation schedule lines |
+| **Fixed Assets — Transfers** | | |
+| `/t/<slug>/fa/transfers/` | Transfer list | All asset transfers |
+| `/t/<slug>/fa/transfers/create/` | Create transfer | New asset transfer form |
+| `/t/<slug>/fa/transfers/<pk>/approve/` | Approve transfer | Approve a pending transfer |
+| `/t/<slug>/fa/transfers/<pk>/complete/` | Complete transfer | Complete approved transfer |
+| **Fixed Assets — Disposals** | | |
+| `/t/<slug>/fa/disposals/` | Disposal list | All asset disposals |
+| `/t/<slug>/fa/disposals/create/` | Create disposal | New disposal form (sale/scrap/write-off) |
+| `/t/<slug>/fa/disposals/<pk>/process/` | Process disposal | Process disposal (creates GL JE with gain/loss) |
+| **Fixed Assets — Impairment** | | |
+| `/t/<slug>/fa/impairment/` | Impairment list | All impairment tests |
+| `/t/<slug>/fa/impairment/create/` | Create impairment | New impairment test (creates GL JE if impaired) |
+| **Fixed Assets — Physical Inventory** | | |
+| `/t/<slug>/fa/inventory/` | Inventory list | All physical inventory counts |
+| `/t/<slug>/fa/inventory/create/` | Create inventory | New inventory count (auto-populates items) |
+| `/t/<slug>/fa/inventory/<pk>/count/` | Inventory count | Count items with barcode scanning |
+| `/t/<slug>/fa/inventory/<pk>/reconcile/` | Reconcile | Reconcile inventory (updates asset locations) |
+| **Fixed Assets — Tax Depreciation** | | |
+| `/t/<slug>/fa/tax-books/` | Tax book list | Tax depreciation books |
+| `/t/<slug>/fa/tax-books/create/` | Create tax book | New tax book form |
+| `/t/<slug>/fa/tax-books/<pk>/` | Tax book detail | Tax book entries |
+| `/t/<slug>/fa/tax-entries/create/` | Create tax entry | New tax depreciation entry |
 
 ---
 
@@ -820,7 +881,67 @@ Aggregates all active bank account balances with real-time inflows/outflows for 
 
 Parses uploaded CSV files with flexible column detection (Date, Description, Amount, Debit/Credit), supports multiple date formats, and creates batch-tracked `BankTransaction` records.
 
-### 10. `dashboard` — Dashboard & Analytics
+### 10. `fixed_assets` — Fixed Assets Module
+
+Full fixed asset lifecycle management with 8 submodules, 14 models, 30+ views, and 20 templates.
+
+- **AssetCategory** — Asset classification with GL account mapping (asset, depreciation expense, accumulated depreciation accounts), default useful life and salvage percentage, depreciation method defaults
+- **AssetLocation** — Physical locations with code/name/address tracking
+- **Asset** — Master asset records with auto-generated numbers (`AST-YYYY-NNNN`), status workflow (In Service, Under Maintenance, Disposed, Written Off, CIP), serial/barcode/tag tracking, custodian assignment, warranty and manufacturer info
+- **AssetAcquisition** — Acquisition tracking with auto-generated numbers (`ACQ-YYYY-NNNN`), types (purchase/lease/donation/construction/transfer-in), vendor and invoice references, capitalization with GL journal entry creation
+- **DepreciationProfile** — One-to-one with Asset, configurable method (straight-line/declining balance/units of production), useful life, salvage value, declining balance rate, total units for UoP
+- **DepreciationSchedule** — Pre-computed monthly depreciation schedule lines with period amounts, accumulated depreciation, and net book value
+- **DepreciationEntry** — Batch depreciation run header with auto-generated numbers (`DEP-YYYY-NNNN`), status workflow (Draft → Posted), GL journal entry creation
+- **AssetTransfer** — Location/department/custodian transfers with auto-generated numbers (`ATR-YYYY-NNNN`), approval workflow (Draft → Pending → Completed/Cancelled)
+- **AssetDisposal** — Asset disposal with auto-generated numbers (`DSP-YYYY-NNNN`), types (sale/scrap/write-off/donation/trade-in), automatic gain/loss calculation, GL journal entry creation
+- **ImpairmentTest** — Impairment testing with automatic recoverable amount calculation (max of value-in-use and fair value less costs), impairment loss determination, GL journal entry creation
+- **PhysicalInventory** — Physical inventory counts with auto-generated numbers (`INV-YYYY-NNNN`), status workflow (Planned → In Progress → Completed → Reconciled), auto-population of items from assets at selected location
+- **PhysicalInventoryItem** — Individual count items with expected/found location, barcode scanning, condition tracking (Good/Fair/Poor/Damaged)
+- **TaxDepreciationBook** — Parallel tax depreciation books supporting MACRS, bonus depreciation, Section 179, and custom methods
+- **TaxDepreciationEntry** — Per-asset per-year tax depreciation records with recovery period, convention (half-year/mid-quarter/mid-month), and property class
+
+#### Depreciation Methods
+
+| Method | Description |
+|--------|-------------|
+| Straight-Line | Equal depreciation over useful life, prorated for partial periods |
+| Declining Balance | Accelerated depreciation using configurable rate (e.g., 200% for DDB) |
+| Units of Production | Depreciation based on actual usage vs total estimated units |
+
+#### Asset Transfer Workflow
+
+```
+Draft → Submit → Pending → Approve → Completed
+                          → Cancel → Cancelled
+```
+
+#### Asset Disposal Workflow
+
+```
+Draft → Submit → Pending → Process → Completed (creates GL Journal Entry with gain/loss)
+                          → Cancel → Cancelled
+```
+
+#### GL Integration
+
+When an acquisition is capitalized, `services.py` creates a posted journal entry:
+- **Debit**: Asset GL account (from category)
+- **Credit**: Accounts Payable / Cash account
+
+When depreciation is run, `services.py` creates a posted journal entry:
+- **Debit**: Depreciation Expense account (from category)
+- **Credit**: Accumulated Depreciation account (from category)
+
+When a disposal is processed:
+- **Debit**: Accumulated Depreciation, Cash/Proceeds (if sale)
+- **Credit**: Asset account
+- **Debit/Credit**: Gain or Loss on Disposal (computed automatically)
+
+When impairment is recorded:
+- **Debit**: Impairment Loss
+- **Credit**: Accumulated Depreciation (asset write-down)
+
+### 11. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -877,6 +998,15 @@ Parses uploaded CSV files with flexible column detection (Date, Description, Amo
 | `manage_transfers` | Create intercompany transfers |
 | `approve_transfers` | Approve intercompany transfers |
 | `view_bank_fees` | View bank fee analysis |
+
+---
+
+## Fixed Assets Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_assets` | View Fixed Assets module |
+| `manage_assets` | Full fixed assets management access |
 
 ---
 
@@ -948,7 +1078,7 @@ Permissions are organized by module:
 - `accounts_payable` — view_ap, manage_ap, create_bill, approve_bill, create_payment, void_payment, manage_vendors, view_ap_reports, manage_vendor_portal
 - `ar` — view_ar, manage_ar, create_invoice, approve_invoice, send_invoice, create_receipt, void_receipt, manage_customers, view_ar_reports, manage_collections, approve_write_off, manage_credit, manage_recurring, manage_customer_portal
 - `bank` — view_bank, manage_bank, manage_bank_feeds, view_cash_position, manage_forecasts, manage_transfers, approve_transfers, view_bank_fees
-- `assets` — view_assets, manage_assets
+- `fixed_assets` — view_assets, manage_assets
 - `admin` — admin_full
 
 ### Access Control Decorators
@@ -977,7 +1107,6 @@ The application is architected to support these additional accounting modules:
 
 | Module | Description |
 |--------|-------------|
-| Fixed Assets | Asset register, depreciation, disposals |
 | Inventory | Item master, valuation (FIFO/LIFO), purchase orders |
 | Tax | Sales tax engine, tax returns, compliance |
 | Reporting | Financial statements, custom report builder, XBRL |
