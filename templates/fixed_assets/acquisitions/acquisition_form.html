@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if capitalize %}Capitalize Acquisition{% else %}New Acquisition{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if capitalize %}Capitalize Acquisition{% else %}New Acquisition{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:acquisition_list' tenant_slug=current_tenant.slug %}">Acquisitions</a></li>
+            <li class="breadcrumb-item active">{% if capitalize %}Capitalize{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if capitalize %}
+        <div class="alert alert-warning">
+            <i class="ri-alert-line me-1"></i>
+            You are about to capitalize acquisition <strong>{{ acq.acquisition_number }}</strong> for asset <strong>{{ acq.asset.asset_number }}</strong>.
+            This will create a journal entry of <strong>${{ acq.amount|intcomma }}</strong>.
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success"><i class="ri-check-line me-1"></i>Confirm Capitalization</button>
+            <a href="{% url 'fixed_assets:acquisition_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+        {% else %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Asset <span class="text-danger">*</span></label>
+                    {{ form.asset }}
+                    {% if form.asset.errors %}<div class="text-danger small">{{ form.asset.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Acquisition Type</label>
+                    {{ form.acquisition_type }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Vendor Name</label>
+                    {{ form.vendor_name }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Invoice Reference</label>
+                    {{ form.invoice_reference }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Purchase Order</label>
+                    {{ form.purchase_order }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
+                    {{ form.acquisition_date }}
+                    {% if form.acquisition_date.errors %}<div class="text-danger small">{{ form.acquisition_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Amount <span class="text-danger">*</span></label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}<div class="text-danger small">{{ form.amount.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Currency</label>
+                    {{ form.currency }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>Create Acquisition</button>
+                <a href="{% url 'fixed_assets:acquisition_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
