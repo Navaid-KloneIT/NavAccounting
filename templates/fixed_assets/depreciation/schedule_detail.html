@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Depreciation Schedule - {{ asset.asset_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Depreciation Schedule - {{ asset.asset_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:asset_detail' tenant_slug=current_tenant.slug pk=asset.pk %}">{{ asset.asset_number }}</a></li>
+            <li class="breadcrumb-item active">Schedule</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">{{ asset.name }} - {{ asset.get_depreciation_method_display }}</h5>
+        <p class="text-muted mb-0 small mt-1">Cost: ${{ asset.acquisition_cost|intcomma }} | Salvage: ${{ asset.salvage_value|intcomma }} | Life: {{ asset.useful_life_months }} months</p>
+    </div>
+    <div class="card-body">
+        {% if schedules %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Period</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th class="text-end">Depreciation</th>
+                        <th class="text-end">Accumulated</th>
+                        <th class="text-end">Net Book Value</th>
+                        <th class="text-center">Posted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in schedules %}
+                    <tr {% if s.is_posted %}class="table-light"{% endif %}>
+                        <td>{{ s.period_number }}</td>
+                        <td>{{ s.period_start }}</td>
+                        <td>{{ s.period_end }}</td>
+                        <td class="text-end">${{ s.depreciation_amount|intcomma }}</td>
+                        <td class="text-end">${{ s.accumulated_depreciation|intcomma }}</td>
+                        <td class="text-end fw-semibold">${{ s.net_book_value|intcomma }}</td>
+                        <td class="text-center">
+                            {% if s.is_posted %}
+                                <span class="badge bg-soft-success text-success">Posted</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <p class="text-muted">No depreciation schedule found for this asset.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
