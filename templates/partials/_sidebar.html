@@ -557,6 +557,136 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Fixed Assets <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Asset Register -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'fixed_assets' and 'asset' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'category' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'location' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-building-4-line"></i>
+                    <span class="menu-text">Asset Register</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'fixed_assets' and 'asset' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'category' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'location' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'fixed_assets:asset_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'asset_list' and request.resolver_match.app_name == 'fixed_assets' %}active{% endif %}">
+                            <span class="menu-text">All Assets</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'fixed_assets:asset_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'asset_create' and request.resolver_match.app_name == 'fixed_assets' %}active{% endif %}">
+                            <span class="menu-text">New Asset</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'fixed_assets:category_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'category' in request.resolver_match.url_name and request.resolver_match.app_name == 'fixed_assets' %}active{% endif %}">
+                            <span class="menu-text">Categories</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'fixed_assets:location_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'location' in request.resolver_match.url_name and request.resolver_match.app_name == 'fixed_assets' %}active{% endif %}">
+                            <span class="menu-text">Locations</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Acquisitions -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'fixed_assets:acquisition_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'fixed_assets' and 'acquisition' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-shopping-cart-line"></i>
+                    <span class="menu-text">Acquisitions</span>
+                </a>
+            </li>
+
+            <!-- Depreciation -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'fixed_assets' and 'depreciation' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'schedule' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'run_depreciation' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-arrow-down-circle-line"></i>
+                    <span class="menu-text">Depreciation</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'fixed_assets' and 'depreciation' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'schedule' in request.resolver_match.url_name or request.resolver_match.app_name == 'fixed_assets' and 'run_depreciation' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'fixed_assets:depreciation_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'depreciation_dashboard' %}active{% endif %}">
+                            <span class="menu-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'fixed_assets:run_depreciation' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'run_depreciation' %}active{% endif %}">
+                            <span class="menu-text">Run Depreciation</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Transfers -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'fixed_assets:transfer_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'fixed_assets' and 'transfer' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-arrow-left-right-line"></i>
+                    <span class="menu-text">Transfers</span>
+                </a>
+            </li>
+
+            <!-- Disposals -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'fixed_assets:disposal_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'fixed_assets' and 'disposal' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-delete-bin-line"></i>
+                    <span class="menu-text">Disposals</span>
+                </a>
+            </li>
+
+            <!-- Impairment -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'fixed_assets:impairment_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'fixed_assets' and 'impairment' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-alert-line"></i>
+                    <span class="menu-text">Impairment</span>
+                </a>
+            </li>
+
+            <!-- Physical Inventory -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'fixed_assets:inventory_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'fixed_assets' and 'inventory' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-barcode-box-line"></i>
+                    <span class="menu-text">Physical Inventory</span>
+                </a>
+            </li>
+
+            <!-- Tax Depreciation -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'fixed_assets:tax_book_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'fixed_assets' and 'tax' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-government-line"></i>
+                    <span class="menu-text">Tax Depreciation</span>
+                </a>
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
