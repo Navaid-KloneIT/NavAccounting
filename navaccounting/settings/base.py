@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.accounts_payable',
     'apps.accounts_receivable',
     'apps.cash_management',
+    'apps.fixed_assets',
 ]
 
 MIDDLEWARE = [
