@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New Disposal{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New Asset Disposal</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:disposal_list' tenant_slug=current_tenant.slug %}">Disposals</a></li>
+            <li class="breadcrumb-item active">New</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Asset <span class="text-danger">*</span></label>
+                    {{ form.asset }}
+                    {% if form.asset.errors %}<div class="text-danger small">{{ form.asset.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Disposal Type</label>
+                    {{ form.disposal_type }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Disposal Date <span class="text-danger">*</span></label>
+                    {{ form.disposal_date }}
+                    {% if form.disposal_date.errors %}<div class="text-danger small">{{ form.disposal_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Proceeds</label>
+                    {{ form.proceeds }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Buyer Name</label>
+                    {{ form.buyer_name }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Invoice Reference</label>
+                    {{ form.invoice_reference }}
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>Create Disposal</button>
+                <a href="{% url 'fixed_assets:disposal_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
