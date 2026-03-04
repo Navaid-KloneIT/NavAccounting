@@ -1,0 +1,131 @@
+{% extends "accounts_receivable/portal/portal_base.html" %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Messages</h4>
+        <p class="text-muted mb-0">Communicate with the company</p>
+    </div>
+    <a href="{% url 'customer_portal:portal_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="ri-arrow-left-line me-1"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- New Message Form -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-primary bg-opacity-10 p-2 me-2">
+                <i class="ri-edit-line text-primary"></i>
+            </div>
+            <h5 class="card-title mb-0 fw-semibold">New Message</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.subject.id_for_label }}" class="form-label fw-semibold">Subject</label>
+                <input type="text"
+                       name="{{ form.subject.html_name }}"
+                       id="{{ form.subject.id_for_label }}"
+                       class="form-control {% if form.subject.errors %}is-invalid{% endif %}"
+                       value="{{ form.subject.value|default:'' }}"
+                       placeholder="Enter message subject"
+                       required>
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.body.id_for_label }}" class="form-label fw-semibold">Message</label>
+                <textarea name="{{ form.body.html_name }}"
+                          id="{{ form.body.id_for_label }}"
+                          class="form-control {% if form.body.errors %}is-invalid{% endif %}"
+                          rows="4"
+                          placeholder="Type your message here..."
+                          required>{{ form.body.value|default:'' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-send-plane-line me-1"></i> Send Message
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Message List -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-info bg-opacity-10 p-2 me-2">
+                <i class="ri-mail-line text-info"></i>
+            </div>
+            <h5 class="card-title mb-0 fw-semibold">Message History</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Subject</th>
+                        <th>From</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for message in messages %}
+                    <tr class="{% if not message.is_read %}table-light{% endif %}">
+                        <td class="text-nowrap">{{ message.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'customer_portal:portal_message_detail' pk=message.pk %}" class="fw-semibold text-primary text-decoration-none">
+                                {{ message.subject }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if message.is_from_customer %}
+                                <span class="text-muted"><i class="ri-user-line me-1"></i>You</span>
+                            {% else %}
+                                <span class="text-muted"><i class="ri-building-line me-1"></i>Company</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if message.is_read %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Read</span>
+                            {% else %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary">Unread</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'customer_portal:portal_message_detail' pk=message.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="ri-mail-line fs-3 d-block mb-2"></i>
+                            No messages yet. Send your first message above.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
