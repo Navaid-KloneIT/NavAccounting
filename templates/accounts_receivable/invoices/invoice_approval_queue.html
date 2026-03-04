@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Invoice Approvals{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Invoice Approvals</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Accounts Receivable</li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:invoice_list' tenant_slug=current_tenant.slug %}">Invoices</a></li>
+        <li class="breadcrumb-item active">Approvals</li>
+    </ol>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-checkbox-circle-line text-warning"></i></div>
+            <h5 class="card-title mb-0">Invoices Pending Approval</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Total</th>
+                        <th>Submitted By</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=invoice.pk %}">
+                                    {{ invoice.invoice_number }}
+                                </a>
+                            </strong>
+                        </td>
+                        <td>{{ invoice.customer.display_name }}</td>
+                        <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                        <td>
+                            {{ invoice.due_date|date:"M d, Y" }}
+                            {% if invoice.is_overdue %}<span class="badge badge-soft-danger ms-1">Overdue</span>{% endif %}
+                        </td>
+                        <td class="text-end">{{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                        <td>{{ invoice.created_by.get_full_name|default:invoice.created_by.email }}</td>
+                        <td class="text-end">
+                            <form method="post" action="{% url 'accounts_receivable:invoice_approve' tenant_slug=current_tenant.slug pk=invoice.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-soft-success" title="Approve">
+                                    <i class="ri-check-line"></i> Approve
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'accounts_receivable:invoice_reject' tenant_slug=current_tenant.slug pk=invoice.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-soft-danger" title="Reject">
+                                    <i class="ri-close-line"></i> Reject
+                                </button>
+                            </form>
+                            <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=invoice.pk %}" class="btn btn-sm btn-soft-info" title="View Details">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-checkbox-circle-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No invoices pending approval</h5>
+                                <p class="text-muted">All invoices have been reviewed.</p>
+                                <a href="{% url 'accounts_receivable:invoice_list' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-arrow-left-line me-1"></i> Back to Invoices
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
