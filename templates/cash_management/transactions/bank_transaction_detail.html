@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ transaction.transaction_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ transaction.transaction_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Cash Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_transaction_list' tenant_slug=current_tenant.slug %}">Bank Transactions</a></li>
+        <li class="breadcrumb-item active">Detail</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column: Transaction Info -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-exchange-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Transaction Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Transaction #</dt>
+                    <dd class="col-sm-8"><strong>{{ transaction.transaction_number }}</strong></dd>
+
+                    <dt class="col-sm-4 text-muted">Date</dt>
+                    <dd class="col-sm-8">{{ transaction.date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Bank Account</dt>
+                    <dd class="col-sm-8">{{ transaction.bank_account }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Description</dt>
+                    <dd class="col-sm-8">{{ transaction.description|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Type</dt>
+                    <dd class="col-sm-8">
+                        {% if transaction.transaction_type == 'debit' %}
+                        <span class="badge badge-soft-danger">Debit</span>
+                        {% elif transaction.transaction_type == 'credit' %}
+                        <span class="badge badge-soft-success">Credit</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Amount</dt>
+                    <dd class="col-sm-8"><strong>${{ transaction.amount|floatformat:2|intcomma }}</strong></dd>
+
+                    <dt class="col-sm-4 text-muted">Reference</dt>
+                    <dd class="col-sm-8">{{ transaction.reference|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Category</dt>
+                    <dd class="col-sm-8">{{ transaction.category|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Import Batch</dt>
+                    <dd class="col-sm-8">{{ transaction.import_batch|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Matching Status -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-link text-info"></i></div>
+                    <h5 class="card-title mb-0">Matching Status</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if transaction.matched %}
+                <div class="text-center mb-3">
+                    <div class="rounded-circle bg-soft-success d-inline-flex p-3 mb-2">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="text-success">Matched</h5>
+                </div>
+                {% if transaction.journal_entry %}
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Journal Entry</dt>
+                    <dd class="col-sm-7">
+                        <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=transaction.journal_entry.pk %}">
+                            {{ transaction.journal_entry }}
+                        </a>
+                    </dd>
+                </dl>
+                {% endif %}
+                {% else %}
+                <div class="text-center">
+                    <div class="rounded-circle bg-soft-warning d-inline-flex p-3 mb-2">
+                        <i class="ri-error-warning-line text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="text-warning">Unmatched</h5>
+                    <p class="text-muted small">This transaction has not been matched to a journal entry yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <a href="{% url 'cash_management:bank_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light w-100">
+            <i class="ri-arrow-left-line me-1"></i> Back to Transactions
+        </a>
+    </div>
+</div>
+{% endblock %}
