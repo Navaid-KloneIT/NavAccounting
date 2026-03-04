@@ -36,6 +36,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **General Ledger** — Double-entry journal entries, approval workflows, period close, reconciliation, allocations, audit trail, multi-currency exchange rates
 - **Accounts Payable** — Vendor management, bill capture & processing, payment processing & batching, payment scheduling, aging reports, vendor portal, early payment discounts
 - **Accounts Receivable** — Customer management, invoice generation & approvals, payment collection (receipts), recurring invoicing, cash application, collections & dunning, credit management, aging analysis, customer portal
+- **Cash Management** — Bank account management, bank feeds, transaction import (CSV), bank reconciliation with auto-match, cash positioning dashboard, treasury forecasting, intercompany transfers with GL integration, bank fee analysis
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -87,6 +88,7 @@ NavAccounting/
 │   ├── general_ledger/             # COA, Journal Entries, Approvals, Period Close, Reconciliation, Allocations, Audit Trail, Exchange Rates
 │   ├── accounts_payable/           # Vendors, Bills, Payments, Batches, Uploads, Scheduling, Aging, Vendor Portal
 │   ├── accounts_receivable/        # Customers, Invoices, Receipts, Recurring, Cash Application, Collections, Credit Memos, Aging, Customer Portal
+│   ├── cash_management/            # Bank Accounts, Feeds, Transactions, Reconciliation, Cash Position, Forecasts, Transfers, Bank Fees
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -124,6 +126,15 @@ NavAccounting/
 │   │   ├── cash_application/       # Cash application interface
 │   │   ├── reports/                # AR aging summary, aging detail
 │   │   └── portal/                 # Portal base, login, dashboard, invoice list/detail, payment, messages
+│   ├── cash_management/            # CM templates (23 files across 7 subdirectories)
+│   │   ├── bank_accounts/          # Bank account list, form, detail
+│   │   ├── bank_feeds/             # Bank feed list, form
+│   │   ├── transactions/           # Transaction list, import, detail
+│   │   ├── reconciliation/         # Reconciliation list, start, workspace, match rule list/form
+│   │   ├── cash_position/          # Cash position dashboard
+│   │   ├── forecasts/              # Forecast list, form, detail
+│   │   ├── transfers/              # Transfer list, form, detail
+│   │   └── bank_fees/              # Fee list, form, analysis dashboard
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -252,6 +263,7 @@ python manage.py seed_data --dashboard
 python manage.py seed_data --gl
 python manage.py seed_data --ap
 python manage.py seed_data --ar
+python manage.py seed_data --cm
 ```
 
 ### What Gets Seeded
@@ -260,7 +272,7 @@ python manage.py seed_data --ar
 |----------|------|
 | Currencies | 30 currencies (USD, EUR, GBP, JPY, etc.) with ISO 4217 codes |
 | Account Types | 5 types — Asset, Liability, Equity, Revenue, Expense |
-| Permissions | 40 module-based permissions (view/manage dashboard, users, roles, GL, AP, etc.) |
+| Permissions | 46 module-based permissions (view/manage dashboard, users, roles, GL, AP, AR, CM, etc.) |
 | COA Template | "Standard Business" template with 61 hierarchical accounts |
 | Tenants | 3 organizations — Acme Corporation, TechStart Solutions, Green Valley Farms |
 | Users | Superuser + 10 users per tenant (managers, accountants, viewers) |
@@ -270,6 +282,7 @@ python manage.py seed_data --ar
 | General Ledger | COA imported from template, 3 exchange rates, 3 sample posted journal entries per tenant |
 | Accounts Payable | 7 payment terms, 5 vendors with contacts, 5 bills with line items, 1 completed payment with allocation, 1 vendor portal token |
 | Accounts Receivable | 5 customers with contacts, 6 invoices with line items, 2 receipts with allocations, 1 recurring invoice template, 2 collection activities, 1 customer portal token |
+| Cash Management | 2 bank accounts with signatories, 2 bank feeds, 15 transactions, 2 auto-match rules, 1 forecast with 10 lines, 2 intercompany transfers, 8 bank fees |
 
 ---
 
@@ -329,6 +342,10 @@ These paths skip tenant resolution:
 | — | RecurringInvoiceTemplate, RecurringInvoiceTemplateLine |
 | — | CreditMemo, CollectionActivity, WriteOff |
 | — | CustomerPortalToken, CustomerMessage |
+| — | BankAccount, BankAccountSignatory, BankFeed |
+| — | BankTransaction, BankReconciliation, ReconciliationItem |
+| — | AutoMatchRule, CashForecast, CashForecastLine |
+| — | IntercompanyTransfer, BankFee |
 
 ---
 
@@ -375,7 +392,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -534,6 +551,48 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/customer-portal/messages/` | Portal messages | Send/receive messages |
 | `/customer-portal/messages/<pk>/` | Portal message detail | View message |
 | `/customer-portal/logout/` | Portal logout | Clear portal session |
+| **Cash Management — Bank Accounts** | | |
+| `/t/<slug>/cm/bank-accounts/` | Bank account list | All bank accounts with filters |
+| `/t/<slug>/cm/bank-accounts/create/` | Create bank account | New bank account form with signatories |
+| `/t/<slug>/cm/bank-accounts/<pk>/` | Bank account detail | Account info, transactions, reconciliations |
+| `/t/<slug>/cm/bank-accounts/<pk>/edit/` | Edit bank account | Edit bank account details |
+| `/t/<slug>/cm/bank-accounts/<pk>/toggle/` | Toggle active | Activate/deactivate bank account |
+| **Cash Management — Bank Feeds & Transactions** | | |
+| `/t/<slug>/cm/bank-feeds/` | Bank feed list | All bank feeds with status |
+| `/t/<slug>/cm/bank-feeds/create/` | Create bank feed | New bank feed connection |
+| `/t/<slug>/cm/bank-feeds/<pk>/edit/` | Edit bank feed | Edit bank feed settings |
+| `/t/<slug>/cm/transactions/` | Transaction list | All bank transactions with filters |
+| `/t/<slug>/cm/transactions/import/` | Import transactions | CSV transaction upload |
+| `/t/<slug>/cm/transactions/<pk>/` | Transaction detail | Transaction info and match status |
+| **Cash Management — Reconciliation** | | |
+| `/t/<slug>/cm/reconciliation/` | Reconciliation list | All reconciliations with status |
+| `/t/<slug>/cm/reconciliation/start/` | Start reconciliation | Select account and period |
+| `/t/<slug>/cm/reconciliation/<pk>/` | Reconciliation workspace | Two-panel matching interface |
+| `/t/<slug>/cm/reconciliation/<pk>/match/` | Match items | Match bank transaction to GL entry |
+| `/t/<slug>/cm/reconciliation/<pk>/unmatch/` | Unmatch items | Remove a match |
+| `/t/<slug>/cm/reconciliation/<pk>/auto-match/` | Auto-match | Run auto-match rules |
+| `/t/<slug>/cm/reconciliation/<pk>/complete/` | Complete reconciliation | Finalize reconciliation |
+| `/t/<slug>/cm/match-rules/` | Match rule list | Auto-match rules |
+| `/t/<slug>/cm/match-rules/create/` | Create rule | New auto-match rule |
+| `/t/<slug>/cm/match-rules/<pk>/edit/` | Edit rule | Edit auto-match rule |
+| **Cash Management — Cash Position & Forecasting** | | |
+| `/t/<slug>/cm/cash-position/` | Cash position | Cash position dashboard |
+| `/t/<slug>/cm/forecasts/` | Forecast list | All cash forecasts |
+| `/t/<slug>/cm/forecasts/create/` | Create forecast | New forecast with lines |
+| `/t/<slug>/cm/forecasts/<pk>/` | Forecast detail | Forecast info with charts |
+| `/t/<slug>/cm/forecasts/<pk>/edit/` | Edit forecast | Edit forecast lines |
+| **Cash Management — Transfers** | | |
+| `/t/<slug>/cm/transfers/` | Transfer list | All intercompany transfers |
+| `/t/<slug>/cm/transfers/create/` | Create transfer | New intercompany transfer |
+| `/t/<slug>/cm/transfers/<pk>/` | Transfer detail | Transfer info with actions |
+| `/t/<slug>/cm/transfers/<pk>/approve/` | Approve transfer | Approve a pending transfer |
+| `/t/<slug>/cm/transfers/<pk>/complete/` | Complete transfer | Complete transfer (creates GL JE) |
+| `/t/<slug>/cm/transfers/<pk>/cancel/` | Cancel transfer | Cancel a transfer |
+| **Cash Management — Bank Fees** | | |
+| `/t/<slug>/cm/bank-fees/` | Bank fee list | All bank fees with filters |
+| `/t/<slug>/cm/bank-fees/create/` | Create bank fee | New bank fee record |
+| `/t/<slug>/cm/bank-fees/<pk>/edit/` | Edit bank fee | Edit bank fee details |
+| `/t/<slug>/cm/bank-fees/analysis/` | Fee analysis | Bank fee analysis dashboard with charts |
 
 ---
 
@@ -712,7 +771,56 @@ A standalone portal outside the tenant-scoped URLs (`/customer-portal/...`) that
 - Two-way messaging system
 - Session-based with automatic expiration
 
-### 9. `dashboard` — Dashboard & Analytics
+### 9. `cash_management` — Cash Management Module
+
+Full cash management lifecycle with 7 submodules, 11 models, 34 views, and 23 templates.
+
+- **BankAccount** — Bank account profiles with auto-generated numbers (`BNK-NNNN`), linked to GL accounts, masked account numbers, support for checking/savings/money market/credit line, multi-currency, opening and current balance tracking
+- **BankAccountSignatory** — Authorized signatories per bank account with signature level (primary/secondary) and authorization limits
+- **BankFeed** — Bank feed connections with multiple source types (manual CSV, OFX, Plaid, Yodlee, Open Banking), status tracking, and connection configuration
+- **BankTransaction** — Bank transactions with auto-generated numbers (`BTX-YYYY-NNNN`), debit/credit types, matching status, CSV import support with batch tracking and raw data storage
+- **BankReconciliation** — Bank account reconciliation with statement balance vs GL balance comparison, auto-generated reconciliation periods, status workflow (In Progress → Completed → Reviewed)
+- **ReconciliationItem** — Individual matched/unmatched items linking bank transactions to GL journal entry lines, with match type tracking (auto/manual/exception)
+- **AutoMatchRule** — Configurable auto-match rules with priority ordering, supporting exact amount matching, reference matching, date range, and description pattern matching
+- **CashForecast** — Cash flow forecasts with auto-generated numbers (`FCT-YYYY-NNNN`), short-term and long-term types, status workflow (Draft → Active → Archived)
+- **CashForecastLine** — Individual forecast line items with categories (AR collections, AP payments, payroll, tax, loan, other), expected vs actual amounts, and variance tracking
+- **IntercompanyTransfer** — Intercompany fund transfers with auto-generated numbers (`ICT-YYYY-NNNN`), multi-currency with exchange rates, approval workflow (Draft → Pending → Completed/Cancelled), automatic GL journal entry creation on completion
+- **BankFee** — Bank fee tracking with fee types (monthly maintenance, transaction, wire, overdraft, ATM, foreign exchange, other), recurring flag, and category classification
+
+#### Bank Reconciliation Workflow
+
+```
+In Progress → Auto-Match / Manual Match → Complete → Completed → Review → Reviewed
+```
+
+#### Intercompany Transfer Workflow
+
+```
+Draft → Submit → Pending → Approve → Completed (creates GL Journal Entry)
+                         → Cancel → Cancelled
+```
+
+#### GL Integration
+
+When an intercompany transfer is completed, `services.py` creates a posted journal entry:
+- **Debit**: Destination bank account's GL account (increase)
+- **Credit**: Source bank account's GL account (decrease)
+
+#### Auto-Match Engine
+
+The reconciliation engine supports configurable matching rules executed by priority:
+- **Exact Amount** — Matches bank debits to GL credits (and vice versa) by exact amount
+- **Reference Match** — Matches by transaction reference/check number to GL entry reference
+
+#### Cash Position Dashboard
+
+Aggregates all active bank account balances with real-time inflows/outflows for a given date, providing a consolidated treasury view.
+
+#### CSV Transaction Import
+
+Parses uploaded CSV files with flexible column detection (Date, Description, Amount, Debit/Credit), supports multiple date formats, and creates batch-tracked `BankTransaction` records.
+
+### 10. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -754,6 +862,21 @@ A standalone portal outside the tenant-scoped URLs (`/customer-portal/...`) that
 | `manage_credit` | Manage credit limits and holds |
 | `manage_recurring` | Manage recurring invoice templates |
 | `manage_customer_portal` | Manage customer portal tokens and settings |
+
+---
+
+## Cash Management Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_bank` | View Cash Management module |
+| `manage_bank` | Full bank account management access |
+| `manage_bank_feeds` | Manage bank feed connections |
+| `view_cash_position` | View cash position dashboard |
+| `manage_forecasts` | Create/edit cash forecasts |
+| `manage_transfers` | Create intercompany transfers |
+| `approve_transfers` | Approve intercompany transfers |
+| `view_bank_fees` | View bank fee analysis |
 
 ---
 
@@ -824,7 +947,7 @@ Permissions are organized by module:
 - `general_ledger` — post_journal, manage_coa_accounts, manage_periods, reconcile_accounts, manage_allocations, run_allocations, view_audit_trail, manage_exchange_rates
 - `accounts_payable` — view_ap, manage_ap, create_bill, approve_bill, create_payment, void_payment, manage_vendors, view_ap_reports, manage_vendor_portal
 - `ar` — view_ar, manage_ar, create_invoice, approve_invoice, send_invoice, create_receipt, void_receipt, manage_customers, view_ar_reports, manage_collections, approve_write_off, manage_credit, manage_recurring, manage_customer_portal
-- `bank` — view_bank, manage_bank
+- `bank` — view_bank, manage_bank, manage_bank_feeds, view_cash_position, manage_forecasts, manage_transfers, approve_transfers, view_bank_fees
 - `assets` — view_assets, manage_assets
 - `admin` — admin_full
 
@@ -854,7 +977,6 @@ The application is architected to support these additional accounting modules:
 
 | Module | Description |
 |--------|-------------|
-| Cash Management | Bank feeds, reconciliation, cash positioning |
 | Fixed Assets | Asset register, depreciation, disposals |
 | Inventory | Item master, valuation (FIFO/LIFO), purchase orders |
 | Tax | Sales tax engine, tax returns, compliance |
