@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.general_ledger',
     'apps.accounts_payable',
     'apps.accounts_receivable',
+    'apps.cash_management',
 ]
 
 MIDDLEWARE = [
