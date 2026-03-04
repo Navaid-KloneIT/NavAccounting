@@ -111,6 +111,10 @@ class JournalEntry(TenantAwareModel):
         ('ar_write_off', 'AR Write-Off'),
         ('cm_transfer', 'Cash Management Transfer'),
         ('cm_bank_fee', 'Bank Fee'),
+        ('fa_acquisition', 'FA Acquisition'),
+        ('fa_depreciation', 'FA Depreciation'),
+        ('fa_disposal', 'FA Disposal'),
+        ('fa_impairment', 'FA Impairment'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
