@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Add Collection Activity{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Add Collection Activity</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:collections_dashboard' tenant_slug=current_tenant.slug %}">Collections</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:collection_customer_detail' tenant_slug=current_tenant.slug pk=customer.pk %}">{{ customer.display_name }}</a></li>
+        <li class="breadcrumb-item active">Add Activity</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-phone-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Collection Activity for {{ customer.display_name }}</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <!-- Row 1: Activity Type, Dunning Level, Subject -->
+                <div class="col-md-4">
+                    <label for="id_activity_type" class="form-label">Activity Type <span class="text-danger">*</span></label>
+                    {{ form.activity_type }}
+                    {% if form.activity_type.errors %}<div class="invalid-feedback d-block">{{ form.activity_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_dunning_level" class="form-label">Dunning Level</label>
+                    {{ form.dunning_level }}
+                    {% if form.dunning_level.errors %}<div class="invalid-feedback d-block">{{ form.dunning_level.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_subject" class="form-label">Subject <span class="text-danger">*</span></label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}<div class="invalid-feedback d-block">{{ form.subject.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Row 2: Description (full width) -->
+                <div class="col-12">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Row 3: Contact Person, Follow-up Date -->
+                <div class="col-md-6">
+                    <label for="id_contact_person" class="form-label">Contact Person</label>
+                    {{ form.contact_person }}
+                    {% if form.contact_person.errors %}<div class="invalid-feedback d-block">{{ form.contact_person.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_follow_up_date" class="form-label">Follow-up Date</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.follow_up_date }}
+                    </div>
+                    {% if form.follow_up_date.errors %}<div class="invalid-feedback d-block">{{ form.follow_up_date.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Row 4: Promise Date, Promise Amount (for promise_to_pay type) -->
+                <div class="col-md-6">
+                    <label for="id_promise_date" class="form-label">Promise Date</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.promise_date }}
+                    </div>
+                    {% if form.promise_date.errors %}<div class="invalid-feedback d-block">{{ form.promise_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_promise_amount" class="form-label">Promise Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        {{ form.promise_amount }}
+                    </div>
+                    {% if form.promise_amount.errors %}<div class="invalid-feedback d-block">{{ form.promise_amount.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Row 5: Is Resolved -->
+                <div class="col-12">
+                    <div class="form-check">
+                        {{ form.is_resolved }}
+                        <label class="form-check-label" for="id_is_resolved">Mark as Resolved</label>
+                    </div>
+                    {% if form.is_resolved.errors %}<div class="invalid-feedback d-block">{{ form.is_resolved.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'accounts_receivable:collection_customer_detail' tenant_slug=current_tenant.slug pk=customer.pk %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Activity
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
