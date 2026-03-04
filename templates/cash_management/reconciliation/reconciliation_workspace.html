@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Reconciliation Workspace{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Reconciliation Workspace</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Cash Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:reconciliation_list' tenant_slug=current_tenant.slug %}">Bank Reconciliation</a></li>
+        <li class="breadcrumb-item active">Workspace</li>
+    </ol>
+</div>
+
+<!-- Summary Card -->
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-scales-3-line text-primary"></i></div>
+            <h5 class="card-title mb-0">Reconciliation Summary</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-2">
+                <p class="text-muted mb-1 small text-uppercase">Bank Account</p>
+                <strong>{{ recon.bank_account }}</strong>
+            </div>
+            <div class="col-md-2">
+                <p class="text-muted mb-1 small text-uppercase">Period</p>
+                <strong>{{ recon.period }}</strong>
+            </div>
+            <div class="col-md-2">
+                <p class="text-muted mb-1 small text-uppercase">Statement Balance</p>
+                <strong>${{ recon.statement_balance|floatformat:2|intcomma }}</strong>
+            </div>
+            <div class="col-md-2">
+                <p class="text-muted mb-1 small text-uppercase">GL Balance</p>
+                <strong>${{ recon.gl_balance|floatformat:2|intcomma }}</strong>
+            </div>
+            <div class="col-md-2">
+                <p class="text-muted mb-1 small text-uppercase">Difference</p>
+                <strong {% if recon.difference != 0 %}class="text-danger"{% else %}class="text-success"{% endif %}>
+                    ${{ recon.difference|floatformat:2|intcomma }}
+                </strong>
+            </div>
+            <div class="col-md-2">
+                <p class="text-muted mb-1 small text-uppercase">Status</p>
+                {% if recon.status == 'in_progress' %}
+                <span class="badge badge-soft-warning">In Progress</span>
+                {% elif recon.status == 'completed' %}
+                <span class="badge badge-soft-success">Completed</span>
+                {% elif recon.status == 'reviewed' %}
+                <span class="badge badge-soft-info">Reviewed</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Bar -->
+<div class="card mb-3">
+    <div class="card-body d-flex gap-2">
+        <form method="post" action="{% url 'cash_management:reconciliation_auto_match' tenant_slug=current_tenant.slug pk=recon.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-soft-info">
+                <i class="ri-magic-line me-1"></i> Auto-Match
+            </button>
+        </form>
+        {% if recon.status == 'in_progress' %}
+        <form method="post" action="{% url 'cash_management:reconciliation_complete' tenant_slug=current_tenant.slug pk=recon.pk %}" class="d-inline" onsubmit="return confirm('Mark this reconciliation as complete?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-soft-success">
+                <i class="ri-checkbox-circle-line me-1"></i> Complete
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'cash_management:reconciliation_list' tenant_slug=current_tenant.slug %}" class="btn btn-light ms-auto">
+            <i class="ri-arrow-left-line me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<!-- Two-Column Matching Area -->
+<div class="row">
+    <!-- Left: Bank Transactions -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-bank-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Bank Transactions ({{ unmatched_txn_count }} unmatched)</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in unmatched_txns %}
+                            <tr>
+                                <td>
+                                    <input type="radio" name="transaction_select" value="{{ txn.pk }}" class="form-check-input" id="txn_{{ txn.pk }}">
+                                </td>
+                                <td>{{ txn.date|date:"M d, Y" }}</td>
+                                <td>{{ txn.description|truncatechars:30 }}</td>
+                                <td>
+                                    {% if txn.transaction_type == 'debit' %}
+                                    <span class="badge badge-soft-danger">Debit</span>
+                                    {% elif txn.transaction_type == 'credit' %}
+                                    <span class="badge badge-soft-success">Credit</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ txn.amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No unmatched bank transactions.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: GL Entries -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-book-2-line text-info"></i></div>
+                    <h5 class="card-title mb-0">GL Entries ({{ unmatched_gl_count }} unmatched)</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Date</th>
+                                <th>JE #</th>
+                                <th>Description</th>
+                                <th class="text-end">Debit</th>
+                                <th class="text-end">Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gl in unmatched_gl %}
+                            <tr>
+                                <td>
+                                    <input type="radio" name="gl_select" value="{{ gl.pk }}" class="form-check-input" id="gl_{{ gl.pk }}">
+                                </td>
+                                <td>{{ gl.date|date:"M d, Y" }}</td>
+                                <td>{{ gl.journal_entry_number }}</td>
+                                <td>{{ gl.description|truncatechars:30 }}</td>
+                                <td class="text-end">{{ gl.debit|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ gl.credit|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">No unmatched GL entries.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Match Button -->
+<div class="text-center mb-4">
+    <form id="matchForm" method="post" action="{% url 'cash_management:reconciliation_match' tenant_slug=current_tenant.slug pk=recon.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="transaction_id" id="matchTransactionId" value="">
+        <input type="hidden" name="gl_line_id" id="matchGlLineId" value="">
+        <button type="submit" class="btn btn-primary btn-lg" id="matchBtn" disabled>
+            <i class="ri-link me-1"></i> Match Selected Items
+        </button>
+    </form>
+</div>
+
+<!-- Matched Items -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-success p-2 me-2"><i class="ri-link text-success"></i></div>
+            <h5 class="card-title mb-0">Matched Items ({{ matched_count }})</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Bank Transaction</th>
+                        <th>GL Entry</th>
+                        <th class="text-end">Amount</th>
+                        <th>Match Type</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in matched_items %}
+                    <tr>
+                        <td>{{ item.bank_transaction }}</td>
+                        <td>{{ item.gl_entry }}</td>
+                        <td class="text-end">{{ item.amount|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if item.match_type == 'auto' %}
+                            <span class="badge badge-soft-info">Auto</span>
+                            {% elif item.match_type == 'manual' %}
+                            <span class="badge badge-soft-primary">Manual</span>
+                            {% else %}
+                            <span class="badge badge-soft-secondary">{{ item.match_type|default:"N/A" }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <form method="post" action="{% url 'cash_management:reconciliation_unmatch' tenant_slug=current_tenant.slug pk=recon.pk %}" class="d-inline" onsubmit="return confirm('Unmatch this item?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="item_id" value="{{ item.pk }}">
+                                <button type="submit" class="btn btn-sm btn-soft-danger" title="Unmatch">
+                                    <i class="ri-close-line"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No matched items yet. Select a bank transaction and GL entry to match them.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const matchBtn = document.getElementById('matchBtn');
+    const matchTransactionId = document.getElementById('matchTransactionId');
+    const matchGlLineId = document.getElementById('matchGlLineId');
+    const txnRadios = document.querySelectorAll('input[name="transaction_select"]');
+    const glRadios = document.querySelectorAll('input[name="gl_select"]');
+
+    function updateMatchButton() {
+        const selectedTxn = document.querySelector('input[name="transaction_select"]:checked');
+        const selectedGl = document.querySelector('input[name="gl_select"]:checked');
+
+        if (selectedTxn && selectedGl) {
+            matchBtn.disabled = false;
+            matchTransactionId.value = selectedTxn.value;
+            matchGlLineId.value = selectedGl.value;
+        } else {
+            matchBtn.disabled = true;
+            matchTransactionId.value = '';
+            matchGlLineId.value = '';
+        }
+    }
+
+    txnRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateMatchButton);
+    });
+
+    glRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateMatchButton);
+    });
+})();
+</script>
+{% endblock %}
