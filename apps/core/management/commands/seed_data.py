@@ -47,6 +47,7 @@ class Command(BaseCommand):
         parser.add_argument('--dashboard', action='store_true', help='Seed dashboard data only')
         parser.add_argument('--gl', action='store_true', help='Seed general ledger data only')
         parser.add_argument('--ap', action='store_true', help='Seed accounts payable data only')
+        parser.add_argument('--ar', action='store_true', help='Seed accounts receivable data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -55,7 +56,8 @@ class Command(BaseCommand):
 
         seed_all = not any([
             options['tenants'], options['users'], options['company'],
-            options['coa'], options['dashboard'], options['gl'], options['ap']
+            options['coa'], options['dashboard'], options['gl'], options['ap'],
+            options['ar'],
         ])
 
         # Always seed system-level data
@@ -92,10 +94,39 @@ class Command(BaseCommand):
             self.stdout.write('Seeding accounts payable data...')
             self._seed_ap_data()
 
+        if seed_all or options['ar']:
+            self.stdout.write('Seeding accounts receivable data...')
+            self._seed_ar_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
-        # Clean AP data first (depends on GL and other models)
+        # Clean AR data first (depends on GL and other models)
+        try:
+            from apps.accounts_receivable.models import (
+                CustomerMessage, CustomerPortalToken, WriteOff,
+                CollectionActivity, CreditMemo, ReceiptAllocation, Receipt,
+                RecurringInvoiceTemplateLine, RecurringInvoiceTemplate,
+                InvoiceApproval, InvoiceLine, Invoice, CustomerContact, Customer,
+            )
+            CustomerMessage.unscoped.all().delete()
+            CustomerPortalToken.unscoped.all().delete()
+            WriteOff.unscoped.all().delete()
+            CollectionActivity.unscoped.all().delete()
+            CreditMemo.unscoped.all().delete()
+            ReceiptAllocation.objects.all().delete()
+            Receipt.unscoped.all().delete()
+            RecurringInvoiceTemplateLine.objects.all().delete()
+            RecurringInvoiceTemplate.unscoped.all().delete()
+            InvoiceApproval.unscoped.all().delete()
+            InvoiceLine.objects.all().delete()
+            Invoice.unscoped.all().delete()
+            CustomerContact.objects.all().delete()
+            Customer.unscoped.all().delete()
+        except Exception:
+            pass
+
+        # Clean AP data (depends on GL and other models)
         try:
             from apps.accounts_payable.models import (
                 VendorMessage, VendorPortalToken, ScheduledPayment,
@@ -247,6 +278,18 @@ class Command(BaseCommand):
             ('manage_vendor_portal', 'Manage Vendor Portal', 'accounts_payable'),
             ('view_ar', 'View Accounts Receivable', 'accounts_receivable'),
             ('manage_ar', 'Manage Accounts Receivable', 'accounts_receivable'),
+            ('create_invoice', 'Create Invoices', 'accounts_receivable'),
+            ('approve_invoice', 'Approve Invoices', 'accounts_receivable'),
+            ('send_invoice', 'Send Invoices', 'accounts_receivable'),
+            ('create_receipt', 'Create Receipts', 'accounts_receivable'),
+            ('void_receipt', 'Void Receipts', 'accounts_receivable'),
+            ('manage_customers', 'Manage Customers', 'accounts_receivable'),
+            ('view_ar_reports', 'View AR Reports', 'accounts_receivable'),
+            ('manage_collections', 'Manage Collections', 'accounts_receivable'),
+            ('approve_write_off', 'Approve Write-Offs', 'accounts_receivable'),
+            ('manage_credit', 'Manage Credit Limits', 'accounts_receivable'),
+            ('manage_recurring', 'Manage Recurring Invoices', 'accounts_receivable'),
+            ('manage_customer_portal', 'Manage Customer Portal', 'accounts_receivable'),
             ('view_bank', 'View Bank Accounts', 'cash_management'),
             ('manage_bank', 'Manage Bank Accounts', 'cash_management'),
             ('reconcile_bank', 'Reconcile Bank Accounts', 'cash_management'),
@@ -1251,4 +1294,397 @@ class Command(BaseCommand):
         self.stdout.write(
             f'  Created AP data (terms, vendors, bills, payments, '
             f'batches, uploads, schedules)'
+        )
+
+    def _seed_ar_data(self):
+        """Seed accounts receivable data: customers, invoices, receipts,
+        recurring templates, collection activities."""
+        from apps.accounts_receivable.models import (
+            Customer, CustomerContact, Invoice, InvoiceLine, Receipt,
+            ReceiptAllocation, RecurringInvoiceTemplate, RecurringInvoiceTemplateLine,
+            CollectionActivity, CustomerPortalToken,
+        )
+        from apps.accounts_payable.models import PaymentTerm
+        from apps.general_ledger.models import Account
+
+        superuser = CustomUser.objects.filter(email='admin@navaccounting.com').first()
+        if not superuser:
+            self.stdout.write('  No superuser found, skipping AR seed.')
+            return
+
+        usd = Currency.objects.filter(code='USD').first()
+
+        for tenant in Tenant.objects.all():
+            # Lookup GL accounts
+            ar_account = Account.unscoped.filter(
+                tenant=tenant, account_number='1210'
+            ).first()
+            checking = Account.unscoped.filter(
+                tenant=tenant, account_number='1110'
+            ).first()
+            revenue_sales = Account.unscoped.filter(
+                tenant=tenant, account_number='4100'
+            ).first()
+            revenue_services = Account.unscoped.filter(
+                tenant=tenant, account_number='4200'
+            ).first()
+
+            if not ar_account or not checking:
+                self.stdout.write(f'  Skipping {tenant.name}: missing AR or checking account')
+                continue
+
+            # Lookup payment terms (reuse from AP)
+            net30 = PaymentTerm.unscoped.filter(tenant=tenant, code='NET30').first()
+            net15 = PaymentTerm.unscoped.filter(tenant=tenant, code='NET15').first()
+            two_ten_net30 = PaymentTerm.unscoped.filter(tenant=tenant, code='2/10N30').first()
+
+            fy = FiscalYear.unscoped.filter(tenant=tenant, is_current=True).first()
+            period = FiscalPeriod.unscoped.filter(
+                fiscal_year=fy, tenant=tenant, period_number=1
+            ).first() if fy else None
+
+            # --- Customers ---
+            customers_data = [
+                {
+                    'company_name': 'Acme Corporation',
+                    'display_name': 'Acme Corp',
+                    'customer_type': 'business',
+                    'tax_id': '11-1111111',
+                    'payment_term': net30,
+                    'credit_limit': Decimal('50000.00'),
+                    'contacts': [
+                        ('John', 'Smith', 'Procurement Manager', 'john@acme.example.com', '555-1001', True, True),
+                    ],
+                },
+                {
+                    'company_name': 'Global Enterprises Inc',
+                    'display_name': 'Global Enterprises',
+                    'customer_type': 'business',
+                    'tax_id': '22-2222222',
+                    'payment_term': two_ten_net30,
+                    'credit_limit': Decimal('100000.00'),
+                    'contacts': [
+                        ('Maria', 'Garcia', 'CFO', 'maria@global.example.com', '555-2001', True, True),
+                        ('Tom', 'Wilson', 'AP Clerk', 'tom@global.example.com', '555-2002', False, False),
+                    ],
+                },
+                {
+                    'company_name': 'Smith & Associates LLC',
+                    'display_name': 'Smith & Associates',
+                    'customer_type': 'business',
+                    'tax_id': '33-3333333',
+                    'payment_term': net15,
+                    'credit_limit': Decimal('25000.00'),
+                    'contacts': [
+                        ('Robert', 'Smith', 'Owner', 'robert@smithllc.example.com', '555-3001', True, True),
+                    ],
+                },
+                {
+                    'company_name': 'Pacific Coast Trading Co',
+                    'display_name': 'Pacific Coast Trading',
+                    'customer_type': 'business',
+                    'tax_id': '44-4444444',
+                    'payment_term': net30,
+                    'credit_limit': Decimal('75000.00'),
+                    'contacts': [
+                        ('Jennifer', 'Lee', 'Purchasing Director', 'jennifer@pacificcoast.example.com', '555-4001', True, True),
+                    ],
+                },
+                {
+                    'company_name': 'City of Springfield',
+                    'display_name': 'City of Springfield',
+                    'customer_type': 'government',
+                    'tax_id': '55-5555555',
+                    'payment_term': net30,
+                    'credit_limit': Decimal('200000.00'),
+                    'contacts': [
+                        ('Linda', 'Brown', 'Finance Director', 'linda@springfield.gov.example.com', '555-5001', True, True),
+                    ],
+                },
+            ]
+
+            customer_objs = []
+            for i, cdata in enumerate(customers_data, start=1):
+                customer_number = f"CUST-{i:04d}"
+                customer, created = Customer.unscoped.get_or_create(
+                    tenant=tenant,
+                    customer_number=customer_number,
+                    defaults={
+                        'company_name': cdata['company_name'],
+                        'display_name': cdata['display_name'],
+                        'customer_type': cdata['customer_type'],
+                        'tax_id': cdata['tax_id'],
+                        'billing_address_line_1': fake.street_address(),
+                        'billing_city': fake.city(),
+                        'billing_state': fake.state_abbr(),
+                        'billing_postal_code': fake.zipcode(),
+                        'billing_country': 'US',
+                        'phone': fake.phone_number()[:20],
+                        'email': f"billing@{cdata['display_name'].lower().replace(' ', '').replace('&', '')}.example.com",
+                        'default_payment_term': cdata['payment_term'],
+                        'default_revenue_account': revenue_sales or revenue_services,
+                        'currency': usd,
+                        'credit_limit': cdata['credit_limit'],
+                        'preferred_payment_method': 'ach',
+                    }
+                )
+                customer_objs.append(customer)
+
+                if created:
+                    for first, last, title, email, phone, is_primary, is_billing in cdata['contacts']:
+                        CustomerContact.objects.get_or_create(
+                            customer=customer,
+                            email=email,
+                            defaults={
+                                'first_name': first,
+                                'last_name': last,
+                                'title': title,
+                                'phone': phone,
+                                'is_primary': is_primary,
+                                'is_billing_contact': is_billing,
+                            }
+                        )
+
+                    # Create portal token for first customer
+                    if i == 1:
+                        CustomerPortalToken.unscoped.get_or_create(
+                            tenant=tenant,
+                            customer=customer,
+                            defaults={
+                                'is_active': True,
+                                'expires_at': timezone.now() + timedelta(days=365),
+                            }
+                        )
+
+            # --- Invoices ---
+            if not period:
+                continue
+
+            invoices_data = [
+                {
+                    'customer': customer_objs[0],  # Acme Corp
+                    'invoice_date': date(2026, 1, 5),
+                    'description': 'Consulting services - January',
+                    'status': 'sent',
+                    'lines': [
+                        (revenue_services, 'Strategy consulting (40 hrs)', 40, Decimal('150.00'), Decimal('6000.00')),
+                        (revenue_services, 'Research & analysis', 1, Decimal('2500.00'), Decimal('2500.00')),
+                    ],
+                },
+                {
+                    'customer': customer_objs[1],  # Global Enterprises
+                    'invoice_date': date(2026, 1, 10),
+                    'description': 'Software licenses - Q1',
+                    'status': 'paid',
+                    'lines': [
+                        (revenue_sales, 'Enterprise license (annual)', 1, Decimal('12000.00'), Decimal('12000.00')),
+                        (revenue_sales, 'Support package', 1, Decimal('3000.00'), Decimal('3000.00')),
+                    ],
+                },
+                {
+                    'customer': customer_objs[2],  # Smith & Associates
+                    'invoice_date': date(2026, 1, 15),
+                    'description': 'Legal research services',
+                    'status': 'sent',
+                    'lines': [
+                        (revenue_services, 'Legal research (20 hrs)', 20, Decimal('200.00'), Decimal('4000.00')),
+                    ],
+                },
+                {
+                    'customer': customer_objs[3],  # Pacific Coast Trading
+                    'invoice_date': date(2026, 2, 1),
+                    'description': 'Product shipment - February',
+                    'status': 'approved',
+                    'lines': [
+                        (revenue_sales, 'Widget A (100 units)', 100, Decimal('45.00'), Decimal('4500.00')),
+                        (revenue_sales, 'Widget B (50 units)', 50, Decimal('85.00'), Decimal('4250.00')),
+                        (revenue_sales, 'Shipping & handling', 1, Decimal('250.00'), Decimal('250.00')),
+                    ],
+                },
+                {
+                    'customer': customer_objs[0],  # Acme Corp (second invoice)
+                    'invoice_date': date(2026, 2, 15),
+                    'description': 'Consulting services - February',
+                    'status': 'draft',
+                    'lines': [
+                        (revenue_services, 'Implementation consulting (60 hrs)', 60, Decimal('150.00'), Decimal('9000.00')),
+                    ],
+                },
+                {
+                    'customer': customer_objs[4],  # City of Springfield
+                    'invoice_date': date(2025, 11, 1),
+                    'description': 'Government contract services - Nov',
+                    'status': 'partially_paid',
+                    'lines': [
+                        (revenue_services, 'Infrastructure audit', 1, Decimal('15000.00'), Decimal('15000.00')),
+                        (revenue_services, 'Compliance review', 1, Decimal('5000.00'), Decimal('5000.00')),
+                    ],
+                },
+            ]
+
+            invoice_objs = []
+            for i, idata in enumerate(invoices_data, start=1):
+                invoice_number = f"INV-2026-{i:04d}"
+                total = sum(line[4] for line in idata['lines'])
+                due_days = 30
+                if idata['customer'].default_payment_term:
+                    due_days = idata['customer'].default_payment_term.due_days
+                due_date = idata['invoice_date'] + timedelta(days=due_days)
+
+                if idata['status'] == 'paid':
+                    amount_paid = total
+                elif idata['status'] == 'partially_paid':
+                    amount_paid = Decimal('10000.00')
+                else:
+                    amount_paid = Decimal('0.00')
+
+                invoice, created = Invoice.unscoped.get_or_create(
+                    tenant=tenant,
+                    invoice_number=invoice_number,
+                    defaults={
+                        'customer': idata['customer'],
+                        'invoice_date': idata['invoice_date'],
+                        'due_date': due_date,
+                        'payment_term': idata['customer'].default_payment_term,
+                        'subtotal': total,
+                        'tax_amount': Decimal('0.00'),
+                        'total_amount': total,
+                        'amount_paid': amount_paid,
+                        'ar_account': ar_account,
+                        'fiscal_period': period,
+                        'description': idata['description'],
+                        'status': idata['status'],
+                        'currency': usd,
+                        'created_by': superuser,
+                        'sent_date': idata['invoice_date'] if idata['status'] in ['sent', 'paid', 'partially_paid'] else None,
+                    }
+                )
+                invoice_objs.append(invoice)
+
+                if created:
+                    for account, desc, qty, unit_price, amount in idata['lines']:
+                        if account:
+                            InvoiceLine.objects.create(
+                                invoice=invoice,
+                                account=account,
+                                description=desc,
+                                quantity=qty,
+                                unit_price=unit_price,
+                                amount=amount,
+                            )
+
+            # --- Receipts (for the paid invoice) ---
+            paid_invoice = invoice_objs[1]  # Global Enterprises
+            rct_number = "RCT-2026-0001"
+            receipt, created = Receipt.unscoped.get_or_create(
+                tenant=tenant,
+                receipt_number=rct_number,
+                defaults={
+                    'customer': paid_invoice.customer,
+                    'receipt_date': date(2026, 1, 18),
+                    'amount': paid_invoice.total_amount,
+                    'payment_method': 'ach',
+                    'reference': 'ACH-20260118-001',
+                    'bank_account': checking,
+                    'ar_account': ar_account,
+                    'currency': usd,
+                    'fiscal_period': period,
+                    'status': 'completed',
+                    'created_by': superuser,
+                }
+            )
+
+            if created:
+                ReceiptAllocation.objects.create(
+                    receipt=receipt,
+                    invoice=paid_invoice,
+                    amount=paid_invoice.total_amount,
+                )
+
+            # Partial payment receipt for City of Springfield
+            partial_invoice = invoice_objs[5]  # City of Springfield
+            rct_number_2 = "RCT-2026-0002"
+            Receipt.unscoped.get_or_create(
+                tenant=tenant,
+                receipt_number=rct_number_2,
+                defaults={
+                    'customer': partial_invoice.customer,
+                    'receipt_date': date(2025, 12, 1),
+                    'amount': Decimal('10000.00'),
+                    'payment_method': 'check',
+                    'check_number': '50001',
+                    'bank_account': checking,
+                    'ar_account': ar_account,
+                    'currency': usd,
+                    'fiscal_period': period,
+                    'status': 'completed',
+                    'created_by': superuser,
+                }
+            )
+
+            # --- Recurring Invoice Template ---
+            if revenue_services:
+                RecurringInvoiceTemplate.unscoped.get_or_create(
+                    tenant=tenant,
+                    template_number='REC-2026-0001',
+                    defaults={
+                        'name': 'Monthly Retainer - Acme Corp',
+                        'customer': customer_objs[0],
+                        'frequency': 'monthly',
+                        'start_date': date(2026, 1, 1),
+                        'next_invoice_date': date(2026, 4, 1),
+                        'occurrences_created': 3,
+                        'payment_term': net30,
+                        'ar_account': ar_account,
+                        'currency': usd,
+                        'description': 'Monthly consulting retainer',
+                        'subtotal': Decimal('5000.00'),
+                        'tax_amount': Decimal('0.00'),
+                        'total_amount': Decimal('5000.00'),
+                        'auto_send': True,
+                        'status': 'active',
+                        'created_by': superuser,
+                    }
+                )
+
+            # --- Collection Activities ---
+            # Smith & Associates - overdue invoice
+            if len(invoice_objs) > 2:
+                CollectionActivity.unscoped.get_or_create(
+                    tenant=tenant,
+                    customer=customer_objs[2],
+                    invoice=invoice_objs[2],
+                    activity_type='dunning_letter',
+                    defaults={
+                        'dunning_level': 1,
+                        'subject': 'Payment Reminder - INV-2026-0003',
+                        'description': 'Sent first payment reminder for overdue invoice.',
+                        'is_resolved': False,
+                        'created_by': superuser,
+                    }
+                )
+
+            # City of Springfield - follow up on partial payment
+            if len(invoice_objs) > 5:
+                CollectionActivity.unscoped.get_or_create(
+                    tenant=tenant,
+                    customer=customer_objs[4],
+                    invoice=invoice_objs[5],
+                    activity_type='phone_call',
+                    defaults={
+                        'dunning_level': 2,
+                        'subject': 'Follow up on remaining balance',
+                        'description': 'Called finance director regarding remaining $10,000 balance. '
+                                       'Promised payment by end of month.',
+                        'contact_person': 'Linda Brown',
+                        'promise_date': date.today() + timedelta(days=15),
+                        'promise_amount': Decimal('10000.00'),
+                        'is_resolved': False,
+                        'created_by': superuser,
+                    }
+                )
+
+        self.stdout.write(
+            f'  Created AR data (customers, invoices, receipts, '
+            f'recurring templates, collection activities)'
         )
