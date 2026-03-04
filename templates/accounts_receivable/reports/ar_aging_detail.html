@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Aging Detail - {{ customer.display_name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ customer.display_name }} - Aging Detail</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:ar_aging_summary' tenant_slug=current_tenant.slug %}">AR Aging</a></li>
+        <li class="breadcrumb-item active">{{ customer.display_name }}</li>
+    </ol>
+</div>
+
+<!-- Summary Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Outstanding Invoices</p>
+                        <h3 class="mb-0">{{ invoice_aging|length }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-file-list-3-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Outstanding</p>
+                        <h3 class="mb-0">${{ total_balance|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-money-dollar-circle-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">As of Date</p>
+                        <h3 class="mb-0">{{ as_of_date|date:"M d, Y" }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-calendar-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoices Table -->
+<div class="card table-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Outstanding Invoices</h5>
+        <a href="{% url 'accounts_receivable:customer_detail' tenant_slug=current_tenant.slug pk=customer.pk %}" class="btn btn-sm btn-soft-primary">
+            <i class="ri-user-3-line me-1"></i> View Customer
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Paid</th>
+                        <th class="text-end">Balance</th>
+                        <th>Days Outstanding</th>
+                        <th>Aging Bucket</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice_aging %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=item.invoice.pk %}">
+                                <strong>{{ item.invoice.invoice_number }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ item.invoice.invoice_date|date:"M d, Y" }}</td>
+                        <td>{{ item.invoice.due_date|date:"M d, Y" }}</td>
+                        <td class="text-end">${{ item.invoice.total_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ item.invoice.amount_paid|floatformat:2|intcomma }}</td>
+                        <td class="text-end"><strong>${{ item.balance|floatformat:2|intcomma }}</strong></td>
+                        <td>
+                            {% if item.days_outstanding > 0 %}
+                            <span class="text-danger">{{ item.days_outstanding }} days</span>
+                            {% else %}
+                            <span class="text-success">Current</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.aging_bucket == 'Current' %}
+                            <span class="badge badge-soft-success">Current</span>
+                            {% elif item.aging_bucket == '1-30 days' %}
+                            <span class="badge badge-soft-info">1-30</span>
+                            {% elif item.aging_bucket == '31-60 days' %}
+                            <span class="badge badge-soft-warning">31-60</span>
+                            {% elif item.aging_bucket == '61-90 days' %}
+                            <span class="badge badge-soft-danger">61-90</span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">90+</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <h5 class="text-muted">No outstanding invoices for this customer</h5>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
