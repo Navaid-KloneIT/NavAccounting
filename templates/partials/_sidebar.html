@@ -320,6 +320,130 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Accounts Receivable <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Customers -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_receivable:customer_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_receivable' and 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-user-3-line"></i>
+                    <span class="menu-text">Customers</span>
+                </a>
+            </li>
+
+            <!-- Invoices -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'accounts_receivable' and 'invoice' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-file-text-line"></i>
+                    <span class="menu-text">Invoices</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'accounts_receivable' and 'invoice' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:invoice_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'invoice_list' and request.resolver_match.app_name == 'accounts_receivable' %}active{% endif %}">
+                            <span class="menu-text">All Invoices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:invoice_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'invoice_create' and request.resolver_match.app_name == 'accounts_receivable' %}active{% endif %}">
+                            <span class="menu-text">New Invoice</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:invoice_approval_queue' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'invoice_approval_queue' %}active{% endif %}">
+                            <span class="menu-text">Approvals</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Receipts -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'accounts_receivable' and 'receipt' in request.resolver_match.url_name or request.resolver_match.app_name == 'accounts_receivable' and 'credit_memo' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-money-dollar-circle-line"></i>
+                    <span class="menu-text">Receipts</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'accounts_receivable' and 'receipt' in request.resolver_match.url_name or request.resolver_match.app_name == 'accounts_receivable' and 'credit_memo' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:receipt_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'receipt_list' and request.resolver_match.app_name == 'accounts_receivable' %}active{% endif %}">
+                            <span class="menu-text">All Receipts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:receipt_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'receipt_create' and request.resolver_match.app_name == 'accounts_receivable' %}active{% endif %}">
+                            <span class="menu-text">New Receipt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:credit_memo_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'credit_memo' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Credit Memos</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Recurring -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_receivable:recurring_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_receivable' and 'recurring' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-refresh-line"></i>
+                    <span class="menu-text">Recurring</span>
+                </a>
+            </li>
+
+            <!-- Cash Application -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_receivable:cash_application' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_receivable' and 'cash_application' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-exchange-funds-line"></i>
+                    <span class="menu-text">Cash Application</span>
+                </a>
+            </li>
+
+            <!-- Collections -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'accounts_receivable:collections_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'accounts_receivable' and 'collection' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-alarm-warning-line"></i>
+                    <span class="menu-text">Collections</span>
+                </a>
+            </li>
+
+            <!-- AR Reports -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'accounts_receivable' and 'aging' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-bar-chart-2-line"></i>
+                    <span class="menu-text">AR Reports</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'accounts_receivable' and 'aging' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts_receivable:ar_aging_summary' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'aging' in request.resolver_match.url_name and request.resolver_match.app_name == 'accounts_receivable' %}active{% endif %}">
+                            <span class="menu-text">Aging Report</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
