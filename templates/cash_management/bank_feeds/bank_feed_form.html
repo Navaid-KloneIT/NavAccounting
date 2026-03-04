@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Bank Feed{% else %}New Bank Feed{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if is_edit %}Edit Bank Feed{% else %}New Bank Feed{% endif %}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Cash Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_feed_list' tenant_slug=current_tenant.slug %}">Bank Feeds</a></li>
+        <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-rss-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Bank Feed Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_bank_account" class="form-label">Bank Account <span class="text-danger">*</span></label>
+                    {{ form.bank_account }}
+                    {% if form.bank_account.errors %}<div class="invalid-feedback d-block">{{ form.bank_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_feed_source" class="form-label">Feed Source <span class="text-danger">*</span></label>
+                    {{ form.feed_source }}
+                    {% if form.feed_source.errors %}<div class="invalid-feedback d-block">{{ form.feed_source.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_status" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'cash_management:bank_feed_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
