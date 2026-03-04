@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Bank Transactions{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Bank Transactions</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Cash Management</li>
+        <li class="breadcrumb-item active">Bank Transactions</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Transactions</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-exchange-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Matched</p>
+                        <h3 class="mb-0">{{ matched_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Unmatched</p>
+                        <h3 class="mb-0">{{ unmatched_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-error-warning-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Amount</p>
+                        <h3 class="mb-0">${{ total_amount|floatformat:2|intcomma }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-money-dollar-circle-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Description, ref..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Bank Account</label>
+                {{ filter_form.bank_account }}
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">From</label>
+                {{ filter_form.date_from }}
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">To</label>
+                {{ filter_form.date_to }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                {{ filter_form.transaction_type }}
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Matched</label>
+                {{ filter_form.matched }}
+            </div>
+            <div class="col-md-3 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'cash_management:bank_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'cash_management:bank_transaction_import' tenant_slug=current_tenant.slug %}" class="btn btn-soft-info ms-auto">
+                    <i class="ri-upload-2-line me-1"></i> Import
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Txn #</th>
+                        <th>Date</th>
+                        <th>Bank Account</th>
+                        <th>Description</th>
+                        <th>Type</th>
+                        <th class="text-end">Amount</th>
+                        <th>Matched</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td><strong>{{ txn.transaction_number }}</strong></td>
+                        <td>{{ txn.date|date:"M d, Y" }}</td>
+                        <td>{{ txn.bank_account }}</td>
+                        <td>{{ txn.description|truncatechars:50 }}</td>
+                        <td>
+                            {% if txn.transaction_type == 'debit' %}
+                            <span class="badge badge-soft-danger">Debit</span>
+                            {% elif txn.transaction_type == 'credit' %}
+                            <span class="badge badge-soft-success">Credit</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ txn.amount|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if txn.matched %}
+                            <span class="badge badge-soft-success">Yes</span>
+                            {% else %}
+                            <span class="badge badge-soft-warning">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'cash_management:bank_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-exchange-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No bank transactions found</h5>
+                                <p class="text-muted">Import transactions to get started.</p>
+                                <a href="{% url 'cash_management:bank_transaction_import' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-upload-2-line me-1"></i> Import Transactions
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
