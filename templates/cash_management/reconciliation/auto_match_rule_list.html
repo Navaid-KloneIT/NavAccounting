@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Auto-Match Rules{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Auto-Match Rules</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_account_list' tenant_slug=current_tenant.slug %}">Cash Management</a></li>
+        <li class="breadcrumb-item active">Match Rules</li>
+    </ol>
+</div>
+
+<!-- Actions -->
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-end">
+        <a href="{% url 'cash_management:auto_match_rule_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
+            <i class="ri-add-line me-1"></i> New Rule
+        </a>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Priority</th>
+                        <th>Active</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in rules %}
+                    <tr>
+                        <td><strong>{{ rule.name }}</strong></td>
+                        <td><span class="badge badge-soft-secondary">{{ rule.get_rule_type_display }}</span></td>
+                        <td>{{ rule.priority }}</td>
+                        <td>
+                            {% if rule.is_active %}
+                            <span class="badge badge-soft-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'cash_management:auto_match_rule_edit' tenant_slug=current_tenant.slug pk=rule.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-flashlight-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No auto-match rules found</h5>
+                                <p class="text-muted">Create your first rule to automate transaction matching.</p>
+                                <a href="{% url 'cash_management:auto_match_rule_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Rule
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
