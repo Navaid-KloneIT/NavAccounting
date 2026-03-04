@@ -1,0 +1,208 @@
+{% extends "accounts_receivable/portal/portal_base.html" %}
+{% load humanize %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Welcome, {{ customer.company_name }}</h4>
+        <p class="text-muted mb-0">Here's an overview of your account</p>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-primary bg-opacity-10 p-2 me-3">
+                        <i class="ri-money-dollar-circle-line text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Outstanding Balance</p>
+                        <h4 class="fw-bold mb-0">${{ total_outstanding|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-warning bg-opacity-10 p-2 me-3">
+                        <i class="ri-file-list-3-line text-warning fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Outstanding Invoices</p>
+                        <h4 class="fw-bold mb-0">{{ outstanding_count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-info bg-opacity-10 p-2 me-3">
+                        <i class="ri-mail-unread-line text-info fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Unread Messages</p>
+                        <h4 class="fw-bold mb-0">{{ unread_messages }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Outstanding Invoices -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-primary bg-opacity-10 p-2 me-2">
+                <i class="ri-file-text-line text-primary"></i>
+            </div>
+            <h5 class="card-title mb-0 fw-semibold">Recent Outstanding Invoices</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Balance</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in recent_invoices %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'customer_portal:portal_invoice_detail' pk=invoice.pk %}" class="fw-semibold text-primary text-decoration-none">
+                                {{ invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                        <td>
+                            {{ invoice.due_date|date:"M d, Y" }}
+                            {% if invoice.is_overdue %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger ms-1">Overdue</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">${{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ invoice.balance_due|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if invoice.status == 'draft' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning">Draft</span>
+                            {% elif invoice.status == 'sent' %}
+                                <span class="badge bg-info bg-opacity-10 text-info">Sent</span>
+                            {% elif invoice.status == 'partially_paid' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning">Partially Paid</span>
+                            {% elif invoice.status == 'paid' %}
+                                <span class="badge bg-success bg-opacity-10 text-success">Paid</span>
+                            {% elif invoice.status == 'overdue' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger">Overdue</span>
+                            {% elif invoice.status == 'void' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger">Void</span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">{{ invoice.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'customer_portal:portal_invoice_detail' pk=invoice.pk %}" class="btn btn-sm btn-outline-primary me-1" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                            {% if invoice.balance_due > 0 %}
+                            <a href="{% url 'customer_portal:portal_make_payment' pk=invoice.pk %}" class="btn btn-sm btn-outline-success" title="Pay">
+                                <i class="ri-bank-card-line"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="ri-file-text-line fs-3 d-block mb-2"></i>
+                            No outstanding invoices found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Payments/Receipts -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-success bg-opacity-10 p-2 me-2">
+                <i class="ri-bank-card-line text-success"></i>
+            </div>
+            <h5 class="card-title mb-0 fw-semibold">Recent Payments</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Receipt #</th>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receipt in recent_receipts %}
+                    <tr>
+                        <td><span class="fw-semibold">{{ receipt.receipt_number }}</span></td>
+                        <td>{{ receipt.receipt_date|date:"M d, Y" }}</td>
+                        <td class="text-end">${{ receipt.amount|floatformat:2|intcomma }}</td>
+                        <td>{{ receipt.get_payment_method_display|default:receipt.payment_method }}</td>
+                        <td>
+                            {% if receipt.status == 'draft' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning">Draft</span>
+                            {% elif receipt.status == 'posted' %}
+                                <span class="badge bg-success bg-opacity-10 text-success">Posted</span>
+                            {% elif receipt.status == 'void' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger">Void</span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">{{ receipt.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="ri-bank-card-line fs-3 d-block mb-2"></i>
+                            No payments found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="text-center">
+    <a href="{% url 'customer_portal:portal_messages' %}" class="btn btn-outline-primary">
+        <i class="ri-mail-line me-1"></i> View Messages
+    </a>
+</div>
+{% endblock %}
