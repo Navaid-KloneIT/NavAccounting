@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{% if form.instance.pk %}Edit Credit Memo{% else %}Create Credit Memo{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if form.instance.pk %}Edit Credit Memo{% else %}Create Credit Memo{% endif %}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:credit_memo_list' tenant_slug=current_tenant.slug %}">Credit Memos</a></li>
+        <li class="breadcrumb-item active">{% if form.instance.pk %}Edit Credit Memo{% else %}Create Credit Memo{% endif %}</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Memo Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-damage-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Memo Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_customer" class="form-label">Customer <span class="text-danger">*</span></label>
+                    {{ form.customer }}
+                    {% if form.customer.errors %}<div class="invalid-feedback d-block">{{ form.customer.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_memo_date" class="form-label">Memo Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.memo_date }}
+                    </div>
+                    {% if form.memo_date.errors %}<div class="invalid-feedback d-block">{{ form.memo_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        {{ form.amount }}
+                    </div>
+                    {% if form.amount.errors %}<div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_currency" class="form-label">Currency <span class="text-danger">*</span></label>
+                    {{ form.currency }}
+                    {% if form.currency.errors %}<div class="invalid-feedback d-block">{{ form.currency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_fiscal_period" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_reference" class="form-label">Reference</label>
+                    {{ form.reference }}
+                    {% if form.reference.errors %}<div class="invalid-feedback d-block">{{ form.reference.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                    {{ form.reason }}
+                    {% if form.reason.errors %}<div class="invalid-feedback d-block">{{ form.reason.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_memo" class="form-label">Memo</label>
+                    {{ form.memo }}
+                    {% if form.memo.errors %}<div class="invalid-feedback d-block">{{ form.memo.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GL Accounts Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-book-2-line text-info"></i></div>
+                <h5 class="card-title mb-0">GL Accounts</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_ar_account" class="form-label">AR Account <span class="text-danger">*</span></label>
+                    {{ form.ar_account }}
+                    {% if form.ar_account.errors %}<div class="invalid-feedback d-block">{{ form.ar_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_revenue_account" class="form-label">Revenue Account <span class="text-danger">*</span></label>
+                    {{ form.revenue_account }}
+                    {% if form.revenue_account.errors %}<div class="invalid-feedback d-block">{{ form.revenue_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'accounts_receivable:credit_memo_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Credit Memo
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
