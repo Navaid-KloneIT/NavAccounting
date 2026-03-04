@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ template.template_number }} - {{ template.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ template.template_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:recurring_list' tenant_slug=current_tenant.slug %}">Recurring Invoices</a></li>
+        <li class="breadcrumb-item active">{{ template.template_number }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left: Sidebar -->
+    <div class="col-lg-4">
+        <!-- Summary -->
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-repeat-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ template.name }}</h5>
+                <p class="text-muted small mb-2">{{ template.template_number }}</p>
+                {% if template.status == 'active' %}<span class="badge badge-soft-success">Active</span>
+                {% elif template.status == 'paused' %}<span class="badge badge-soft-warning">Paused</span>
+                {% elif template.status == 'completed' %}<span class="badge badge-soft-info">Completed</span>
+                {% elif template.status == 'cancelled' %}<span class="badge badge-soft-danger">Cancelled</span>
+                {% endif %}
+                <h3 class="mt-3 mb-0">${{ template.total_amount|floatformat:2|intcomma }}</h3>
+                <p class="text-muted small mb-0">per {{ template.get_frequency_display|lower }}</p>
+            </div>
+        </div>
+
+        <!-- Template Info -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Template Details</h6>
+                <div class="mb-2"><small class="text-muted">Customer</small><br><strong>{{ template.customer.display_name }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Frequency</small><br><span class="badge badge-soft-secondary">{{ template.get_frequency_display }}</span></div>
+                <div class="mb-2"><small class="text-muted">Next Date</small><br><strong>{{ template.next_date|date:"M d, Y" }}</strong></div>
+                {% if template.payment_terms %}
+                <div class="mb-2"><small class="text-muted">Payment Terms</small><br><strong>{{ template.payment_terms }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Currency</small><br><strong>{{ template.currency.code }}</strong></div>
+                <div class="mb-2"><small class="text-muted">AR Account</small><br><strong>{{ template.ar_account }}</strong></div>
+                {% if template.description %}
+                <div class="mb-2"><small class="text-muted">Description</small><br><strong>{{ template.description }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Created By</small><br><strong>{{ template.created_by.get_full_name|default:template.created_by.email }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Created At</small><br><strong>{{ template.created_at|date:"M d, Y H:i" }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if template.status == 'active' %}
+                <form method="post" action="{% url 'accounts_receivable:recurring_pause' tenant_slug=current_tenant.slug pk=template.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-warning btn-sm w-100 mb-2">
+                        <i class="ri-pause-circle-line me-1"></i> Pause Template
+                    </button>
+                </form>
+                <form method="post" action="{% url 'accounts_receivable:recurring_generate' tenant_slug=current_tenant.slug pk=template.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-primary btn-sm w-100 mb-2">
+                        <i class="ri-file-add-line me-1"></i> Generate Now
+                    </button>
+                </form>
+                {% endif %}
+                {% if template.status == 'paused' %}
+                <form method="post" action="{% url 'accounts_receivable:recurring_resume' tenant_slug=current_tenant.slug pk=template.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2">
+                        <i class="ri-play-circle-line me-1"></i> Resume Template
+                    </button>
+                </form>
+                {% endif %}
+                {% if template.status == 'active' or template.status == 'paused' %}
+                <button type="button" class="btn btn-soft-danger btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="ri-close-circle-line me-1"></i> Cancel Template
+                </button>
+                {% endif %}
+                <a href="{% url 'accounts_receivable:recurring_edit' tenant_slug=current_tenant.slug pk=template.pk %}" class="btn btn-soft-secondary btn-sm w-100 mb-2">
+                    <i class="ri-pencil-line me-1"></i> Edit Template
+                </a>
+                <a href="{% url 'accounts_receivable:recurring_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Main Content -->
+    <div class="col-lg-8">
+        <!-- Schedule Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-calendar-schedule-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Schedule Info</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Frequency</small><br>
+                        <strong>{{ template.get_frequency_display }}</strong>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Start Date</small><br>
+                        <strong>{{ template.start_date|date:"M d, Y" }}</strong>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">End Date</small><br>
+                        <strong>{{ template.end_date|date:"M d, Y"|default:"No end date" }}</strong>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Next Generate Date</small><br>
+                        <strong>{{ template.next_date|date:"M d, Y"|default:"N/A" }}</strong>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Total Occurrences</small><br>
+                        <strong>{{ template.occurrences|default:"Unlimited" }}</strong>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Invoices Generated</small><br>
+                        <strong>{{ generated_count }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-list-check-2 text-success"></i></div>
+                    <h5 class="card-title mb-0">Line Items</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th>Account</th>
+                                <th class="text-end">Quantity</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in line_items %}
+                            <tr>
+                                <td>{{ line.description }}</td>
+                                <td>{{ line.account }}</td>
+                                <td class="text-end">{{ line.quantity }}</td>
+                                <td class="text-end">{{ line.unit_price|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ line.amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">No line items defined.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if line_items %}
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">Total</th>
+                                <th class="text-end">${{ template.total_amount|floatformat:2|intcomma }}</th>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated Invoices History -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-history-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Generated Invoices</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th class="text-end">Amount</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in generated_invoices %}
+                            <tr>
+                                <td>
+                                    <strong><a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=invoice.pk %}">{{ invoice.invoice_number }}</a></strong>
+                                </td>
+                                <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                                <td class="text-end">{{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                                <td>
+                                    {% if invoice.status == 'draft' %}
+                                    <span class="badge badge-soft-warning">Draft</span>
+                                    {% elif invoice.status == 'sent' %}
+                                    <span class="badge badge-soft-info">Sent</span>
+                                    {% elif invoice.status == 'paid' %}
+                                    <span class="badge badge-soft-success">Paid</span>
+                                    {% elif invoice.status == 'overdue' %}
+                                    <span class="badge badge-soft-danger">Overdue</span>
+                                    {% elif invoice.status == 'void' %}
+                                    <span class="badge badge-soft-danger">Void</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=invoice.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                        <i class="ri-eye-line"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">No invoices generated yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+{% if template.status == 'active' or template.status == 'paused' %}
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts_receivable:recurring_cancel' tenant_slug=current_tenant.slug pk=template.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelModalLabel">Cancel Recurring Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="ri-error-warning-line me-2" style="font-size: 1.25rem;"></i>
+                        <div>Are you sure you want to cancel template <strong>{{ template.name }}</strong>? No further invoices will be generated.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cancel_reason" class="form-label">Reason for Cancellation</label>
+                        <textarea name="cancel_reason" id="cancel_reason" class="form-control" rows="3" placeholder="Enter the reason for cancelling this template..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="ri-close-circle-line me-1"></i> Cancel Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
