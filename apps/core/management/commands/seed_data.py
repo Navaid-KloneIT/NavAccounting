@@ -2734,7 +2734,7 @@ class Command(BaseCommand):
         from apps.fixed_assets.models import (
             AssetCategory, AssetLocation, Asset, AssetAcquisition,
             DepreciationProfile, AssetTransfer, AssetDisposal,
-            PhysicalInventory, PhysicalInventoryItem,
+            ImpairmentTest, PhysicalInventory, PhysicalInventoryItem,
             TaxDepreciationBook, TaxDepreciationEntry,
         )
         from apps.fixed_assets.services import generate_depreciation_schedule
@@ -2892,6 +2892,130 @@ class Command(BaseCommand):
                     }
                 )
 
+            # --- Asset Disposals ---
+            if len(assets) >= 7:
+                disposals_data = [
+                    {
+                        'asset': assets[6],  # Conference Room Furniture
+                        'disposal_type': 'sale',
+                        'days_ago': 20,
+                        'proceeds': Decimal('3500.00'),
+                        'nbv': Decimal('5200.00'),
+                        'buyer_name': fake.company(),
+                        'invoice_ref': f'SALE-{fake.numerify(text="######")}',
+                        'status': 'completed',
+                        'notes': 'Sold old conference furniture to make room for renovation.',
+                    },
+                    {
+                        'asset': assets[3],  # Dell Server Rack
+                        'disposal_type': 'write_off',
+                        'days_ago': 10,
+                        'proceeds': Decimal('0.00'),
+                        'nbv': Decimal('2500.00'),
+                        'buyer_name': '',
+                        'invoice_ref': '',
+                        'status': 'completed',
+                        'notes': 'Server hardware failure — beyond economical repair.',
+                    },
+                    {
+                        'asset': assets[4],  # MacBook Pro Fleet
+                        'disposal_type': 'donation',
+                        'days_ago': 5,
+                        'proceeds': Decimal('0.00'),
+                        'nbv': Decimal('8000.00'),
+                        'buyer_name': 'Local Community College',
+                        'invoice_ref': '',
+                        'status': 'pending',
+                        'notes': 'Donating retired laptops to local school programme.',
+                    },
+                    {
+                        'asset': assets[2],  # Executive Desk Set
+                        'disposal_type': 'scrap',
+                        'days_ago': 45,
+                        'proceeds': Decimal('50.00'),
+                        'nbv': Decimal('800.00'),
+                        'buyer_name': '',
+                        'invoice_ref': '',
+                        'status': 'completed',
+                        'notes': 'Desk damaged during office move; scrapped for parts.',
+                    },
+                ]
+                for dd in disposals_data:
+                    AssetDisposal.unscoped.get_or_create(
+                        tenant=tenant, asset=dd['asset'],
+                        disposal_number=AssetDisposal.generate_disposal_number(tenant),
+                        defaults={
+                            'disposal_type': dd['disposal_type'],
+                            'disposal_date': date.today() - timedelta(days=dd['days_ago']),
+                            'proceeds': dd['proceeds'],
+                            'net_book_value_at_disposal': dd['nbv'],
+                            'buyer_name': dd['buyer_name'],
+                            'invoice_reference': dd['invoice_ref'],
+                            'status': dd['status'],
+                            'created_by': users[0],
+                            'approved_by': users[0] if dd['status'] == 'completed' else None,
+                            'notes': dd['notes'],
+                        }
+                    )
+
+            # --- Impairment Tests ---
+            if len(assets) >= 8:
+                impairment_data = [
+                    {
+                        'asset': assets[0],  # Office Building - Main
+                        'days_ago': 60,
+                        'carrying_amount': Decimal('450000.00'),
+                        'value_in_use': Decimal('420000.00'),
+                        'fair_value_less_costs': Decimal('380000.00'),
+                        'is_impaired': True,
+                        'notes': 'Annual impairment review — local property values declined due to market downturn.',
+                    },
+                    {
+                        'asset': assets[5],  # CNC Milling Machine
+                        'days_ago': 30,
+                        'carrying_amount': Decimal('70000.00'),
+                        'value_in_use': Decimal('55000.00'),
+                        'fair_value_less_costs': Decimal('48000.00'),
+                        'is_impaired': True,
+                        'notes': 'Technology obsolescence — newer CNC models significantly more efficient.',
+                    },
+                    {
+                        'asset': assets[7],  # Forklift
+                        'days_ago': 15,
+                        'carrying_amount': Decimal('22000.00'),
+                        'value_in_use': Decimal('25000.00'),
+                        'fair_value_less_costs': Decimal('23000.00'),
+                        'is_impaired': False,
+                        'notes': 'Annual impairment review — recoverable amount exceeds carrying amount. No impairment.',
+                    },
+                    {
+                        'asset': assets[1],  # Delivery Van #1
+                        'days_ago': 7,
+                        'carrying_amount': Decimal('28000.00'),
+                        'value_in_use': Decimal('18000.00'),
+                        'fair_value_less_costs': Decimal('20000.00'),
+                        'is_impaired': True,
+                        'notes': 'Vehicle involved in minor accident; estimated resale value reduced.',
+                    },
+                ]
+                for imp in impairment_data:
+                    recoverable = max(imp['value_in_use'], imp['fair_value_less_costs'])
+                    loss = max(imp['carrying_amount'] - recoverable, Decimal('0.00'))
+                    ImpairmentTest.unscoped.get_or_create(
+                        tenant=tenant, asset=imp['asset'],
+                        test_date=date.today() - timedelta(days=imp['days_ago']),
+                        defaults={
+                            'carrying_amount': imp['carrying_amount'],
+                            'recoverable_amount': recoverable,
+                            'value_in_use': imp['value_in_use'],
+                            'fair_value_less_costs': imp['fair_value_less_costs'],
+                            'impairment_loss': loss,
+                            'is_impaired': imp['is_impaired'],
+                            'created_by': users[0],
+                            'notes': imp['notes'],
+                        }
+                    )
+
             # --- Tax Depreciation Book ---
             macrs_book, _ = TaxDepreciationBook.unscoped.get_or_create(
                 tenant=tenant, code='MACRS',
@@ -2942,5 +3066,5 @@ class Command(BaseCommand):
 
         self.stdout.write(
             f'  Created FA data (categories, locations, assets, acquisitions, '
-            f'depreciation schedules, transfers, tax books, inventories)'
+            f'depreciation schedules, transfers, disposals, impairments, tax books, inventories)'
         )
