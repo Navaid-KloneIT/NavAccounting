@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Asset Locations{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Asset Locations</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fixed_assets:asset_list' tenant_slug=current_tenant.slug %}">Fixed Assets</a></li>
+            <li class="breadcrumb-item active">Locations</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Locations ({{ total_count }})</h5>
+        <a href="{% url 'fixed_assets:location_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Location</a>
+    </div>
+    <div class="card-body">
+        {% if locations %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loc in locations %}
+                    <tr>
+                        <td class="fw-semibold">{{ loc.code }}</td>
+                        <td>{{ loc.name }}</td>
+                        <td>{{ loc.address|truncatechars:60|default:"-" }}</td>
+                        <td>
+                            {% if loc.is_active %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'fixed_assets:location_edit' tenant_slug=current_tenant.slug pk=loc.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-map-pin-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No locations found.</p>
+            <a href="{% url 'fixed_assets:location_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Create First Location</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
