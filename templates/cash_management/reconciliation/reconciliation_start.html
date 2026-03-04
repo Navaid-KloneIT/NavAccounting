@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Start Reconciliation{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Start Reconciliation</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Cash Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:reconciliation_list' tenant_slug=current_tenant.slug %}">Bank Reconciliation</a></li>
+        <li class="breadcrumb-item active">Start</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-scales-3-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Reconciliation Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_bank_account" class="form-label">Bank Account <span class="text-danger">*</span></label>
+                    {{ form.bank_account }}
+                    {% if form.bank_account.errors %}<div class="invalid-feedback d-block">{{ form.bank_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_fiscal_period" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_statement_date" class="form-label">Statement Date <span class="text-danger">*</span></label>
+                    {{ form.statement_date }}
+                    {% if form.statement_date.errors %}<div class="invalid-feedback d-block">{{ form.statement_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_statement_balance" class="form-label">Statement Balance <span class="text-danger">*</span></label>
+                    {{ form.statement_balance }}
+                    {% if form.statement_balance.errors %}<div class="invalid-feedback d-block">{{ form.statement_balance.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'cash_management:reconciliation_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-play-line me-1"></i> Start Reconciliation
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
