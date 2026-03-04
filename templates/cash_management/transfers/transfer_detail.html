@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ transfer.transfer_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ transfer.transfer_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_account_list' tenant_slug=current_tenant.slug %}">Cash Management</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:transfer_list' tenant_slug=current_tenant.slug %}">Transfers</a></li>
+        <li class="breadcrumb-item active">{{ transfer.transfer_number }}</li>
+    </ol>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-3">
+    <div class="col-12 d-flex gap-2">
+        {% if transfer.status == 'draft' %}
+        <form method="post" action="{% url 'cash_management:transfer_approve' tenant_slug=current_tenant.slug pk=transfer.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success"><i class="ri-check-line me-1"></i> Approve</button>
+        </form>
+        <form method="post" action="{% url 'cash_management:transfer_cancel' tenant_slug=current_tenant.slug pk=transfer.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="ri-close-line me-1"></i> Cancel</button>
+        </form>
+        {% elif transfer.status == 'pending' %}
+        <form method="post" action="{% url 'cash_management:transfer_complete' tenant_slug=current_tenant.slug pk=transfer.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success"><i class="ri-check-double-line me-1"></i> Complete</button>
+        </form>
+        <form method="post" action="{% url 'cash_management:transfer_cancel' tenant_slug=current_tenant.slug pk=transfer.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="ri-close-line me-1"></i> Cancel</button>
+        </form>
+        {% elif transfer.status == 'completed' and transfer.journal_entry %}
+        <a href="{% url 'cash_management:transfer_detail' tenant_slug=current_tenant.slug pk=transfer.pk %}" class="btn btn-soft-info">
+            <i class="ri-file-text-line me-1"></i> Journal Entry: {{ transfer.journal_entry.entry_number }}
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left: Transfer Info -->
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-exchange-funds-line me-1"></i> Transfer Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">From Account</dt>
+                    <dd class="col-sm-8">{{ transfer.from_bank_account }}</dd>
+                    <dt class="col-sm-4">To Account</dt>
+                    <dd class="col-sm-8">{{ transfer.to_bank_account }}</dd>
+                    <dt class="col-sm-4">Amount</dt>
+                    <dd class="col-sm-8"><strong>{{ transfer.amount|floatformat:2|intcomma }}</strong></dd>
+                    <dt class="col-sm-4">Currency</dt>
+                    <dd class="col-sm-8">{{ transfer.currency }}</dd>
+                    <dt class="col-sm-4">Exchange Rate</dt>
+                    <dd class="col-sm-8">{{ transfer.exchange_rate|default:"-" }}</dd>
+                    <dt class="col-sm-4">Transfer Date</dt>
+                    <dd class="col-sm-8">{{ transfer.transfer_date|date:"M d, Y" }}</dd>
+                    <dt class="col-sm-4">Reference</dt>
+                    <dd class="col-sm-8">{{ transfer.reference|default:"-" }}</dd>
+                    <dt class="col-sm-4">Notes</dt>
+                    <dd class="col-sm-8">{{ transfer.notes|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Status & Audit -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-shield-check-line me-1"></i> Status</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if transfer.status == 'draft' %}
+                <span class="badge badge-soft-secondary fs-5">Draft</span>
+                {% elif transfer.status == 'pending' %}
+                <span class="badge badge-soft-warning fs-5">Pending</span>
+                {% elif transfer.status == 'completed' %}
+                <span class="badge badge-soft-success fs-5">Completed</span>
+                {% elif transfer.status == 'cancelled' %}
+                <span class="badge badge-soft-danger fs-5">Cancelled</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-history-line me-1"></i> Audit Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Created By</dt>
+                    <dd class="col-sm-7">{{ transfer.created_by.get_full_name|default:transfer.created_by.username }}</dd>
+                    <dt class="col-sm-5">Approved By</dt>
+                    <dd class="col-sm-7">{{ transfer.approved_by.get_full_name|default:transfer.approved_by.username|default:"-" }}</dd>
+                    <dt class="col-sm-5">Created At</dt>
+                    <dd class="col-sm-7">{{ transfer.created_at|date:"M d, Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        {% if transfer.journal_entry %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="ri-file-text-line me-1"></i> Journal Entry</h5>
+            </div>
+            <div class="card-body text-center">
+                <a href="#" class="btn btn-soft-primary">
+                    <i class="ri-file-text-line me-1"></i> {{ transfer.journal_entry.entry_number }}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
