@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}AR Aging Report{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>AR Aging Report</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">AR Aging</li>
+    </ol>
+</div>
+
+<!-- Totals Row -->
+<div class="row">
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">Current</p>
+                <h4 class="mb-0 text-success">${{ grand_totals.current|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">1-30 Days</p>
+                <h4 class="mb-0 text-info">${{ grand_totals.days_1_30|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">31-60 Days</p>
+                <h4 class="mb-0 text-warning">${{ grand_totals.days_31_60|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">61-90 Days</p>
+                <h4 class="mb-0 text-danger">${{ grand_totals.days_61_90|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">90+ Days</p>
+                <h4 class="mb-0 text-danger">${{ grand_totals.days_over_90|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-4">
+        <div class="card stats-card h-100 border-primary">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1 small text-uppercase">Total</p>
+                <h4 class="mb-0 text-primary">${{ grand_totals.total|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter & Export -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">As of Date</label>
+                {{ form.as_of_date }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Customer</label>
+                {{ form.customer }}
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'accounts_receivable:ar_aging_summary' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'accounts_receivable:ar_aging_export' tenant_slug=current_tenant.slug %}?{{ request.GET.urlencode }}" class="btn btn-outline-primary ms-auto">
+                    <i class="ri-download-line me-1"></i> Export CSV
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Aging Table -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th class="text-end">Current</th>
+                        <th class="text-end">1-30</th>
+                        <th class="text-end">31-60</th>
+                        <th class="text-end">61-90</th>
+                        <th class="text-end">90+</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in aging_data %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounts_receivable:ar_aging_detail' tenant_slug=current_tenant.slug customer_pk=row.customer.pk %}">
+                                <strong>{{ row.customer.display_name }}</strong>
+                            </a>
+                        </td>
+                        <td class="text-end">${{ row.current|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ row.days_1_30|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ row.days_31_60|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ row.days_61_90|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ row.days_over_90|floatformat:2|intcomma }}</td>
+                        <td class="text-end"><strong>${{ row.total|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-bar-chart-2-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No outstanding receivables</h5>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
