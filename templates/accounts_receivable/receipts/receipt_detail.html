@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ receipt.receipt_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ receipt.receipt_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts_receivable:receipt_list' tenant_slug=current_tenant.slug %}">Receipts</a></li>
+        <li class="breadcrumb-item active">{{ receipt.receipt_number }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left: Sidebar -->
+    <div class="col-lg-4">
+        <!-- Financial Summary -->
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-money-dollar-circle-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{{ receipt.receipt_number }}</h5>
+                {% if receipt.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                {% elif receipt.status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                {% elif receipt.status == 'void' %}<span class="badge badge-soft-danger">Void</span>
+                {% endif %}
+                <h3 class="mt-3 mb-0">${{ receipt.amount|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+
+        <!-- Receipt Info -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Receipt Details</h6>
+                <div class="mb-2"><small class="text-muted">Customer</small><br><strong>{{ receipt.customer.display_name }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Receipt Date</small><br><strong>{{ receipt.receipt_date|date:"M d, Y" }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Amount</small><br><strong>${{ receipt.amount|floatformat:2|intcomma }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Currency</small><br><strong>{{ receipt.currency.code }}</strong></div>
+                {% if receipt.exchange_rate and receipt.exchange_rate != 1 %}
+                <div class="mb-2"><small class="text-muted">Exchange Rate</small><br><strong>{{ receipt.exchange_rate }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Payment Method</small><br><span class="badge badge-soft-secondary">{{ receipt.get_payment_method_display }}</span></div>
+                {% if receipt.check_number %}
+                <div class="mb-2"><small class="text-muted">Check Number</small><br><strong>{{ receipt.check_number }}</strong></div>
+                {% endif %}
+                {% if receipt.reference %}
+                <div class="mb-2"><small class="text-muted">Reference</small><br><strong>{{ receipt.reference }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Bank Account</small><br><strong>{{ receipt.bank_account }}</strong></div>
+                <div class="mb-2"><small class="text-muted">AR Account</small><br><strong>{{ receipt.ar_account }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Fiscal Period</small><br><strong>{{ receipt.fiscal_period }}</strong></div>
+                {% if receipt.memo %}
+                <div class="mb-2"><small class="text-muted">Memo</small><br><strong>{{ receipt.memo }}</strong></div>
+                {% endif %}
+                <div class="mb-2"><small class="text-muted">Created By</small><br><strong>{{ receipt.created_by.get_full_name|default:receipt.created_by.email }}</strong></div>
+                <div class="mb-2"><small class="text-muted">Created At</small><br><strong>{{ receipt.created_at|date:"M d, Y H:i" }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if receipt.status == 'draft' %}
+                <form method="post" action="{% url 'accounts_receivable:receipt_complete' tenant_slug=current_tenant.slug pk=receipt.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2">
+                        <i class="ri-checkbox-circle-line me-1"></i> Complete Receipt
+                    </button>
+                </form>
+                {% endif %}
+                {% if receipt.status == 'completed' %}
+                <button type="button" class="btn btn-soft-danger btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#voidModal">
+                    <i class="ri-close-circle-line me-1"></i> Void Receipt
+                </button>
+                {% endif %}
+                <a href="{% url 'accounts_receivable:receipt_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Main Content -->
+    <div class="col-lg-8">
+        <!-- Allocated Invoices -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-file-list-3-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Invoice Allocations</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice #</th>
+                                <th class="text-end">Amount Applied</th>
+                                <th class="text-end">Discount Given</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alloc in allocations %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'accounts_receivable:invoice_detail' tenant_slug=current_tenant.slug pk=alloc.invoice.pk %}">
+                                        {{ alloc.invoice.invoice_number }}
+                                    </a>
+                                </td>
+                                <td class="text-end">{{ alloc.amount_applied|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ alloc.discount_given|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">No invoices allocated to this receipt.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Journal Entry -->
+        {% if receipt.journal_entry %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-book-2-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Journal Entry</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ receipt.journal_entry.entry_number }}</strong>
+                        <span class="text-muted ms-2">{{ receipt.journal_entry.date|date:"M d, Y" }}</span>
+                    </div>
+                    <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=receipt.journal_entry.pk %}" class="btn btn-sm btn-soft-primary">
+                        <i class="ri-external-link-line me-1"></i> View Entry
+                    </a>
+                </div>
+                {% if receipt.journal_entry.description %}
+                <p class="text-muted small mt-2 mb-0">{{ receipt.journal_entry.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Void Modal -->
+{% if receipt.status == 'completed' %}
+<div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts_receivable:receipt_void' tenant_slug=current_tenant.slug pk=receipt.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="voidModalLabel">Void Receipt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="ri-error-warning-line me-2" style="font-size: 1.25rem;"></i>
+                        <div>Are you sure you want to void receipt <strong>{{ receipt.receipt_number }}</strong>? This action cannot be undone.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="void_reason" class="form-label">Reason for Voiding <span class="text-danger">*</span></label>
+                        <textarea name="void_reason" id="void_reason" class="form-control" rows="3" required placeholder="Enter the reason for voiding this receipt..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="ri-close-circle-line me-1"></i> Void Receipt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
