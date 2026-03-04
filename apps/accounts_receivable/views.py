@@ -1204,6 +1204,59 @@ def credit_memo_approve(request, tenant_slug, pk):
                     tenant_slug=tenant_slug, pk=pk)
 
 
+@login_required
+def credit_memo_edit(request, tenant_slug, pk):
+    """Edit a draft credit memo."""
+    tenant = request.tenant
+    if not tenant:
+        return redirect('tenants:select')
+
+    set_current_tenant(tenant)
+    memo = get_object_or_404(CreditMemo.unscoped, pk=pk, tenant=tenant)
+
+    if memo.status != 'draft':
+        messages.error(request, 'Only draft credit memos can be edited.')
+        return redirect('accounts_receivable:credit_memo_detail',
+                        tenant_slug=tenant_slug, pk=pk)
+
+    if request.method == 'POST':
+        form = CreditMemoForm(request.POST, instance=memo, tenant=tenant)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Credit memo "{memo.memo_number}" updated.')
+            return redirect('accounts_receivable:credit_memo_detail',
+                            tenant_slug=tenant_slug, pk=memo.pk)
+    else:
+        form = CreditMemoForm(instance=memo, tenant=tenant)
+
+    return render(request, 'accounts_receivable/credit_memos/credit_memo_form.html', {
+        'form': form,
+        'title': f'Edit Credit Memo - {memo.memo_number}',
+    })
+
+
+@login_required
+def credit_memo_void(request, tenant_slug, pk):
+    """Void an approved credit memo. POST only."""
+    tenant = request.tenant
+    if not tenant:
+        return redirect('tenants:select')
+
+    set_current_tenant(tenant)
+    memo = get_object_or_404(CreditMemo.unscoped, pk=pk, tenant=tenant)
+
+    if request.method == 'POST':
+        if memo.status != 'approved':
+            messages.error(request, 'Only approved credit memos can be voided.')
+        else:
+            memo.status = 'void'
+            memo.save()
+            messages.success(request, f'Credit memo "{memo.memo_number}" voided.')
+
+    return redirect('accounts_receivable:credit_memo_detail',
+                    tenant_slug=tenant_slug, pk=pk)
+
+
 # =============================================================================
 # 6. Cash Application
 # =============================================================================
