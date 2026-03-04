@@ -106,6 +106,9 @@ class JournalEntry(TenantAwareModel):
         ('allocation', 'Allocation'),
         ('closing', 'Period Close'),
         ('ap_payment', 'AP Payment'),
+        ('ar_receipt', 'AR Receipt'),
+        ('ar_credit_memo', 'AR Credit Memo'),
+        ('ar_write_off', 'AR Write-Off'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
