@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Cash Position{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Cash Position</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'cash_management:bank_account_list' tenant_slug=current_tenant.slug %}">Cash Management</a></li>
+        <li class="breadcrumb-item active">Cash Position</li>
+    </ol>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">As of Date</label>
+                <input type="date" name="as_of_date" class="form-control" value="{{ position.as_of_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-filter-line me-1"></i> Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Total Cash Position -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-soft-primary">
+            <div class="card-body text-center py-4">
+                <p class="text-muted mb-1 text-uppercase">Total Cash Position</p>
+                <h2 class="mb-0 text-primary">{{ position.total_balance|floatformat:2|intcomma }}</h2>
+                <small class="text-muted">As of {{ position.as_of_date|date:"N d, Y" }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Balances Table -->
+<div class="card table-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="ri-bank-line me-1"></i> Account Balances</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Bank Account</th>
+                        <th>Bank Name</th>
+                        <th>Currency</th>
+                        <th class="text-end">Balance</th>
+                        <th class="text-end">Today's Inflows</th>
+                        <th class="text-end">Today's Outflows</th>
+                        <th class="text-end">Net Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in position.accounts %}
+                    <tr>
+                        <td><strong>{{ account.account_name }}</strong></td>
+                        <td>{{ account.bank_name }}</td>
+                        <td>{{ account.currency }}</td>
+                        <td class="text-end">{{ account.balance|floatformat:2|intcomma }}</td>
+                        <td class="text-end text-success">{{ account.inflows|floatformat:2|intcomma }}</td>
+                        <td class="text-end text-danger">{{ account.outflows|floatformat:2|intcomma }}</td>
+                        <td class="text-end">
+                            {% if account.net_change >= 0 %}
+                            <span class="text-success">{{ account.net_change|floatformat:2|intcomma }}</span>
+                            {% else %}
+                            <span class="text-danger">{{ account.net_change|floatformat:2|intcomma }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-bank-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No account data available</h5>
+                                <p class="text-muted">Add bank accounts to view cash position.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
