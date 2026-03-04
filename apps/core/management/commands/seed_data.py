@@ -1300,9 +1300,10 @@ class Command(BaseCommand):
         """Seed accounts receivable data: customers, invoices, receipts,
         recurring templates, collection activities."""
         from apps.accounts_receivable.models import (
-            Customer, CustomerContact, Invoice, InvoiceLine, Receipt,
-            ReceiptAllocation, RecurringInvoiceTemplate, RecurringInvoiceTemplateLine,
-            CollectionActivity, CustomerPortalToken,
+            Customer, CustomerContact, Invoice, InvoiceLine, InvoiceApproval,
+            Receipt, ReceiptAllocation,
+            RecurringInvoiceTemplate, RecurringInvoiceTemplateLine,
+            CreditMemo, CollectionActivity, CustomerPortalToken,
         )
         from apps.accounts_payable.models import PaymentTerm
         from apps.general_ledger.models import Account
@@ -1684,7 +1685,403 @@ class Command(BaseCommand):
                     }
                 )
 
+            # --- Submitted Invoices (for Approval Queue) ---
+            submitted_invoices_data = [
+                {
+                    'number': 'INV-2026-0007',
+                    'customer': customer_objs[3],  # Pacific Coast Trading
+                    'invoice_date': date(2026, 2, 20),
+                    'description': 'Employee training services - Q1',
+                    'lines': [
+                        (revenue_services, 'On-site training (3 days)', 3, Decimal('1500.00'), Decimal('4500.00')),
+                        (revenue_services, 'Training materials', 1, Decimal('2000.00'), Decimal('2000.00')),
+                    ],
+                },
+                {
+                    'number': 'INV-2026-0008',
+                    'customer': customer_objs[1],  # Global Enterprises
+                    'invoice_date': date(2026, 2, 25),
+                    'description': 'Annual maintenance contract renewal',
+                    'lines': [
+                        (revenue_services, 'Platform maintenance (annual)', 1, Decimal('15000.00'), Decimal('15000.00')),
+                        (revenue_services, 'Priority support add-on', 1, Decimal('3000.00'), Decimal('3000.00')),
+                    ],
+                },
+                {
+                    'number': 'INV-2026-0009',
+                    'customer': customer_objs[4],  # City of Springfield
+                    'invoice_date': date(2026, 3, 1),
+                    'description': 'Q1 audit services - government',
+                    'lines': [
+                        (revenue_services, 'Financial audit (80 hrs)', 80, Decimal('125.00'), Decimal('10000.00')),
+                        (revenue_services, 'Compliance report preparation', 1, Decimal('2000.00'), Decimal('2000.00')),
+                    ],
+                },
+            ]
+
+            submitted_invoice_objs = []
+            for sdata in submitted_invoices_data:
+                total = sum(line[4] for line in sdata['lines'])
+                due_days = 30
+                if sdata['customer'].default_payment_term:
+                    due_days = sdata['customer'].default_payment_term.due_days
+                due_date = sdata['invoice_date'] + timedelta(days=due_days)
+
+                inv, created = Invoice.unscoped.get_or_create(
+                    tenant=tenant,
+                    invoice_number=sdata['number'],
+                    defaults={
+                        'customer': sdata['customer'],
+                        'invoice_date': sdata['invoice_date'],
+                        'due_date': due_date,
+                        'payment_term': sdata['customer'].default_payment_term,
+                        'subtotal': total,
+                        'tax_amount': Decimal('0.00'),
+                        'total_amount': total,
+                        'amount_paid': Decimal('0.00'),
+                        'ar_account': ar_account,
+                        'fiscal_period': period,
+                        'description': sdata['description'],
+                        'status': 'submitted',
+                        'currency': usd,
+                        'created_by': superuser,
+                    }
+                )
+                submitted_invoice_objs.append(inv)
+
+                if created:
+                    for account, desc, qty, unit_price, amount in sdata['lines']:
+                        if account:
+                            InvoiceLine.objects.create(
+                                invoice=inv,
+                                account=account,
+                                description=desc,
+                                quantity=qty,
+                                unit_price=unit_price,
+                                amount=amount,
+                            )
+                    # Create pending approval record
+                    InvoiceApproval.unscoped.get_or_create(
+                        tenant=tenant,
+                        invoice=inv,
+                        approver=superuser,
+                        defaults={
+                            'status': 'pending',
+                            'comments': '',
+                        }
+                    )
+
+            # --- Credit Memos ---
+            credit_memos_data = [
+                {
+                    'number': 'CM-2026-0001',
+                    'customer': customer_objs[0],  # Acme Corp
+                    'invoice': None,
+                    'memo_date': date(2026, 2, 10),
+                    'amount': Decimal('500.00'),
+                    'reason': 'Billing error on consulting hours — 2 hours overbilled in January invoice.',
+                    'status': 'draft',
+                },
+                {
+                    'number': 'CM-2026-0002',
+                    'customer': customer_objs[1],  # Global Enterprises
+                    'invoice': invoice_objs[1] if len(invoice_objs) > 1 else None,
+                    'memo_date': date(2026, 2, 15),
+                    'amount': Decimal('1200.00'),
+                    'reason': 'Defective software license key — replacement issued, partial refund for downtime.',
+                    'status': 'approved',
+                },
+                {
+                    'number': 'CM-2026-0003',
+                    'customer': customer_objs[2],  # Smith & Associates
+                    'invoice': invoice_objs[2] if len(invoice_objs) > 2 else None,
+                    'memo_date': date(2026, 1, 25),
+                    'amount': Decimal('800.00'),
+                    'reason': 'Duplicate billing adjustment — research hours billed on two invoices.',
+                    'status': 'applied',
+                },
+                {
+                    'number': 'CM-2026-0004',
+                    'customer': customer_objs[3],  # Pacific Coast Trading
+                    'invoice': None,
+                    'memo_date': date(2026, 3, 1),
+                    'amount': Decimal('350.00'),
+                    'reason': 'Shipping damage credit — Widget B units arrived damaged in transit.',
+                    'status': 'draft',
+                },
+            ]
+
+            for cmdata in credit_memos_data:
+                CreditMemo.unscoped.get_or_create(
+                    tenant=tenant,
+                    memo_number=cmdata['number'],
+                    defaults={
+                        'customer': cmdata['customer'],
+                        'invoice': cmdata['invoice'],
+                        'memo_date': cmdata['memo_date'],
+                        'amount': cmdata['amount'],
+                        'reason': cmdata['reason'],
+                        'status': cmdata['status'],
+                        'ar_account': ar_account,
+                        'fiscal_period': period,
+                        'created_by': superuser,
+                    }
+                )
+
+            # --- Additional Recurring Invoice Templates ---
+            if revenue_services:
+                # Add template lines for existing REC-2026-0001
+                existing_rec = RecurringInvoiceTemplate.unscoped.filter(
+                    tenant=tenant, template_number='REC-2026-0001'
+                ).first()
+                if existing_rec and not existing_rec.lines.exists():
+                    RecurringInvoiceTemplateLine.objects.create(
+                        template=existing_rec,
+                        account=revenue_services,
+                        description='Monthly consulting retainer',
+                        quantity=Decimal('1.0000'),
+                        unit_price=Decimal('5000.00'),
+                        amount=Decimal('5000.00'),
+                    )
+
+                additional_templates = [
+                    {
+                        'number': 'REC-2026-0002',
+                        'name': 'Quarterly License Renewal - Global Enterprises',
+                        'customer': customer_objs[1],
+                        'frequency': 'quarterly',
+                        'start_date': date(2026, 1, 1),
+                        'next_invoice_date': date(2026, 4, 1),
+                        'occurrences_created': 1,
+                        'subtotal': Decimal('12000.00'),
+                        'total_amount': Decimal('12000.00'),
+                        'auto_send': False,
+                        'status': 'active',
+                        'lines': [
+                            (revenue_sales, 'Enterprise license renewal (quarterly)', 1, Decimal('9000.00'), Decimal('9000.00')),
+                            (revenue_services, 'Premium support (quarterly)', 1, Decimal('3000.00'), Decimal('3000.00')),
+                        ],
+                    },
+                    {
+                        'number': 'REC-2026-0003',
+                        'name': 'Monthly Legal Retainer - Smith & Associates',
+                        'customer': customer_objs[2],
+                        'frequency': 'monthly',
+                        'start_date': date(2026, 1, 1),
+                        'next_invoice_date': date(2026, 3, 1),
+                        'occurrences_created': 2,
+                        'subtotal': Decimal('2500.00'),
+                        'total_amount': Decimal('2500.00'),
+                        'auto_send': True,
+                        'status': 'paused',
+                        'lines': [
+                            (revenue_services, 'Legal research retainer (monthly)', 1, Decimal('2500.00'), Decimal('2500.00')),
+                        ],
+                    },
+                    {
+                        'number': 'REC-2026-0004',
+                        'name': 'Annual Audit Contract - City of Springfield',
+                        'customer': customer_objs[4],
+                        'frequency': 'annual',
+                        'start_date': date(2026, 1, 1),
+                        'next_invoice_date': date(2027, 1, 1),
+                        'occurrences_created': 1,
+                        'subtotal': Decimal('50000.00'),
+                        'total_amount': Decimal('50000.00'),
+                        'auto_send': False,
+                        'status': 'active',
+                        'lines': [
+                            (revenue_services, 'Annual financial audit', 1, Decimal('35000.00'), Decimal('35000.00')),
+                            (revenue_services, 'Compliance review & report', 1, Decimal('15000.00'), Decimal('15000.00')),
+                        ],
+                    },
+                ]
+
+                for tdata in additional_templates:
+                    rec_tmpl, created = RecurringInvoiceTemplate.unscoped.get_or_create(
+                        tenant=tenant,
+                        template_number=tdata['number'],
+                        defaults={
+                            'name': tdata['name'],
+                            'customer': tdata['customer'],
+                            'frequency': tdata['frequency'],
+                            'start_date': tdata['start_date'],
+                            'next_invoice_date': tdata['next_invoice_date'],
+                            'occurrences_created': tdata['occurrences_created'],
+                            'payment_term': tdata['customer'].default_payment_term,
+                            'ar_account': ar_account,
+                            'currency': usd,
+                            'description': tdata['name'],
+                            'subtotal': tdata['subtotal'],
+                            'tax_amount': Decimal('0.00'),
+                            'total_amount': tdata['total_amount'],
+                            'auto_send': tdata['auto_send'],
+                            'status': tdata['status'],
+                            'created_by': superuser,
+                        }
+                    )
+                    if created:
+                        for account, desc, qty, unit_price, amount in tdata['lines']:
+                            if account:
+                                RecurringInvoiceTemplateLine.objects.create(
+                                    template=rec_tmpl,
+                                    account=account,
+                                    description=desc,
+                                    quantity=Decimal(str(qty)),
+                                    unit_price=unit_price,
+                                    amount=amount,
+                                )
+
+            # --- Overdue Invoices (for Collections Dashboard aging buckets) ---
+            overdue_invoices_data = [
+                {
+                    'number': 'INV-2026-0010',
+                    'customer': customer_objs[0],  # Acme Corp
+                    'invoice_date': date(2026, 1, 15),
+                    'due_date': date(2026, 2, 15),  # ~17 days overdue → 1-30 bucket
+                    'description': 'Consulting services - special project',
+                    'lines': [
+                        (revenue_services, 'Project discovery & planning (24 hrs)', 24, Decimal('200.00'), Decimal('4800.00')),
+                        (revenue_services, 'Technical documentation', 1, Decimal('2400.00'), Decimal('2400.00')),
+                    ],
+                },
+                {
+                    'number': 'INV-2026-0011',
+                    'customer': customer_objs[3],  # Pacific Coast Trading
+                    'invoice_date': date(2025, 12, 20),
+                    'due_date': date(2026, 1, 20),  # ~43 days overdue → 31-60 bucket
+                    'description': 'Product shipment - December order',
+                    'lines': [
+                        (revenue_sales, 'Widget C (75 units)', 75, Decimal('65.00'), Decimal('4875.00')),
+                        (revenue_sales, 'Express shipping', 1, Decimal('925.00'), Decimal('925.00')),
+                    ],
+                },
+                {
+                    'number': 'INV-2026-0012',
+                    'customer': customer_objs[1],  # Global Enterprises
+                    'invoice_date': date(2025, 11, 10),
+                    'due_date': date(2025, 12, 10),  # ~84 days overdue → 61-90 bucket
+                    'description': 'Custom integration development',
+                    'lines': [
+                        (revenue_services, 'API integration (35 hrs)', 35, Decimal('100.00'), Decimal('3500.00')),
+                    ],
+                },
+                {
+                    'number': 'INV-2026-0013',
+                    'customer': customer_objs[2],  # Smith & Associates
+                    'invoice_date': date(2025, 10, 1),
+                    'due_date': date(2025, 11, 1),  # ~123 days overdue → 90+ bucket
+                    'description': 'Legal research - regulatory compliance',
+                    'lines': [
+                        (revenue_services, 'Regulatory compliance research (40 hrs)', 40, Decimal('200.00'), Decimal('8000.00')),
+                        (revenue_services, 'Expert consultation', 1, Decimal('3000.00'), Decimal('3000.00')),
+                    ],
+                },
+            ]
+
+            for odata in overdue_invoices_data:
+                total = sum(line[4] for line in odata['lines'])
+                inv, created = Invoice.unscoped.get_or_create(
+                    tenant=tenant,
+                    invoice_number=odata['number'],
+                    defaults={
+                        'customer': odata['customer'],
+                        'invoice_date': odata['invoice_date'],
+                        'due_date': odata['due_date'],
+                        'payment_term': odata['customer'].default_payment_term,
+                        'subtotal': total,
+                        'tax_amount': Decimal('0.00'),
+                        'total_amount': total,
+                        'amount_paid': Decimal('0.00'),
+                        'ar_account': ar_account,
+                        'fiscal_period': period,
+                        'description': odata['description'],
+                        'status': 'sent',
+                        'currency': usd,
+                        'created_by': superuser,
+                        'sent_date': odata['invoice_date'],
+                    }
+                )
+                if created:
+                    for account, desc, qty, unit_price, amount in odata['lines']:
+                        if account:
+                            InvoiceLine.objects.create(
+                                invoice=inv,
+                                account=account,
+                                description=desc,
+                                quantity=qty,
+                                unit_price=unit_price,
+                                amount=amount,
+                            )
+
+            # --- Additional Collection Activities ---
+            # Email reminder for Acme Corp (overdue invoice INV-2026-0010)
+            overdue_inv_acme = Invoice.unscoped.filter(
+                tenant=tenant, invoice_number='INV-2026-0010'
+            ).first()
+            if overdue_inv_acme:
+                CollectionActivity.unscoped.get_or_create(
+                    tenant=tenant,
+                    customer=customer_objs[0],
+                    invoice=overdue_inv_acme,
+                    activity_type='email',
+                    defaults={
+                        'dunning_level': 1,
+                        'subject': 'Friendly Reminder - INV-2026-0010 Past Due',
+                        'description': 'Sent email reminder to John Smith regarding overdue balance of $7,200.',
+                        'contact_person': 'John Smith',
+                        'follow_up_date': date(2026, 3, 10),
+                        'is_resolved': False,
+                        'created_by': superuser,
+                    }
+                )
+
+            # Dispute from Pacific Coast Trading (INV-2026-0011)
+            overdue_inv_pacific = Invoice.unscoped.filter(
+                tenant=tenant, invoice_number='INV-2026-0011'
+            ).first()
+            if overdue_inv_pacific:
+                CollectionActivity.unscoped.get_or_create(
+                    tenant=tenant,
+                    customer=customer_objs[3],
+                    invoice=overdue_inv_pacific,
+                    activity_type='dispute',
+                    defaults={
+                        'dunning_level': 2,
+                        'subject': 'Billing Dispute - INV-2026-0011',
+                        'description': 'Customer disputes shipping charges of $925. '
+                                       'Claims express shipping was not authorized. Investigating.',
+                        'contact_person': 'Jennifer Lee',
+                        'follow_up_date': date(2026, 3, 15),
+                        'is_resolved': False,
+                        'created_by': superuser,
+                    }
+                )
+
+            # Promise to pay from Global Enterprises (INV-2026-0012)
+            overdue_inv_global = Invoice.unscoped.filter(
+                tenant=tenant, invoice_number='INV-2026-0012'
+            ).first()
+            if overdue_inv_global:
+                CollectionActivity.unscoped.get_or_create(
+                    tenant=tenant,
+                    customer=customer_objs[1],
+                    invoice=overdue_inv_global,
+                    activity_type='promise_to_pay',
+                    defaults={
+                        'dunning_level': 3,
+                        'subject': 'Urgent Collection - INV-2026-0012',
+                        'description': 'Spoke with CFO Maria Garcia. Account is 84 days past due. '
+                                       'Promised full payment of $3,500 by March 20th.',
+                        'contact_person': 'Maria Garcia',
+                        'promise_date': date(2026, 3, 20),
+                        'promise_amount': Decimal('3500.00'),
+                        'is_resolved': False,
+                        'created_by': superuser,
+                    }
+                )
+
         self.stdout.write(
             f'  Created AR data (customers, invoices, receipts, '
-            f'recurring templates, collection activities)'
+            f'recurring templates, credit memos, collection activities)'
         )
