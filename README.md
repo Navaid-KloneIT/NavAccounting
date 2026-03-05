@@ -38,6 +38,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Accounts Receivable** — Customer management, invoice generation & approvals, payment collection (receipts), recurring invoicing, cash application, collections & dunning, credit management, aging analysis, customer portal
 - **Cash Management** — Bank account management, bank feeds, transaction import (CSV), bank reconciliation with auto-match, cash positioning dashboard, treasury forecasting, intercompany transfers with GL integration, bank fee analysis
 - **Fixed Assets** — Asset register with categories & locations, acquisition tracking (purchase/lease/donation/CIP), depreciation engine (straight-line, declining balance, units of production), asset transfers with approval workflow, disposals & retirements (sale/scrap/write-off with gain/loss GL posting), impairment testing, physical inventory with barcode scanning & reconciliation, tax depreciation books (MACRS/bonus/Section 179)
+- **Inventory & Cost Management** — Item master with categories, units of measure & warehouses, purchase requisitions with PO conversion, purchase orders with approval workflow, goods receipts with cost layer creation, inventory transactions (adjustments/scrap), inter-warehouse transfers, COGS calculation engine (FIFO/LIFO/weighted average/standard), inventory valuation report, reorder point planning with auto-PO generation, cycle counting with variance GL posting, landed cost allocation with GL integration
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -91,6 +92,7 @@ NavAccounting/
 │   ├── accounts_receivable/        # Customers, Invoices, Receipts, Recurring, Cash Application, Collections, Credit Memos, Aging, Customer Portal
 │   ├── cash_management/            # Bank Accounts, Feeds, Transactions, Reconciliation, Cash Position, Forecasts, Transfers, Bank Fees
 │   ├── fixed_assets/               # Asset Register, Acquisitions, Depreciation, Transfers, Disposals, Impairment, Inventory, Tax Books
+│   ├── inventory/                  # Item Master, Purchasing, Goods Receipts, Transactions, Transfers, COGS, Reorder Planning, Cycle Counts, Landed Cost
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -148,6 +150,21 @@ NavAccounting/
 │   │   ├── impairment/             # Impairment list, form
 │   │   ├── inventory/              # Inventory list, form, count
 │   │   └── tax_depreciation/       # Tax book list, book detail
+│   ├── inventory/                  # IC templates (39 files across 14 subdirectories)
+│   │   ├── items/                  # Item list, create, detail, edit
+│   │   ├── categories/             # Category list, form
+│   │   ├── uom/                    # Unit of measure list, form
+│   │   ├── warehouses/             # Warehouse list, form
+│   │   ├── requisitions/           # Requisition list, form, detail
+│   │   ├── purchase_orders/        # PO list, form, detail
+│   │   ├── goods_receipts/         # Receipt list, form, detail
+│   │   ├── transactions/           # Transaction list, adjustment form, scrap form
+│   │   ├── transfers/              # Transfer list, form, detail
+│   │   ├── cogs/                   # COGS dashboard, calculate, detail
+│   │   ├── valuation/              # Valuation report
+│   │   ├── reorder/                # Reorder dashboard
+│   │   ├── cycle_counts/           # Plan list, plan form, session list, session form, session detail, count form
+│   │   └── landed_cost/            # Landed cost list, form, detail
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -366,6 +383,14 @@ These paths skip tenant resolution:
 | — | DepreciationEntry, AssetTransfer, AssetDisposal |
 | — | ImpairmentTest, PhysicalInventory, TaxDepreciationBook |
 | — | TaxDepreciationEntry |
+| — | ItemCategory, UnitOfMeasure, Item, CostLayer |
+| — | Warehouse, PurchaseRequisition, PurchaseRequisitionLine |
+| — | PurchaseOrder, PurchaseOrderLine |
+| — | GoodsReceipt, GoodsReceiptLine |
+| — | InventoryTransaction, InventoryTransfer, InventoryTransferLine |
+| — | COGSCalculation, COGSEntry, ReorderSuggestion |
+| — | CycleCountPlan, CycleCountSession, CycleCountItem |
+| — | LandedCostVoucher, LandedCostLine, LandedCostAllocation |
 
 ---
 
@@ -412,7 +437,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -654,6 +679,68 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/fa/tax-books/create/` | Create tax book | New tax book form |
 | `/t/<slug>/fa/tax-books/<pk>/` | Tax book detail | Tax book entries |
 | `/t/<slug>/fa/tax-entries/create/` | Create tax entry | New tax depreciation entry |
+| **Inventory & Cost — Item Master** | | |
+| `/t/<slug>/ic/categories/` | Category list | Item categories |
+| `/t/<slug>/ic/categories/create/` | Create category | New item category form |
+| `/t/<slug>/ic/categories/<pk>/edit/` | Edit category | Edit item category |
+| `/t/<slug>/ic/uom/` | UoM list | Units of measure |
+| `/t/<slug>/ic/uom/create/` | Create UoM | New unit of measure form |
+| `/t/<slug>/ic/uom/<pk>/edit/` | Edit UoM | Edit unit of measure |
+| `/t/<slug>/ic/items/` | Item list | All items with filters |
+| `/t/<slug>/ic/items/create/` | Create item | New item form |
+| `/t/<slug>/ic/items/<pk>/` | Item detail | Item info, cost layers, transactions |
+| `/t/<slug>/ic/items/<pk>/edit/` | Edit item | Edit item details |
+| `/t/<slug>/ic/warehouses/` | Warehouse list | All warehouses |
+| `/t/<slug>/ic/warehouses/create/` | Create warehouse | New warehouse form |
+| `/t/<slug>/ic/warehouses/<pk>/edit/` | Edit warehouse | Edit warehouse details |
+| **Inventory & Cost — Purchasing** | | |
+| `/t/<slug>/ic/requisitions/` | Requisition list | Purchase requisitions |
+| `/t/<slug>/ic/requisitions/create/` | Create requisition | New requisition with lines |
+| `/t/<slug>/ic/requisitions/<pk>/` | Requisition detail | Requisition info and lines |
+| `/t/<slug>/ic/requisitions/<pk>/approve/` | Approve requisition | Approve a requisition |
+| `/t/<slug>/ic/requisitions/<pk>/convert/` | Convert to PO | Convert requisition to purchase order |
+| `/t/<slug>/ic/purchase-orders/` | PO list | All purchase orders |
+| `/t/<slug>/ic/purchase-orders/create/` | Create PO | New purchase order with lines |
+| `/t/<slug>/ic/purchase-orders/<pk>/` | PO detail | PO info, lines, receipts |
+| `/t/<slug>/ic/purchase-orders/<pk>/edit/` | Edit PO | Edit draft purchase order |
+| `/t/<slug>/ic/purchase-orders/<pk>/approve/` | Approve PO | Approve a purchase order |
+| `/t/<slug>/ic/goods-receipts/` | Receipt list | All goods receipts |
+| `/t/<slug>/ic/goods-receipts/create/<po_pk>/` | Create receipt | New goods receipt from PO |
+| `/t/<slug>/ic/goods-receipts/<pk>/` | Receipt detail | Receipt info, lines, cost layers |
+| `/t/<slug>/ic/goods-receipts/<pk>/post/` | Post receipt | Post receipt (creates cost layers + GL JE) |
+| **Inventory & Cost — Transactions & Transfers** | | |
+| `/t/<slug>/ic/transactions/` | Transaction list | All inventory transactions |
+| `/t/<slug>/ic/transactions/adjustment/` | Adjustment form | Inventory adjustment (+/-) |
+| `/t/<slug>/ic/transactions/scrap/` | Scrap form | Record scrapped inventory |
+| `/t/<slug>/ic/transfers/` | Transfer list | All inventory transfers |
+| `/t/<slug>/ic/transfers/create/` | Create transfer | New inter-warehouse transfer |
+| `/t/<slug>/ic/transfers/<pk>/` | Transfer detail | Transfer info and lines |
+| `/t/<slug>/ic/transfers/<pk>/complete/` | Complete transfer | Complete transfer (creates transactions) |
+| **Inventory & Cost — COGS & Valuation** | | |
+| `/t/<slug>/ic/cogs/` | COGS dashboard | COGS overview with stat cards |
+| `/t/<slug>/ic/cogs/calculate/` | Calculate COGS | Run COGS calculation for period |
+| `/t/<slug>/ic/cogs/<pk>/` | COGS detail | Calculation detail with entries |
+| `/t/<slug>/ic/cogs/<pk>/post/` | Post COGS | Post COGS to GL |
+| `/t/<slug>/ic/valuation/` | Valuation report | Inventory valuation by item |
+| **Inventory & Cost — Reorder Planning** | | |
+| `/t/<slug>/ic/reorder/` | Reorder dashboard | Reorder suggestions with filters |
+| `/t/<slug>/ic/reorder/generate/` | Generate suggestions | Scan items below reorder point |
+| `/t/<slug>/ic/reorder/<pk>/approve/` | Approve suggestion | Approve a reorder suggestion |
+| `/t/<slug>/ic/reorder/<pk>/dismiss/` | Dismiss suggestion | Dismiss a reorder suggestion |
+| `/t/<slug>/ic/reorder/<pk>/create-po/` | Create PO | Create PO from reorder suggestion |
+| **Inventory & Cost — Cycle Counting** | | |
+| `/t/<slug>/ic/cycle-counts/plans/` | Plan list | Cycle count plans |
+| `/t/<slug>/ic/cycle-counts/plans/create/` | Create plan | New cycle count plan |
+| `/t/<slug>/ic/cycle-counts/sessions/` | Session list | Cycle count sessions |
+| `/t/<slug>/ic/cycle-counts/sessions/create/` | Create session | New count session from plan |
+| `/t/<slug>/ic/cycle-counts/sessions/<pk>/` | Session detail | Session info with count items |
+| `/t/<slug>/ic/cycle-counts/sessions/<pk>/count/` | Enter counts | Enter physical counts |
+| `/t/<slug>/ic/cycle-counts/sessions/<pk>/approve/` | Approve counts | Approve counts (posts variance adjustments) |
+| **Inventory & Cost — Landed Cost** | | |
+| `/t/<slug>/ic/landed-cost/` | Landed cost list | All landed cost vouchers |
+| `/t/<slug>/ic/landed-cost/create/<receipt_pk>/` | Create voucher | New landed cost voucher from receipt |
+| `/t/<slug>/ic/landed-cost/<pk>/` | Voucher detail | Voucher info, cost lines, allocations |
+| `/t/<slug>/ic/landed-cost/<pk>/post/` | Post voucher | Post landed cost (allocates + GL JE) |
 
 ---
 
@@ -941,7 +1028,90 @@ When impairment is recorded:
 - **Debit**: Impairment Loss
 - **Credit**: Accumulated Depreciation (asset write-down)
 
-### 11. `dashboard` — Dashboard & Analytics
+### 11. `inventory` — Inventory & Cost Management Module
+
+Full inventory and cost management lifecycle with 8 submodules, 22 models, 55 views, and 39 templates.
+
+- **ItemCategory** — Hierarchical item classification with parent-child structure, auto-generated codes
+- **UnitOfMeasure** — Units of measure with code, name, and abbreviation (e.g., EA, KG, LTR)
+- **Item** — Master item records with auto-generated SKUs (`ITM-NNNN`), types (inventory/non-inventory/service), costing methods (FIFO/LIFO/weighted average/standard), quantity tracking, reorder points, safety stock levels, preferred vendor
+- **CostLayer** — FIFO/LIFO cost layers with receipt date, original/remaining quantity, unit cost, source tracking (receipt/adjustment/opening balance), depletion status
+- **Warehouse** — Storage locations with code/name/address tracking
+- **PurchaseRequisition** — Internal purchase requests with auto-generated numbers (`REQ-YYYY-NNNN`), status workflow (Draft → Submitted → Approved → Converted → Rejected), line items with item/quantity/estimated cost
+- **PurchaseRequisitionLine** — Individual requisition line items
+- **PurchaseOrder** — Vendor purchase orders with auto-generated numbers (`PO-YYYY-NNNN`), status workflow (Draft → Approved → Partially Received → Received → Cancelled), vendor reference, line items with pricing
+- **PurchaseOrderLine** — Individual PO line items with received quantity tracking
+- **GoodsReceipt** — Goods receipt against POs with auto-generated numbers (`GRN-YYYY-NNNN`), status workflow (Draft → Posted → Cancelled), warehouse assignment, GL journal entry creation
+- **GoodsReceiptLine** — Individual receipt lines with accepted/rejected quantities
+- **InventoryTransaction** — All inventory movements with auto-generated numbers (`TXN-YYYY-NNNN`), types (receipt/issue/adjustment/scrap/transfer_in/transfer_out), quantity, cost, warehouse, GL journal entry for adjustments
+- **InventoryTransfer** — Inter-warehouse transfers with auto-generated numbers (`TRF-YYYY-NNNN`), status workflow (Draft → In Transit → Completed → Cancelled), line items
+- **InventoryTransferLine** — Individual transfer line items with item/quantity
+- **COGSCalculation** — COGS calculation runs with auto-generated numbers (`COGS-YYYY-NNNN`), methods (FIFO/LIFO/weighted average/standard), period-based, status workflow (Draft → Posted), GL journal entry creation
+- **COGSEntry** — Individual COGS entries per item with quantity sold, unit cost, total cost
+- **ReorderSuggestion** — Auto-generated reorder suggestions with current stock, reorder point, economic order quantity, suggested vendor, status workflow (Pending → Approved → Ordered → Dismissed)
+- **CycleCountPlan** — Recurring count plans with frequency (daily/weekly/monthly/quarterly), item selection methods (ABC/random/category/all), next count date tracking
+- **CycleCountSession** — Individual count sessions with auto-generated numbers (`CC-YYYY-NNNN`), status workflow (Open → In Progress → Completed → Approved), variance tracking
+- **CycleCountItem** — Per-item count results with system quantity, counted quantity, variance, and variance value
+- **LandedCostVoucher** — Landed cost allocation vouchers with auto-generated numbers (`LCV-YYYY-NNNN`), linked to goods receipt, status workflow (Draft → Posted → Cancelled), GL journal entry creation
+- **LandedCostLine** — Individual cost lines with cost types (freight/insurance/customs/handling/other), vendor, amount
+- **LandedCostAllocation** — Cost allocation to receipt items by value proportion
+
+#### Costing Methods
+
+| Method | Description |
+|--------|-------------|
+| FIFO | First In, First Out — oldest cost layers consumed first |
+| LIFO | Last In, First Out — newest cost layers consumed first |
+| Weighted Average | Running weighted average cost recalculated on each receipt |
+| Standard | Fixed standard cost per item, variances tracked separately |
+
+#### Purchase Order Workflow
+
+```
+Draft → Approve → Approved → Receive → Partially Received / Received
+                                     → Cancel → Cancelled
+```
+
+#### Goods Receipt Workflow
+
+```
+Draft → Post → Posted (creates cost layers, updates item qty, GL Journal Entry)
+             → Cancel → Cancelled
+```
+
+#### COGS Calculation Workflow
+
+```
+Draft → Post → Posted (creates GL Journal Entry)
+```
+
+#### GL Integration
+
+When a goods receipt is posted, `services.py` creates a posted journal entry:
+- **Debit**: Inventory Asset account
+- **Credit**: Goods Received Not Invoiced / offset account
+
+When an inventory adjustment is processed:
+- **Debit/Credit**: Inventory Asset (increase/decrease)
+- **Credit/Debit**: Adjustment Expense account
+
+When COGS is posted:
+- **Debit**: Cost of Goods Sold account
+- **Credit**: Inventory Asset account
+
+When a landed cost voucher is posted:
+- **Debit**: Inventory Asset account (cost allocated to items)
+- **Credit**: Accounts Payable / Expense account
+
+When cycle count variances are approved:
+- **Debit/Credit**: Inventory Asset (variance adjustment)
+- **Credit/Debit**: Inventory Variance account
+
+#### Reorder Planning
+
+Auto-scan engine checks all items where `quantity_on_hand` falls below `reorder_point`, generates suggestions with economic order quantity, and supports one-click PO creation from approved suggestions.
+
+### 12. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -1007,6 +1177,15 @@ When impairment is recorded:
 |----------|-------------|
 | `view_assets` | View Fixed Assets module |
 | `manage_assets` | Full fixed assets management access |
+
+---
+
+## Inventory & Cost Management Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_inventory` | View Inventory & Cost Management module |
+| `manage_inventory` | Full inventory management access |
 
 ---
 
@@ -1079,6 +1258,7 @@ Permissions are organized by module:
 - `ar` — view_ar, manage_ar, create_invoice, approve_invoice, send_invoice, create_receipt, void_receipt, manage_customers, view_ar_reports, manage_collections, approve_write_off, manage_credit, manage_recurring, manage_customer_portal
 - `bank` — view_bank, manage_bank, manage_bank_feeds, view_cash_position, manage_forecasts, manage_transfers, approve_transfers, view_bank_fees
 - `fixed_assets` — view_assets, manage_assets
+- `inventory` — view_inventory, manage_inventory
 - `admin` — admin_full
 
 ### Access Control Decorators
@@ -1107,7 +1287,6 @@ The application is architected to support these additional accounting modules:
 
 | Module | Description |
 |--------|-------------|
-| Inventory | Item master, valuation (FIFO/LIFO), purchase orders |
 | Tax | Sales tax engine, tax returns, compliance |
 | Reporting | Financial statements, custom report builder, XBRL |
 | Budgeting | Budget creation, variance analysis, forecasting |
