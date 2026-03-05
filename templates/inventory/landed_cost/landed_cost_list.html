@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Landed Cost Vouchers{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Landed Cost Vouchers</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Inventory</li>
+            <li class="breadcrumb-item active">Landed Cost</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Landed Cost Vouchers ({{ total_count }})</h5>
+    </div>
+    <div class="card-body">
+        {% if vouchers %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Voucher #</th>
+                        <th>Goods Receipt</th>
+                        <th>Date</th>
+                        <th class="text-end">Total Cost</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vouchers %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'inventory:landed_cost_detail' tenant_slug=current_tenant.slug pk=v.pk %}">{{ v.voucher_number }}</a>
+                        </td>
+                        <td>{{ v.goods_receipt.receipt_number }}</td>
+                        <td>{{ v.date }}</td>
+                        <td class="text-end">{{ v.total_additional_cost|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if v.status == 'draft' %}
+                                <span class="badge bg-soft-secondary text-secondary">Draft</span>
+                            {% elif v.status == 'posted' %}
+                                <span class="badge bg-soft-success text-success">Posted</span>
+                            {% elif v.status == 'cancelled' %}
+                                <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'inventory:landed_cost_detail' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-eye-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-ship-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No landed cost vouchers found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
