@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Run COGS Calculation{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Run COGS Calculation</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:cogs_dashboard' tenant_slug=current_tenant.slug %}">COGS</a></li>
+            <li class="breadcrumb-item active">Calculate</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-calculator-line text-primary"></i></div>
+            <h5 class="card-title mb-0">Run COGS Calculation</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_period" class="form-label">Period <span class="text-danger">*</span></label>
+                    {{ form.period }}
+                    {% if form.period.errors %}<div class="invalid-feedback d-block">{{ form.period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_calculation_date" class="form-label">Calculation Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.calculation_date }}
+                    </div>
+                    {% if form.calculation_date.errors %}<div class="invalid-feedback d-block">{{ form.calculation_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_method" class="form-label">Method <span class="text-danger">*</span></label>
+                    {{ form.method }}
+                    {% if form.method.errors %}<div class="invalid-feedback d-block">{{ form.method.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="ri-calculator-line me-1"></i> Run Calculation</button>
+                <a href="{% url 'inventory:cogs_dashboard' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
