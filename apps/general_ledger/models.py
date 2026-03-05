@@ -115,6 +115,10 @@ class JournalEntry(TenantAwareModel):
         ('fa_depreciation', 'FA Depreciation'),
         ('fa_disposal', 'FA Disposal'),
         ('fa_impairment', 'FA Impairment'),
+        ('ic_receipt', 'IC Goods Receipt'),
+        ('ic_adjustment', 'IC Inventory Adjustment'),
+        ('ic_cogs', 'IC Cost of Goods Sold'),
+        ('ic_landed_cost', 'IC Landed Cost'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
