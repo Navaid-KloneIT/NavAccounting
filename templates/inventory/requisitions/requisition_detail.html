@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ requisition.requisition_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ requisition.requisition_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'inventory:requisition_list' tenant_slug=current_tenant.slug %}">Purchase Requisitions</a></li>
+        <li class="breadcrumb-item active">Requisition Detail</li>
+    </ol>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-3">
+    <div class="col-12 d-flex gap-2 flex-wrap">
+        {% if requisition.status == 'draft' %}
+        <form method="post" action="{% url 'inventory:requisition_approve' tenant_slug=current_tenant.slug pk=requisition.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="submit">
+            <button type="submit" class="btn btn-soft-info">
+                <i class="ri-send-plane-line me-1"></i> Submit
+            </button>
+        </form>
+        {% endif %}
+        {% if requisition.status == 'submitted' %}
+        <form method="post" action="{% url 'inventory:requisition_approve' tenant_slug=current_tenant.slug pk=requisition.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="approve">
+            <button type="submit" class="btn btn-soft-success">
+                <i class="ri-check-line me-1"></i> Approve
+            </button>
+        </form>
+        <form method="post" action="{% url 'inventory:requisition_approve' tenant_slug=current_tenant.slug pk=requisition.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <button type="submit" class="btn btn-soft-danger">
+                <i class="ri-close-line me-1"></i> Reject
+            </button>
+        </form>
+        {% endif %}
+        {% if requisition.status == 'approved' %}
+        <form method="post" action="{% url 'inventory:requisition_convert' tenant_slug=current_tenant.slug pk=requisition.pk %}" class="d-inline" id="convert-form">
+            {% csrf_token %}
+            <input type="hidden" name="vendor" id="convert-vendor">
+            <button type="button" class="btn btn-soft-primary" data-bs-toggle="modal" data-bs-target="#convertModal">
+                <i class="ri-exchange-line me-1"></i> Convert to PO
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'inventory:requisition_list' tenant_slug=current_tenant.slug %}" class="btn btn-light ms-auto">
+            <i class="ri-arrow-left-line me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Requisition Info Card -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-text-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Requisition Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Requisition #</dt>
+                    <dd class="col-sm-7"><strong>{{ requisition.requisition_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Date</dt>
+                    <dd class="col-sm-7">{{ requisition.date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Requested By</dt>
+                    <dd class="col-sm-7">{{ requisition.requested_by.get_full_name|default:requisition.requested_by.email }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if requisition.status == 'draft' %}<span class="badge bg-soft-secondary text-secondary">Draft</span>
+                        {% elif requisition.status == 'submitted' %}<span class="badge bg-soft-info text-info">Submitted</span>
+                        {% elif requisition.status == 'approved' %}<span class="badge bg-soft-success text-success">Approved</span>
+                        {% elif requisition.status == 'rejected' %}<span class="badge bg-soft-danger text-danger">Rejected</span>
+                        {% elif requisition.status == 'converted' %}<span class="badge bg-soft-primary text-primary">Converted to PO</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Notes</dt>
+                    <dd class="col-sm-7">{{ requisition.notes|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Items Card -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check text-info"></i></div>
+            <h5 class="card-title mb-0">Line Items</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end">Quantity</th>
+                        <th>UOM</th>
+                        <th class="text-end">Est. Unit Price</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in lines %}
+                    <tr>
+                        <td><strong>{{ line.item.sku }}</strong> - {{ line.item.name }}</td>
+                        <td class="text-end">{{ line.quantity|floatformat:2 }}</td>
+                        <td>{{ line.uom.abbreviation }}</td>
+                        <td class="text-end">{{ line.estimated_unit_price|floatformat:2|intcomma }}</td>
+                        <td>{{ line.notes|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Convert to PO Modal -->
+{% if requisition.status == 'approved' %}
+<div class="modal fade" id="convertModal" tabindex="-1" aria-labelledby="convertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="convertModalLabel">Convert to Purchase Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="vendor-select" class="form-label">Select Vendor <span class="text-danger">*</span></label>
+                    <select id="vendor-select" class="form-select" required>
+                        <option value="">-- Select Vendor --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('convert-vendor').value=document.getElementById('vendor-select').value; document.getElementById('convert-form').submit();">
+                    <i class="ri-exchange-line me-1"></i> Convert
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
