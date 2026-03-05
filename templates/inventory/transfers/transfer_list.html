@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Inventory Transfers{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Inventory Transfers</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}">Inventory</a></li>
+            <li class="breadcrumb-item active">Transfers</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="in_transit" {% if request.GET.status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                    <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'inventory:transfer_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+            <div class="col-md-6 text-end">
+                <a href="{% url 'inventory:transfer_create' tenant_slug=current_tenant.slug %}" class="btn btn-success"><i class="ri-add-line me-1"></i> New Transfer</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Transfer #</th>
+                        <th>Date</th>
+                        <th>From Warehouse</th>
+                        <th>To Warehouse</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transfers %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'inventory:transfer_detail' tenant_slug=current_tenant.slug pk=t.pk %}">{{ t.transfer_number }}</a>
+                        </td>
+                        <td>{{ t.date|date:"M d, Y" }}</td>
+                        <td>{{ t.from_warehouse }}</td>
+                        <td>{{ t.to_warehouse }}</td>
+                        <td>
+                            {% if t.status == 'draft' %}
+                                <span class="badge bg-soft-secondary text-secondary">Draft</span>
+                            {% elif t.status == 'in_transit' %}
+                                <span class="badge bg-soft-warning text-warning">In Transit</span>
+                            {% elif t.status == 'completed' %}
+                                <span class="badge bg-soft-primary text-primary">Completed</span>
+                            {% elif t.status == 'cancelled' %}
+                                <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'inventory:transfer_detail' tenant_slug=current_tenant.slug pk=t.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                            {% if t.status == 'draft' %}
+                            <a href="{% url 'inventory:transfer_edit' tenant_slug=current_tenant.slug pk=t.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-arrow-left-right-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No transfers found</h5>
+                                <p class="text-muted">Create a new transfer to move items between warehouses.</p>
+                                <a href="{% url 'inventory:transfer_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Transfer
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
