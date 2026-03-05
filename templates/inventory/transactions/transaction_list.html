@@ -58,8 +58,8 @@
 <!-- Actions -->
 <div class="row mb-3">
     <div class="col-12 d-flex gap-2">
-        <a href="{% url 'inventory:adjustment_create' tenant_slug=current_tenant.slug %}" class="btn btn-success"><i class="ri-add-line me-1"></i> Adjustment</a>
-        <a href="{% url 'inventory:scrap_create' tenant_slug=current_tenant.slug %}" class="btn btn-warning"><i class="ri-delete-bin-line me-1"></i> Scrap / Write-Off</a>
+        <a href="{% url 'inventory:transaction_adjustment' tenant_slug=current_tenant.slug %}" class="btn btn-success"><i class="ri-add-line me-1"></i> Adjustment</a>
+        <a href="{% url 'inventory:transaction_scrap' tenant_slug=current_tenant.slug %}" class="btn btn-warning"><i class="ri-delete-bin-line me-1"></i> Scrap / Write-Off</a>
     </div>
 </div>
 
