@@ -26,10 +26,6 @@
             {% csrf_token %}
             <button type="submit" class="btn btn-success"><i class="ri-check-double-line me-1"></i> Post</button>
         </form>
-        <form method="post" action="{% url 'inventory:cogs_cancel' tenant_slug=current_tenant.slug pk=calculation.pk %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger"><i class="ri-close-line me-1"></i> Cancel</button>
-        </form>
         {% endif %}
         <a href="{% url 'inventory:cogs_dashboard' tenant_slug=current_tenant.slug %}" class="btn btn-light ms-auto">
             <i class="ri-arrow-left-line me-1"></i> Back to List
