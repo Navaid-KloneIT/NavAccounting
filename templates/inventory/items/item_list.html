@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Items{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Items</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Inventory</li>
+            <li class="breadcrumb-item active">Items</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Items</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-archive-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Value</p>
+                        <h3 class="mb-0">{{ total_value|floatformat:2|intcomma|default:"0.00" }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-money-dollar-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="SKU, name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|slugify %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="inventory" {% if request.GET.type == 'inventory' %}selected{% endif %}>Inventory</option>
+                    <option value="non_inventory" {% if request.GET.type == 'non_inventory' %}selected{% endif %}>Non-Inventory</option>
+                    <option value="service" {% if request.GET.type == 'service' %}selected{% endif %}>Service</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'inventory:item_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> New Item</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>SKU</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th class="text-end">Qty On Hand</th>
+                        <th class="text-end">Unit Cost</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><strong><a href="{% url 'inventory:item_detail' tenant_slug=current_tenant.slug pk=item.pk %}">{{ item.sku }}</a></strong></td>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.category|default:"-" }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ item.get_item_type_display }}</span></td>
+                        <td class="text-end">{{ item.qty_on_hand|floatformat:0|intcomma }}</td>
+                        <td class="text-end">{{ item.unit_cost|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if item.is_active %}
+                            <span class="badge bg-soft-success text-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-soft-danger text-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'inventory:item_detail' tenant_slug=current_tenant.slug pk=item.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                            <a href="{% url 'inventory:item_edit' tenant_slug=current_tenant.slug pk=item.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-archive-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No items found</h5>
+                                <p class="text-muted">Add your first item to get started.</p>
+                                <a href="{% url 'inventory:item_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Item
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
