@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ receipt.receipt_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ receipt.receipt_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'inventory:receipt_list' tenant_slug=current_tenant.slug %}">Goods Receipts</a></li>
+        <li class="breadcrumb-item active">Receipt Detail</li>
+    </ol>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-3">
+    <div class="col-12 d-flex gap-2 flex-wrap">
+        {% if receipt.status == 'draft' %}
+        <form method="post" action="{% url 'inventory:receipt_post' tenant_slug=current_tenant.slug pk=receipt.pk %}" class="d-inline" onsubmit="return confirm('Are you sure you want to post this receipt? This will update inventory quantities and create a journal entry.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-soft-success">
+                <i class="ri-check-double-line me-1"></i> Post Receipt
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'inventory:receipt_list' tenant_slug=current_tenant.slug %}" class="btn btn-light ms-auto">
+            <i class="ri-arrow-left-line me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Receipt Info Card -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-truck-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Receipt Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Receipt #</dt>
+                    <dd class="col-sm-7"><strong>{{ receipt.receipt_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Purchase Order</dt>
+                    <dd class="col-sm-7">
+                        <a href="{% url 'inventory:po_detail' tenant_slug=current_tenant.slug pk=receipt.purchase_order.pk %}">{{ receipt.purchase_order.po_number }}</a>
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Receipt Date</dt>
+                    <dd class="col-sm-7">{{ receipt.receipt_date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Warehouse</dt>
+                    <dd class="col-sm-7">{{ receipt.warehouse.name }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Received By</dt>
+                    <dd class="col-sm-7">{{ receipt.received_by.get_full_name|default:receipt.received_by.email }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if receipt.status == 'draft' %}<span class="badge bg-soft-secondary text-secondary">Draft</span>
+                        {% elif receipt.status == 'posted' %}<span class="badge bg-soft-success text-success">Posted</span>
+                        {% elif receipt.status == 'cancelled' %}<span class="badge bg-soft-danger text-danger">Cancelled</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Notes</dt>
+                    <dd class="col-sm-7">{{ receipt.notes|default:"-" }}</dd>
+
+                    {% if receipt.journal_entry %}
+                    <dt class="col-sm-5 text-muted">Journal Entry</dt>
+                    <dd class="col-sm-7">
+                        <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=receipt.journal_entry.pk %}">{{ receipt.journal_entry.entry_number }}</a>
+                    </dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Items Card -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check text-info"></i></div>
+            <h5 class="card-title mb-0">Receipt Lines</h5>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>PO Line</th>
+                        <th>Item</th>
+                        <th class="text-end">Qty Received</th>
+                        <th class="text-end">Unit Cost</th>
+                        <th class="text-end">Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in lines %}
+                    <tr>
+                        <td>{{ line.po_line.item.sku }} ({{ line.po_line.quantity|floatformat:2 }} ordered)</td>
+                        <td><strong>{{ line.item.sku }}</strong> - {{ line.item.name }}</td>
+                        <td class="text-end">{{ line.quantity_received|floatformat:2 }}</td>
+                        <td class="text-end">{{ line.unit_cost|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.total_cost|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
