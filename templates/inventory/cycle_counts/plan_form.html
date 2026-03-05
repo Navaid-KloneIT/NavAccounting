@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Cycle Count Plan{% else %}New Cycle Count Plan{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Cycle Count Plan{% else %}New Cycle Count Plan{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:cycle_count_plan_list' tenant_slug=current_tenant.slug %}">Cycle Count Plans</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-calendar-check-line text-primary"></i></div>
+            <h5 class="card-title mb-0">Cycle Count Plan</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_frequency" class="form-label">Frequency <span class="text-danger">*</span></label>
+                    {{ form.frequency }}
+                    {% if form.frequency.errors %}<div class="invalid-feedback d-block">{{ form.frequency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_item_selection_method" class="form-label">Selection Method <span class="text-danger">*</span></label>
+                    {{ form.item_selection_method }}
+                    {% if form.item_selection_method.errors %}<div class="invalid-feedback d-block">{{ form.item_selection_method.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_warehouse" class="form-label">Warehouse</label>
+                    {{ form.warehouse }}
+                    {% if form.warehouse.errors %}<div class="invalid-feedback d-block">{{ form.warehouse.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_category" class="form-label">Category</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}<div class="invalid-feedback d-block">{{ form.category.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_status" class="form-label">Status <span class="text-danger">*</span></label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_next_count_date" class="form-label">Next Count Date</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.next_count_date }}
+                    </div>
+                    {% if form.next_count_date.errors %}<div class="invalid-feedback d-block">{{ form.next_count_date.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> {% if is_edit %}Save Changes{% else %}Create Plan{% endif %}</button>
+                <a href="{% url 'inventory:cycle_count_plan_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
