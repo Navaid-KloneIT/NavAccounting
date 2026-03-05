@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Warehouses{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Warehouses</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Inventory</li>
+            <li class="breadcrumb-item active">Warehouses</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Warehouses ({{ total_count }})</h5>
+        <a href="{% url 'inventory:warehouse_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Warehouse</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for warehouse in warehouses %}
+                    <tr>
+                        <td class="fw-semibold">{{ warehouse.code }}</td>
+                        <td>{{ warehouse.name }}</td>
+                        <td>{{ warehouse.address|default:"-" }}</td>
+                        <td>
+                            {% if warehouse.is_active %}
+                            <span class="badge bg-soft-success text-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-soft-danger text-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'inventory:warehouse_edit' tenant_slug=current_tenant.slug pk=warehouse.pk %}" class="btn btn-sm btn-soft-info" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-building-2-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No warehouses found</h5>
+                                <p class="text-muted">Add your first warehouse to get started.</p>
+                                <a href="{% url 'inventory:warehouse_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Warehouse
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
