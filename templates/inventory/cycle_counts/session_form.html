@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}New Cycle Count Session{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New Cycle Count Session</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:cycle_count_session_list' tenant_slug=current_tenant.slug %}">Cycle Count Sessions</a></li>
+            <li class="breadcrumb-item active">New Session</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-clipboard-line text-primary"></i></div>
+            <h5 class="card-title mb-0">New Cycle Count Session</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_plan" class="form-label">Plan</label>
+                    {{ form.plan }}
+                    {% if form.plan.errors %}<div class="invalid-feedback d-block">{{ form.plan.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_count_date" class="form-label">Count Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.count_date }}
+                    </div>
+                    {% if form.count_date.errors %}<div class="invalid-feedback d-block">{{ form.count_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_warehouse" class="form-label">Warehouse <span class="text-danger">*</span></label>
+                    {{ form.warehouse }}
+                    {% if form.warehouse.errors %}<div class="invalid-feedback d-block">{{ form.warehouse.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Create Session</button>
+                <a href="{% url 'inventory:cycle_count_session_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
