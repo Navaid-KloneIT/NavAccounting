@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Inventory Adjustment{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Inventory Adjustment</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:transaction_list' tenant_slug=current_tenant.slug %}">Transactions</a></li>
+            <li class="breadcrumb-item active">Adjustment</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-equalizer-line text-warning"></i></div>
+            <h5 class="card-title mb-0">Inventory Adjustment</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_date" class="form-label">Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.date }}
+                    </div>
+                    {% if form.date.errors %}<div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_item" class="form-label">Item <span class="text-danger">*</span></label>
+                    {{ form.item }}
+                    {% if form.item.errors %}<div class="invalid-feedback d-block">{{ form.item.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_warehouse" class="form-label">Warehouse <span class="text-danger">*</span></label>
+                    {{ form.warehouse }}
+                    {% if form.warehouse.errors %}<div class="invalid-feedback d-block">{{ form.warehouse.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
+                    {{ form.quantity }}
+                    <small class="form-text text-muted">Positive to add, negative to remove.</small>
+                    {% if form.quantity.errors %}<div class="invalid-feedback d-block">{{ form.quantity.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_unit_cost" class="form-label">Unit Cost <span class="text-danger">*</span></label>
+                    {{ form.unit_cost }}
+                    {% if form.unit_cost.errors %}<div class="invalid-feedback d-block">{{ form.unit_cost.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Save Adjustment</button>
+                <a href="{% url 'inventory:transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
