@@ -687,6 +687,137 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Inventory & Cost <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Item Master -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'inventory' and 'item' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'category' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'uom' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'warehouse' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-archive-line"></i>
+                    <span class="menu-text">Item Master</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'inventory' and 'item' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'category' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'uom' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'warehouse' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'item_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">All Items</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:category_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'category_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Categories</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:uom_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'uom_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Units of Measure</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:warehouse_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'warehouse_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Warehouses</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Purchasing -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'inventory' and 'requisition' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'po_' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'receipt' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-shopping-bag-line"></i>
+                    <span class="menu-text">Purchasing</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'inventory' and 'requisition' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'po_' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'receipt' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:requisition_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'requisition_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Requisitions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:po_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'po_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Purchase Orders</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:receipt_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'receipt_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Goods Receipts</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Inventory Operations -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'inventory' and 'transaction' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'transfer' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'cycle_count' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-stack-line"></i>
+                    <span class="menu-text">Inventory</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'inventory' and 'transaction' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'transfer' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'cycle_count' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:transaction_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'transaction_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Transactions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:transfer_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'transfer_list' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Transfers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:cycle_count_session_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'cycle_count' in request.resolver_match.url_name and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Cycle Counts</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Costing -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'inventory' and 'cogs' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'landed_cost' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'valuation' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-calculator-line"></i>
+                    <span class="menu-text">Costing</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'inventory' and 'cogs' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'landed_cost' in request.resolver_match.url_name or request.resolver_match.app_name == 'inventory' and 'valuation' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:cogs_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'cogs' in request.resolver_match.url_name and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">COGS</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:landed_cost_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'landed_cost' in request.resolver_match.url_name and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Landed Cost</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'inventory:valuation_report' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'valuation_report' and request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+                            <span class="menu-text">Valuation Report</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Reorder Planning -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'inventory:reorder_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'inventory' and 'reorder' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-refresh-line"></i>
+                    <span class="menu-text">Reorder Planning</span>
+                </a>
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
