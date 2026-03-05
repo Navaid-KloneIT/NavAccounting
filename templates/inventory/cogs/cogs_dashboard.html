@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}COGS Calculations{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">COGS Calculations</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}">Inventory</a></li>
+            <li class="breadcrumb-item active">COGS</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="{% url 'inventory:cogs_calculate' tenant_slug=current_tenant.slug %}" class="btn btn-success"><i class="ri-calculator-line me-1"></i> Run COGS Calculation</a>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Calculations ({{ total_count }})</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Calculation #</th>
+                        <th>Period</th>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th class="text-end">Total COGS</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for calc in calculations %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'inventory:cogs_detail' tenant_slug=current_tenant.slug pk=calc.pk %}">{{ calc.calculation_number }}</a>
+                        </td>
+                        <td>{{ calc.period }}</td>
+                        <td>{{ calc.calculation_date|date:"M d, Y" }}</td>
+                        <td>
+                            {% if calc.method == 'fifo' %}
+                                <span class="badge bg-soft-info text-info">FIFO</span>
+                            {% elif calc.method == 'lifo' %}
+                                <span class="badge bg-soft-primary text-primary">LIFO</span>
+                            {% elif calc.method == 'weighted_average' %}
+                                <span class="badge bg-soft-warning text-warning">Weighted Avg</span>
+                            {% elif calc.method == 'specific' %}
+                                <span class="badge bg-soft-success text-success">Specific ID</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ calc.get_method_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ calc.total_cogs|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if calc.status == 'draft' %}
+                                <span class="badge bg-soft-secondary text-secondary">Draft</span>
+                            {% elif calc.status == 'posted' %}
+                                <span class="badge bg-soft-success text-success">Posted</span>
+                            {% elif calc.status == 'cancelled' %}
+                                <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'inventory:cogs_detail' tenant_slug=current_tenant.slug pk=calc.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-calculator-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No COGS calculations found</h5>
+                                <p class="text-muted">Run your first COGS calculation to get started.</p>
+                                <a href="{% url 'inventory:cogs_calculate' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-calculator-line me-1"></i> Run COGS Calculation
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
