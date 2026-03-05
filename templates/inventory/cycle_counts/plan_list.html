@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Cycle Count Plans{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Cycle Count Plans</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}">Inventory</a></li>
+            <li class="breadcrumb-item active">Cycle Count Plans</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Plans ({{ total_count }})</h5>
+        <a href="{% url 'inventory:cycle_count_plan_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i> New Plan</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Plan #</th>
+                        <th>Name</th>
+                        <th>Frequency</th>
+                        <th>Selection Method</th>
+                        <th>Warehouse</th>
+                        <th>Next Count Date</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in plans %}
+                    <tr>
+                        <td class="fw-semibold">{{ plan.plan_number }}</td>
+                        <td>{{ plan.name }}</td>
+                        <td>{{ plan.get_frequency_display }}</td>
+                        <td>{{ plan.get_item_selection_method_display }}</td>
+                        <td>{{ plan.warehouse|default:"-" }}</td>
+                        <td>{{ plan.next_count_date|date:"M d, Y"|default:"-" }}</td>
+                        <td>
+                            {% if plan.status == 'active' %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                            {% elif plan.status == 'paused' %}
+                                <span class="badge bg-soft-warning text-warning">Paused</span>
+                            {% elif plan.status == 'planned' %}
+                                <span class="badge bg-soft-info text-info">Planned</span>
+                            {% elif plan.status == 'draft' %}
+                                <span class="badge bg-soft-secondary text-secondary">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'inventory:cycle_count_plan_edit' tenant_slug=current_tenant.slug pk=plan.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-calendar-check-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No cycle count plans found</h5>
+                                <p class="text-muted">Create a plan to schedule regular inventory counts.</p>
+                                <a href="{% url 'inventory:cycle_count_plan_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Plan
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
