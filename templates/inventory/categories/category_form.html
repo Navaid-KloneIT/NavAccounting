@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Category{% else %}New Category{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Category - {{ category.code }}{% else %}New Item Category{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:category_list' tenant_slug=current_tenant.slug %}">Categories</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Code <span class="text-danger">*</span></label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Parent Category</label>
+                    {{ form.parent }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">GL Account Mapping</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Inventory GL Account <span class="text-danger">*</span></label>
+                    {{ form.gl_inventory_account }}
+                    {% if form.gl_inventory_account.errors %}<div class="text-danger small">{{ form.gl_inventory_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">COGS GL Account <span class="text-danger">*</span></label>
+                    {{ form.gl_cogs_account }}
+                    {% if form.gl_cogs_account.errors %}<div class="text-danger small">{{ form.gl_cogs_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Revenue GL Account <span class="text-danger">*</span></label>
+                    {{ form.gl_revenue_account }}
+                    {% if form.gl_revenue_account.errors %}<div class="text-danger small">{{ form.gl_revenue_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Category{% endif %}</button>
+                <a href="{% url 'inventory:category_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
