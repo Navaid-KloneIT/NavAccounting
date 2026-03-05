@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ item.sku }} - Edit Item{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Edit Item - {{ item.sku }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}">Items</a></li>
+            <li class="breadcrumb-item active">Edit Item</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-6">
+            <!-- Basic Info -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-archive-line text-primary"></i></div>
+                        <h5 class="card-title mb-0">Basic Info</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_category" class="form-label">Category</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}<div class="invalid-feedback d-block">{{ form.category.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_base_uom" class="form-label">Base UOM <span class="text-danger">*</span></label>
+                            {{ form.base_uom }}
+                            {% if form.base_uom.errors %}<div class="invalid-feedback d-block">{{ form.base_uom.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_item_type" class="form-label">Item Type <span class="text-danger">*</span></label>
+                            {{ form.item_type }}
+                            {% if form.item_type.errors %}<div class="invalid-feedback d-block">{{ form.item_type.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_description" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reorder Planning -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-info p-2 me-2"><i class="ri-refresh-line text-info"></i></div>
+                        <h5 class="card-title mb-0">Reorder Planning</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_reorder_point" class="form-label">Reorder Point</label>
+                            {{ form.reorder_point }}
+                            {% if form.reorder_point.errors %}<div class="invalid-feedback d-block">{{ form.reorder_point.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_reorder_quantity" class="form-label">Reorder Quantity</label>
+                            {{ form.reorder_quantity }}
+                            {% if form.reorder_quantity.errors %}<div class="invalid-feedback d-block">{{ form.reorder_quantity.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_safety_stock" class="form-label">Safety Stock</label>
+                            {{ form.safety_stock }}
+                            {% if form.safety_stock.errors %}<div class="invalid-feedback d-block">{{ form.safety_stock.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_lead_time_days" class="form-label">Lead Time (Days)</label>
+                            {{ form.lead_time_days }}
+                            {% if form.lead_time_days.errors %}<div class="invalid-feedback d-block">{{ form.lead_time_days.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-6">
+            <!-- Costing -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-money-dollar-circle-line text-warning"></i></div>
+                        <h5 class="card-title mb-0">Costing</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_costing_method" class="form-label">Costing Method <span class="text-danger">*</span></label>
+                            {{ form.costing_method }}
+                            {% if form.costing_method.errors %}<div class="invalid-feedback d-block">{{ form.costing_method.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_standard_cost" class="form-label">Standard Cost</label>
+                            {{ form.standard_cost }}
+                            {% if form.standard_cost.errors %}<div class="invalid-feedback d-block">{{ form.standard_cost.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_purchase_price" class="form-label">Purchase Price</label>
+                            {{ form.purchase_price }}
+                            {% if form.purchase_price.errors %}<div class="invalid-feedback d-block">{{ form.purchase_price.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_selling_price" class="form-label">Selling Price</label>
+                            {{ form.selling_price }}
+                            {% if form.selling_price.errors %}<div class="invalid-feedback d-block">{{ form.selling_price.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physical -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-secondary p-2 me-2"><i class="ri-scales-line text-secondary"></i></div>
+                        <h5 class="card-title mb-0">Physical</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_weight" class="form-label">Weight</label>
+                            {{ form.weight }}
+                            {% if form.weight.errors %}<div class="invalid-feedback d-block">{{ form.weight.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_dimensions" class="form-label">Dimensions</label>
+                            {{ form.dimensions }}
+                            {% if form.dimensions.errors %}<div class="invalid-feedback d-block">{{ form.dimensions.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-success p-2 me-2"><i class="ri-toggle-line text-success"></i></div>
+                        <h5 class="card-title mb-0">Status</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" role="switch" id="id_is_active" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+                        <label class="form-check-label" for="id_is_active">
+                            <strong>Active</strong><br>
+                            <small class="text-muted">Inactive items cannot be used on new transactions.</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'inventory:item_detail' tenant_slug=current_tenant.slug pk=item.pk %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
