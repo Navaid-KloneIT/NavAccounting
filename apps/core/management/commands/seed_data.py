@@ -9,6 +9,7 @@ Usage:
     python manage.py seed_data --company    # Seed company settings
     python manage.py seed_data --coa        # Seed chart of accounts
     python manage.py seed_data --dashboard  # Seed dashboard data
+    python manage.py seed_data --ic         # Seed inventory & cost management
 """
 import random
 from datetime import date, timedelta
@@ -50,6 +51,7 @@ class Command(BaseCommand):
         parser.add_argument('--ar', action='store_true', help='Seed accounts receivable data only')
         parser.add_argument('--cm', action='store_true', help='Seed cash management data only')
         parser.add_argument('--fa', action='store_true', help='Seed fixed assets data only')
+        parser.add_argument('--ic', action='store_true', help='Seed inventory & cost management data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -59,7 +61,7 @@ class Command(BaseCommand):
         seed_all = not any([
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
-            options['ar'], options['cm'], options['fa'],
+            options['ar'], options['cm'], options['fa'], options['ic'],
         ])
 
         # Always seed system-level data
@@ -108,9 +110,50 @@ class Command(BaseCommand):
             self.stdout.write('Seeding fixed assets data...')
             self._seed_fa_data()
 
+        if seed_all or options['ic']:
+            self.stdout.write('Seeding inventory & cost management data...')
+            self._seed_ic_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean IC data first (depends on AP vendors and GL accounts)
+        try:
+            from apps.inventory.models import (
+                LandedCostAllocation, LandedCostLine, LandedCostVoucher,
+                CycleCountItem, CycleCountSession, CycleCountPlan,
+                ReorderSuggestion, COGSEntry, COGSCalculation,
+                InventoryTransferLine, InventoryTransfer, InventoryTransaction,
+                GoodsReceiptLine, GoodsReceipt, PurchaseOrderLine, PurchaseOrder,
+                PurchaseRequisitionLine, PurchaseRequisition,
+                CostLayer, Warehouse, Item, UnitOfMeasure, ItemCategory,
+            )
+            LandedCostAllocation.objects.all().delete()
+            LandedCostLine.objects.all().delete()
+            LandedCostVoucher.unscoped.all().delete()
+            CycleCountItem.objects.all().delete()
+            CycleCountSession.unscoped.all().delete()
+            CycleCountPlan.unscoped.all().delete()
+            ReorderSuggestion.unscoped.all().delete()
+            COGSEntry.objects.all().delete()
+            COGSCalculation.unscoped.all().delete()
+            InventoryTransferLine.objects.all().delete()
+            InventoryTransfer.unscoped.all().delete()
+            InventoryTransaction.unscoped.all().delete()
+            GoodsReceiptLine.objects.all().delete()
+            GoodsReceipt.unscoped.all().delete()
+            PurchaseOrderLine.objects.all().delete()
+            PurchaseOrder.unscoped.all().delete()
+            PurchaseRequisitionLine.objects.all().delete()
+            PurchaseRequisition.unscoped.all().delete()
+            CostLayer.unscoped.all().delete()
+            Warehouse.unscoped.all().delete()
+            Item.unscoped.all().delete()
+            UnitOfMeasure.unscoped.all().delete()
+            ItemCategory.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean CM data first
         try:
             from apps.cash_management.models import (
@@ -332,6 +375,8 @@ class Command(BaseCommand):
             ('view_bank_fees', 'View Bank Fees', 'cash_management'),
             ('view_assets', 'View Fixed Assets', 'fixed_assets'),
             ('manage_assets', 'Manage Fixed Assets', 'fixed_assets'),
+            ('view_inventory', 'View Inventory & Cost Management', 'inventory'),
+            ('manage_inventory', 'Manage Inventory & Cost Management', 'inventory'),
             ('admin_full', 'Full Administration Access', 'system'),
         ]
         for codename, name, module in perms:
@@ -3067,4 +3112,536 @@ class Command(BaseCommand):
         self.stdout.write(
             f'  Created FA data (categories, locations, assets, acquisitions, '
             f'depreciation schedules, transfers, disposals, impairments, tax books, inventories)'
+        )
+
+    def _seed_ic_data(self):
+        """Seed inventory & cost management sample data."""
+        from apps.inventory.models import (
+            ItemCategory, UnitOfMeasure, Item, CostLayer, Warehouse,
+            PurchaseRequisition, PurchaseRequisitionLine,
+            PurchaseOrder, PurchaseOrderLine,
+            GoodsReceipt, GoodsReceiptLine,
+            InventoryTransaction, InventoryTransfer, InventoryTransferLine,
+            COGSCalculation, COGSEntry,
+            ReorderSuggestion,
+            CycleCountPlan, CycleCountSession, CycleCountItem,
+            LandedCostVoucher, LandedCostLine, LandedCostAllocation,
+        )
+        from apps.general_ledger.models import Account
+        from apps.tenants.managers import set_current_tenant
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found. Skipping IC seeding.')
+            return
+
+        for tenant in tenants:
+            set_current_tenant(tenant)
+
+            # Get GL accounts for category mapping
+            gl_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False
+            )[:10])
+            if len(gl_accounts) < 3:
+                self.stdout.write(f'  Skipping IC for {tenant.name}: not enough GL accounts.')
+                continue
+
+            # Get a user
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
+                continue
+
+            # Get vendors (from AP module)
+            try:
+                from apps.accounts_payable.models import Vendor
+                vendors = list(Vendor.unscoped.filter(tenant=tenant)[:5])
+            except Exception:
+                vendors = []
+
+            # Get fiscal period for COGS
+            fiscal_period = FiscalPeriod.unscoped.filter(tenant=tenant).first()
+
+            # =====================================================================
+            # Units of Measure
+            # =====================================================================
+            uom_data = [
+                {'code': 'EA', 'name': 'Each', 'abbreviation': 'ea'},
+                {'code': 'KG', 'name': 'Kilogram', 'abbreviation': 'kg'},
+                {'code': 'LTR', 'name': 'Litre', 'abbreviation': 'L'},
+                {'code': 'BOX', 'name': 'Box', 'abbreviation': 'box'},
+                {'code': 'PKG', 'name': 'Package', 'abbreviation': 'pkg'},
+            ]
+            uoms = []
+            for ud in uom_data:
+                uom, _ = UnitOfMeasure.unscoped.get_or_create(
+                    tenant=tenant, code=ud['code'],
+                    defaults={'name': ud['name'], 'abbreviation': ud['abbreviation']}
+                )
+                uoms.append(uom)
+
+            # =====================================================================
+            # Item Categories
+            # =====================================================================
+            categories_data = [
+                {'code': 'RAW', 'name': 'Raw Materials'},
+                {'code': 'FG', 'name': 'Finished Goods'},
+                {'code': 'COMP', 'name': 'Components'},
+                {'code': 'PKG', 'name': 'Packaging Materials'},
+                {'code': 'MRO', 'name': 'Maintenance & Repair'},
+            ]
+            categories = []
+            for i, cd in enumerate(categories_data):
+                cat, _ = ItemCategory.unscoped.get_or_create(
+                    tenant=tenant, code=cd['code'],
+                    defaults={
+                        'name': cd['name'],
+                        'gl_inventory_account': gl_accounts[min(i, len(gl_accounts) - 1)],
+                        'gl_cogs_account': gl_accounts[min(i + 1, len(gl_accounts) - 1)],
+                        'gl_revenue_account': gl_accounts[min(i + 2, len(gl_accounts) - 1)],
+                    }
+                )
+                categories.append(cat)
+
+            # =====================================================================
+            # Warehouses
+            # =====================================================================
+            warehouses_data = [
+                {'code': 'WH-MAIN', 'name': 'Main Warehouse', 'address': '100 Warehouse Drive'},
+                {'code': 'WH-DIST', 'name': 'Distribution Center', 'address': '200 Logistics Blvd'},
+                {'code': 'WH-RET', 'name': 'Returns Warehouse', 'address': '300 Returns Lane'},
+            ]
+            warehouses = []
+            for wd in warehouses_data:
+                wh, _ = Warehouse.unscoped.get_or_create(
+                    tenant=tenant, code=wd['code'],
+                    defaults={'name': wd['name'], 'address': wd['address']}
+                )
+                warehouses.append(wh)
+
+            # =====================================================================
+            # Items
+            # =====================================================================
+            items_data = [
+                {
+                    'name': 'Steel Sheet 4x8', 'cat': 0, 'uom': 0, 'type': 'inventory',
+                    'costing': 'fifo', 'purchase': Decimal('45.00'), 'selling': Decimal('75.00'),
+                    'std_cost': Decimal('45.00'), 'qty': Decimal('250.00'),
+                    'reorder_pt': Decimal('50.00'), 'reorder_qty': Decimal('100.00'),
+                    'safety': Decimal('25.00'), 'lead': 7,
+                },
+                {
+                    'name': 'Aluminium Rod 10mm', 'cat': 0, 'uom': 1, 'type': 'inventory',
+                    'costing': 'fifo', 'purchase': Decimal('12.50'), 'selling': Decimal('22.00'),
+                    'std_cost': Decimal('12.50'), 'qty': Decimal('500.00'),
+                    'reorder_pt': Decimal('100.00'), 'reorder_qty': Decimal('200.00'),
+                    'safety': Decimal('50.00'), 'lead': 5,
+                },
+                {
+                    'name': 'Widget Assembly A1', 'cat': 1, 'uom': 0, 'type': 'inventory',
+                    'costing': 'weighted_avg', 'purchase': Decimal('85.00'), 'selling': Decimal('150.00'),
+                    'std_cost': Decimal('85.00'), 'qty': Decimal('120.00'),
+                    'reorder_pt': Decimal('30.00'), 'reorder_qty': Decimal('50.00'),
+                    'safety': Decimal('15.00'), 'lead': 14,
+                },
+                {
+                    'name': 'Circuit Board CB-200', 'cat': 2, 'uom': 0, 'type': 'inventory',
+                    'costing': 'standard', 'purchase': Decimal('32.00'), 'selling': Decimal('55.00'),
+                    'std_cost': Decimal('32.00'), 'qty': Decimal('800.00'),
+                    'reorder_pt': Decimal('150.00'), 'reorder_qty': Decimal('300.00'),
+                    'safety': Decimal('75.00'), 'lead': 10,
+                },
+                {
+                    'name': 'Corrugated Box Large', 'cat': 3, 'uom': 3, 'type': 'inventory',
+                    'costing': 'weighted_avg', 'purchase': Decimal('2.50'), 'selling': Decimal('0.00'),
+                    'std_cost': Decimal('2.50'), 'qty': Decimal('2000.00'),
+                    'reorder_pt': Decimal('500.00'), 'reorder_qty': Decimal('1000.00'),
+                    'safety': Decimal('250.00'), 'lead': 3,
+                },
+                {
+                    'name': 'Lubricant Oil 5L', 'cat': 4, 'uom': 2, 'type': 'inventory',
+                    'costing': 'weighted_avg', 'purchase': Decimal('18.00'), 'selling': Decimal('0.00'),
+                    'std_cost': Decimal('18.00'), 'qty': Decimal('60.00'),
+                    'reorder_pt': Decimal('15.00'), 'reorder_qty': Decimal('30.00'),
+                    'safety': Decimal('10.00'), 'lead': 5,
+                },
+                {
+                    'name': 'Gadget Pro X1', 'cat': 1, 'uom': 0, 'type': 'inventory',
+                    'costing': 'fifo', 'purchase': Decimal('120.00'), 'selling': Decimal('220.00'),
+                    'std_cost': Decimal('120.00'), 'qty': Decimal('75.00'),
+                    'reorder_pt': Decimal('20.00'), 'reorder_qty': Decimal('40.00'),
+                    'safety': Decimal('10.00'), 'lead': 21,
+                },
+                {
+                    'name': 'Installation Service', 'cat': 1, 'uom': 0, 'type': 'service',
+                    'costing': 'standard', 'purchase': Decimal('0.00'), 'selling': Decimal('200.00'),
+                    'std_cost': Decimal('0.00'), 'qty': Decimal('0.00'),
+                    'reorder_pt': Decimal('0.00'), 'reorder_qty': Decimal('0.00'),
+                    'safety': Decimal('0.00'), 'lead': 0,
+                },
+            ]
+            items = []
+            for idx, itd in enumerate(items_data):
+                sku = Item.generate_sku(tenant)
+                item, created = Item.unscoped.get_or_create(
+                    tenant=tenant, name=itd['name'],
+                    defaults={
+                        'sku': sku,
+                        'category': categories[itd['cat']],
+                        'base_uom': uoms[itd['uom']],
+                        'item_type': itd['type'],
+                        'costing_method': itd['costing'],
+                        'standard_cost': itd['std_cost'],
+                        'purchase_price': itd['purchase'],
+                        'selling_price': itd['selling'],
+                        'quantity_on_hand': itd['qty'],
+                        'weighted_avg_cost': itd['purchase'] if itd['costing'] == 'weighted_avg' else Decimal('0.00'),
+                        'reorder_point': itd['reorder_pt'],
+                        'reorder_quantity': itd['reorder_qty'],
+                        'safety_stock': itd['safety'],
+                        'lead_time_days': itd['lead'],
+                        'weight': Decimal(str(random.uniform(0.5, 25.0))).quantize(Decimal('0.0001')) if itd['type'] == 'inventory' else None,
+                    }
+                )
+                items.append(item)
+
+            # =====================================================================
+            # Cost Layers (for FIFO/LIFO items)
+            # =====================================================================
+            for item in items:
+                if item.item_type != 'inventory' or item.quantity_on_hand <= 0:
+                    continue
+                # Create 2-3 cost layers per item to simulate multiple receipts
+                remaining = item.quantity_on_hand
+                layer_count = random.randint(2, 3)
+                for layer_idx in range(layer_count):
+                    if layer_idx == layer_count - 1:
+                        layer_qty = remaining
+                    else:
+                        layer_qty = (remaining * Decimal(str(random.uniform(0.3, 0.5)))).quantize(Decimal('0.01'))
+                    remaining -= layer_qty
+                    if layer_qty <= 0:
+                        continue
+                    # Vary cost slightly per layer
+                    cost_variation = Decimal(str(random.uniform(0.90, 1.10))).quantize(Decimal('0.0001'))
+                    unit_cost = (item.purchase_price * cost_variation).quantize(Decimal('0.0001'))
+                    receipt_date = date.today() - timedelta(days=random.randint(30, 180))
+                    CostLayer.unscoped.get_or_create(
+                        tenant=tenant, item=item, receipt_date=receipt_date,
+                        original_quantity=layer_qty,
+                        defaults={
+                            'quantity_on_hand': layer_qty,
+                            'unit_cost': unit_cost,
+                            'source_type': 'purchase',
+                            'source_reference': f'Opening-{item.sku}-L{layer_idx + 1}',
+                        }
+                    )
+
+            # =====================================================================
+            # Purchase Requisition
+            # =====================================================================
+            req_num = PurchaseRequisition.generate_requisition_number(tenant)
+            requisition, req_created = PurchaseRequisition.unscoped.get_or_create(
+                tenant=tenant, requisition_number=req_num,
+                defaults={
+                    'date': date.today() - timedelta(days=25),
+                    'requested_by': users[0],
+                    'status': 'approved',
+                    'notes': 'Monthly replenishment requisition for raw materials.',
+                }
+            )
+            if req_created and len(items) >= 2:
+                PurchaseRequisitionLine.objects.create(
+                    requisition=requisition, item=items[0],
+                    quantity=Decimal('100.00'), uom=uoms[0],
+                    estimated_unit_price=items[0].purchase_price,
+                )
+                PurchaseRequisitionLine.objects.create(
+                    requisition=requisition, item=items[1],
+                    quantity=Decimal('200.00'), uom=uoms[1],
+                    estimated_unit_price=items[1].purchase_price,
+                )
+
+            # =====================================================================
+            # Purchase Orders (2 POs)
+            # =====================================================================
+            pos = []
+            for po_idx in range(2):
+                po_num = PurchaseOrder.generate_po_number(tenant)
+                vendor = vendors[po_idx % len(vendors)] if vendors else None
+                if not vendor:
+                    break
+                po_date = date.today() - timedelta(days=20 - (po_idx * 10))
+                po_status = 'received' if po_idx == 0 else 'approved'
+                po, po_created = PurchaseOrder.unscoped.get_or_create(
+                    tenant=tenant, po_number=po_num,
+                    defaults={
+                        'vendor': vendor,
+                        'requisition': requisition if po_idx == 0 else None,
+                        'date': po_date,
+                        'expected_delivery': po_date + timedelta(days=14),
+                        'status': po_status,
+                        'total_amount': Decimal('0.00'),
+                        'created_by': users[0],
+                        'approved_by': users[1] if len(users) > 1 else users[0],
+                    }
+                )
+                if po_created:
+                    total = Decimal('0.00')
+                    # Add 2-3 lines per PO
+                    po_items = items[po_idx * 2: po_idx * 2 + 3] if len(items) > po_idx * 2 + 2 else items[:3]
+                    for pi in po_items:
+                        if pi.item_type == 'service':
+                            continue
+                        qty = Decimal(str(random.randint(50, 200)))
+                        line = PurchaseOrderLine.objects.create(
+                            purchase_order=po, item=pi,
+                            quantity=qty, unit_price=pi.purchase_price,
+                            uom=pi.base_uom,
+                            received_quantity=qty if po_status == 'received' else Decimal('0.00'),
+                        )
+                        total += line.line_total
+                    po.total_amount = total
+                    po.save()
+                pos.append(po)
+
+            # =====================================================================
+            # Goods Receipt (for the first PO)
+            # =====================================================================
+            receipt = None
+            if pos:
+                grn_num = GoodsReceipt.generate_receipt_number(tenant)
+                receipt, grn_created = GoodsReceipt.unscoped.get_or_create(
+                    tenant=tenant, receipt_number=grn_num,
+                    defaults={
+                        'purchase_order': pos[0],
+                        'receipt_date': date.today() - timedelta(days=15),
+                        'received_by': users[0],
+                        'warehouse': warehouses[0],
+                        'status': 'posted',
+                        'notes': 'All items received in good condition.',
+                    }
+                )
+                if grn_created:
+                    for po_line in pos[0].lines.all():
+                        GoodsReceiptLine.objects.create(
+                            goods_receipt=receipt,
+                            po_line=po_line,
+                            item=po_line.item,
+                            quantity_received=po_line.quantity,
+                            unit_cost=po_line.unit_price,
+                        )
+
+            # =====================================================================
+            # Inventory Transactions (adjustment + scrap)
+            # =====================================================================
+            if items:
+                # Positive adjustment
+                adj_num = InventoryTransaction.generate_transaction_number(tenant)
+                InventoryTransaction.unscoped.get_or_create(
+                    tenant=tenant, transaction_number=adj_num,
+                    defaults={
+                        'date': date.today() - timedelta(days=10),
+                        'item': items[0],
+                        'transaction_type': 'adjustment',
+                        'quantity': Decimal('25.00'),
+                        'unit_cost': items[0].purchase_price,
+                        'warehouse': warehouses[0],
+                        'reference': 'ADJ-opening-balance-correction',
+                        'notes': 'Opening balance correction after physical count.',
+                        'posted_by': users[0],
+                    }
+                )
+
+                # Scrap transaction
+                scrap_num = InventoryTransaction.generate_transaction_number(tenant)
+                InventoryTransaction.unscoped.get_or_create(
+                    tenant=tenant, transaction_number=scrap_num,
+                    defaults={
+                        'date': date.today() - timedelta(days=5),
+                        'item': items[3] if len(items) > 3 else items[0],
+                        'transaction_type': 'scrap',
+                        'quantity': Decimal('-10.00'),
+                        'unit_cost': items[3].purchase_price if len(items) > 3 else items[0].purchase_price,
+                        'warehouse': warehouses[0],
+                        'reference': 'SCRAP-damaged-goods',
+                        'notes': 'Damaged during handling — scrapped per QC inspection.',
+                        'posted_by': users[0],
+                    }
+                )
+
+            # =====================================================================
+            # Inventory Transfer
+            # =====================================================================
+            if len(items) >= 3 and len(warehouses) >= 2:
+                trf_num = InventoryTransfer.generate_transfer_number(tenant)
+                transfer, trf_created = InventoryTransfer.unscoped.get_or_create(
+                    tenant=tenant, transfer_number=trf_num,
+                    defaults={
+                        'date': date.today() - timedelta(days=8),
+                        'from_warehouse': warehouses[0],
+                        'to_warehouse': warehouses[1],
+                        'status': 'completed',
+                        'created_by': users[0],
+                        'notes': 'Replenishment transfer to distribution center.',
+                    }
+                )
+                if trf_created:
+                    InventoryTransferLine.objects.create(
+                        transfer=transfer, item=items[2],
+                        quantity=Decimal('20.00'),
+                        unit_cost=items[2].purchase_price,
+                    )
+                    InventoryTransferLine.objects.create(
+                        transfer=transfer, item=items[4],
+                        quantity=Decimal('100.00'),
+                        unit_cost=items[4].purchase_price,
+                    )
+
+            # =====================================================================
+            # COGS Calculation
+            # =====================================================================
+            if fiscal_period and items:
+                cogs_num = COGSCalculation.generate_calculation_number(tenant)
+                cogs_calc, cogs_created = COGSCalculation.unscoped.get_or_create(
+                    tenant=tenant, calculation_number=cogs_num,
+                    defaults={
+                        'period': fiscal_period,
+                        'calculation_date': date.today() - timedelta(days=3),
+                        'method': 'weighted_avg',
+                        'status': 'draft',
+                        'total_cogs': Decimal('0.00'),
+                        'created_by': users[0],
+                        'notes': 'Monthly COGS calculation.',
+                    }
+                )
+                if cogs_created:
+                    total_cogs = Decimal('0.00')
+                    for item in items[:5]:
+                        if item.item_type != 'inventory':
+                            continue
+                        qty_sold = Decimal(str(random.randint(10, 50)))
+                        unit_cost = item.weighted_avg_cost if item.weighted_avg_cost > 0 else item.standard_cost
+                        if unit_cost <= 0:
+                            unit_cost = item.purchase_price
+                        entry_total = (qty_sold * unit_cost).quantize(Decimal('0.01'))
+                        COGSEntry.objects.create(
+                            calculation=cogs_calc, item=item,
+                            quantity_sold=qty_sold, unit_cost=unit_cost,
+                            total_cost=entry_total,
+                        )
+                        total_cogs += entry_total
+                    cogs_calc.total_cogs = total_cogs
+                    cogs_calc.save()
+
+            # =====================================================================
+            # Reorder Suggestions
+            # =====================================================================
+            for item in items[:3]:
+                if item.item_type != 'inventory' or item.reorder_point <= 0:
+                    continue
+                ReorderSuggestion.unscoped.get_or_create(
+                    tenant=tenant, item=item, status='pending',
+                    defaults={
+                        'current_stock': item.quantity_on_hand,
+                        'reorder_point': item.reorder_point,
+                        'suggested_quantity': item.reorder_quantity,
+                        'vendor': vendors[0] if vendors else None,
+                    }
+                )
+
+            # =====================================================================
+            # Cycle Count Plan + Session
+            # =====================================================================
+            plan_num = CycleCountPlan.generate_plan_number(tenant)
+            plan, plan_created = CycleCountPlan.unscoped.get_or_create(
+                tenant=tenant, plan_number=plan_num,
+                defaults={
+                    'name': 'Monthly Full Count',
+                    'frequency': 'monthly',
+                    'item_selection_method': 'all',
+                    'warehouse': warehouses[0],
+                    'status': 'active',
+                    'next_count_date': date.today() + timedelta(days=30),
+                }
+            )
+
+            session_num = CycleCountSession.generate_session_number(tenant)
+            session, sess_created = CycleCountSession.unscoped.get_or_create(
+                tenant=tenant, session_number=session_num,
+                defaults={
+                    'plan': plan,
+                    'count_date': date.today() - timedelta(days=2),
+                    'counted_by': users[0],
+                    'warehouse': warehouses[0],
+                    'status': 'completed',
+                    'notes': 'Routine monthly cycle count.',
+                }
+            )
+            if sess_created:
+                for item in items[:5]:
+                    if item.item_type != 'inventory':
+                        continue
+                    # Simulate slight variance
+                    variance = Decimal(str(random.choice([-3, -2, -1, 0, 0, 0, 1, 2])))
+                    counted = item.quantity_on_hand + variance
+                    CycleCountItem.objects.create(
+                        session=session, item=item,
+                        system_quantity=item.quantity_on_hand,
+                        counted_quantity=counted,
+                        status='counted',
+                    )
+
+            # =====================================================================
+            # Landed Cost Voucher
+            # =====================================================================
+            if receipt and receipt.status == 'posted':
+                lcv_num = LandedCostVoucher.generate_voucher_number(tenant)
+                voucher, lcv_created = LandedCostVoucher.unscoped.get_or_create(
+                    tenant=tenant, voucher_number=lcv_num,
+                    defaults={
+                        'goods_receipt': receipt,
+                        'date': date.today() - timedelta(days=12),
+                        'status': 'draft',
+                        'total_additional_cost': Decimal('1250.00'),
+                        'created_by': users[0],
+                        'notes': 'Freight and customs charges for shipment.',
+                    }
+                )
+                if lcv_created:
+                    LandedCostLine.objects.create(
+                        voucher=voucher, cost_type='freight',
+                        description='Ocean freight charges',
+                        amount=Decimal('850.00'),
+                        vendor=vendors[1] if len(vendors) > 1 else None,
+                    )
+                    LandedCostLine.objects.create(
+                        voucher=voucher, cost_type='duty',
+                        description='Import customs duty',
+                        amount=Decimal('300.00'),
+                    )
+                    LandedCostLine.objects.create(
+                        voucher=voucher, cost_type='handling',
+                        description='Port handling charges',
+                        amount=Decimal('100.00'),
+                    )
+
+                    # Allocations
+                    receipt_lines = list(receipt.lines.all())
+                    if receipt_lines:
+                        total_value = sum(rl.quantity_received * rl.unit_cost for rl in receipt_lines)
+                        for rl in receipt_lines:
+                            line_value = rl.quantity_received * rl.unit_cost
+                            proportion = line_value / total_value if total_value else Decimal('0')
+                            alloc_amount = (Decimal('1250.00') * proportion).quantize(Decimal('0.01'))
+                            LandedCostAllocation.objects.create(
+                                voucher=voucher, item=rl.item,
+                                goods_receipt_line=rl,
+                                allocated_amount=alloc_amount,
+                                allocation_method='by_value',
+                            )
+
+        self.stdout.write(
+            f'  Created IC data (categories, UoMs, items, warehouses, cost layers, '
+            f'requisitions, POs, receipts, transactions, transfers, COGS, '
+            f'reorder suggestions, cycle counts, landed cost vouchers)'
         )
