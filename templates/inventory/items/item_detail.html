@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ item.sku }} - {{ item.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ item.sku }} - {{ item.name }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}">Items</a></li>
+            <li class="breadcrumb-item active">Item Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Item Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-archive-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Item Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">SKU</dt>
+                            <dd class="col-sm-7"><strong>{{ item.sku }}</strong></dd>
+
+                            <dt class="col-sm-5 text-muted">Name</dt>
+                            <dd class="col-sm-7">{{ item.name }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Category</dt>
+                            <dd class="col-sm-7">{{ item.category|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Item Type</dt>
+                            <dd class="col-sm-7"><span class="badge badge-soft-secondary">{{ item.get_item_type_display }}</span></dd>
+
+                            <dt class="col-sm-5 text-muted">Base UOM</dt>
+                            <dd class="col-sm-7">{{ item.base_uom|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if item.is_active %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-soft-danger text-danger">Inactive</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Costing Method</dt>
+                            <dd class="col-sm-7">{{ item.get_costing_method_display|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Standard Cost</dt>
+                            <dd class="col-sm-7">{{ item.standard_cost|floatformat:2|intcomma|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Purchase Price</dt>
+                            <dd class="col-sm-7">{{ item.purchase_price|floatformat:2|intcomma|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Selling Price</dt>
+                            <dd class="col-sm-7">{{ item.selling_price|floatformat:2|intcomma|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Reorder Point</dt>
+                            <dd class="col-sm-7">{{ item.reorder_point|default:"-" }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Lead Time</dt>
+                            <dd class="col-sm-7">{% if item.lead_time_days %}{{ item.lead_time_days }} days{% else %}-{% endif %}</dd>
+                        </dl>
+                    </div>
+                </div>
+                {% if item.description %}
+                <hr>
+                <p class="mb-0 text-muted">{{ item.description|linebreaksbr }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-exchange-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Recent Transactions</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Reference</th>
+                                <th>Warehouse</th>
+                                <th class="text-end">Quantity</th>
+                                <th class="text-end">Unit Cost</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in recent_transactions %}
+                            <tr>
+                                <td>{{ txn.transaction_date|date:"M d, Y" }}</td>
+                                <td><span class="badge badge-soft-secondary">{{ txn.get_transaction_type_display }}</span></td>
+                                <td>{{ txn.reference|default:"-" }}</td>
+                                <td>{{ txn.warehouse|default:"-" }}</td>
+                                <td class="text-end">{{ txn.quantity|floatformat:0|intcomma }}</td>
+                                <td class="text-end">{{ txn.unit_cost|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ txn.total_cost|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No transactions found for this item.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost Layers (FIFO/LIFO) -->
+        {% if cost_layers %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-stack-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Cost Layers</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Reference</th>
+                                <th class="text-end">Original Qty</th>
+                                <th class="text-end">Remaining Qty</th>
+                                <th class="text-end">Unit Cost</th>
+                                <th class="text-end">Layer Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for layer in cost_layers %}
+                            <tr>
+                                <td>{{ layer.created_at|date:"M d, Y" }}</td>
+                                <td>{{ layer.reference|default:"-" }}</td>
+                                <td class="text-end">{{ layer.original_quantity|floatformat:0|intcomma }}</td>
+                                <td class="text-end">{{ layer.remaining_quantity|floatformat:0|intcomma }}</td>
+                                <td class="text-end">{{ layer.unit_cost|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ layer.layer_value|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Stats -->
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Qty On Hand</p>
+                        <h3 class="mb-0">{{ item.qty_on_hand|floatformat:0|intcomma|default:"0" }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-stack-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Inventory Value</p>
+                        <h3 class="mb-0">{{ inventory_value|floatformat:2|intcomma|default:"0.00" }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-money-dollar-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Avg Cost</p>
+                        <h3 class="mb-0">{{ avg_cost|floatformat:2|intcomma|default:"0.00" }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-line-chart-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                <a href="{% url 'inventory:item_edit' tenant_slug=current_tenant.slug pk=item.pk %}" class="btn btn-soft-primary btn-sm w-100 mb-2">
+                    <i class="ri-pencil-line me-1"></i> Edit Item
+                </a>
+                <a href="{% url 'inventory:item_adjust' tenant_slug=current_tenant.slug pk=item.pk %}" class="btn btn-soft-warning btn-sm w-100 mb-2">
+                    <i class="ri-scales-line me-1"></i> Adjust Inventory
+                </a>
+                <a href="{% url 'inventory:item_transactions' tenant_slug=current_tenant.slug pk=item.pk %}" class="btn btn-soft-info btn-sm w-100 mb-2">
+                    <i class="ri-exchange-line me-1"></i> View Transactions
+                </a>
+                <a href="{% url 'inventory:item_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Items
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
