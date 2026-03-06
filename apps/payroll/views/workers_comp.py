@@ -26,6 +26,12 @@ def comp_class_list(request, tenant_slug):
     if search:
         qs = qs.filter(Q(name__icontains=search) | Q(code__icontains=search))
 
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        qs = qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        qs = qs.filter(is_active=False)
+
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
