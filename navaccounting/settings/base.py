@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.cash_management',
     'apps.fixed_assets',
     'apps.inventory',
+    'apps.payroll',
 ]
 
 MIDDLEWARE = [
