@@ -18,13 +18,24 @@ def tax_withholding_list(request, tenant_slug):
         return redirect('tenants:select')
     set_current_tenant(tenant)
 
-    qs = TaxWithholding.objects.filter(tenant=tenant)
+    qs = TaxWithholding.objects.filter(tenant=tenant).select_related('employee')
     search = request.GET.get('q', '').strip()
     if search:
         qs = qs.filter(
             Q(employee__first_name__icontains=search) |
-            Q(employee__last_name__icontains=search)
+            Q(employee__last_name__icontains=search) |
+            Q(employee__employee_number__icontains=search)
         )
+
+    tax_type_filter = request.GET.get('tax_type', '')
+    if tax_type_filter:
+        qs = qs.filter(tax_type=tax_type_filter)
+
+    employer_paid_filter = request.GET.get('employer_paid', '')
+    if employer_paid_filter == 'yes':
+        qs = qs.filter(is_employer_paid=True)
+    elif employer_paid_filter == 'no':
+        qs = qs.filter(is_employer_paid=False)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -94,9 +105,18 @@ def remittance_list(request, tenant_slug):
     set_current_tenant(tenant)
 
     qs = TaxRemittance.objects.filter(tenant=tenant)
+
+    search = request.GET.get('q', '').strip()
+    if search:
+        qs = qs.filter(Q(remittance_number__icontains=search))
+
     status_filter = request.GET.get('status', '')
     if status_filter:
         qs = qs.filter(status=status_filter)
+
+    tax_type_filter = request.GET.get('tax_type', '')
+    if tax_type_filter:
+        qs = qs.filter(tax_type=tax_type_filter)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
