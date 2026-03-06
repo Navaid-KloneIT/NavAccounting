@@ -17,7 +17,7 @@ def garnishment_list(request, tenant_slug):
         return redirect('tenants:select')
     set_current_tenant(tenant)
 
-    qs = Garnishment.objects.filter(tenant=tenant)
+    qs = Garnishment.objects.filter(tenant=tenant).select_related('employee')
     search = request.GET.get('q', '').strip()
     if search:
         qs = qs.filter(
@@ -29,6 +29,10 @@ def garnishment_list(request, tenant_slug):
     status_filter = request.GET.get('status', '')
     if status_filter:
         qs = qs.filter(status=status_filter)
+
+    type_filter = request.GET.get('garnishment_type', '')
+    if type_filter:
+        qs = qs.filter(garnishment_type=type_filter)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
