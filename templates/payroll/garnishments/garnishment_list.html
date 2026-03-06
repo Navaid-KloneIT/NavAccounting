@@ -25,19 +25,34 @@
     </div>
     <div class="card-body">
         <form method="get" class="row g-2 mb-3">
-            <div class="col-md-4">
-                <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" placeholder="Search employee, case number...">
-            </div>
             <div class="col-md-3">
-                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Employee, case #...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
                     <option value="">All Status</option>
                     <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
                     <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
                     <option value="suspended" {% if request.GET.status == 'suspended' %}selected{% endif %}>Suspended</option>
                 </select>
             </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line"></i></button>
+            <div class="col-md-2">
+                <select name="garnishment_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    <option value="child_support" {% if request.GET.garnishment_type == 'child_support' %}selected{% endif %}>Child Support</option>
+                    <option value="tax_levy" {% if request.GET.garnishment_type == 'tax_levy' %}selected{% endif %}>Tax Levy</option>
+                    <option value="student_loan" {% if request.GET.garnishment_type == 'student_loan' %}selected{% endif %}>Student Loan</option>
+                    <option value="creditor" {% if request.GET.garnishment_type == 'creditor' %}selected{% endif %}>Creditor</option>
+                    <option value="bankruptcy" {% if request.GET.garnishment_type == 'bankruptcy' %}selected{% endif %}>Bankruptcy</option>
+                    <option value="other" {% if request.GET.garnishment_type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line me-1"></i>Filter</button>
+                <a href="{% url 'payroll:garnishment_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light">Reset</a>
             </div>
         </form>
 
