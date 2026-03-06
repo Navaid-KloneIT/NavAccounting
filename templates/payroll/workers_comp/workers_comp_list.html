@@ -27,6 +27,26 @@
         </div>
     </div>
     <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Code or name...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line me-1"></i>Filter</button>
+                <a href="{% url 'payroll:comp_class_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light">Reset</a>
+            </div>
+        </form>
+
         {% if classes %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
