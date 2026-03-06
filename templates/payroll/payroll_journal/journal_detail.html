@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ journal.journal_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ journal.journal_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:journal_list' tenant_slug=current_tenant.slug %}">Journals</a></li>
+            <li class="breadcrumb-item active">Detail</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="mb-3">
+    {% if journal.status == 'draft' or journal.status == 'calculated' %}
+    <a href="{% url 'payroll:journal_calculate' tenant_slug=current_tenant.slug pk=journal.pk %}" class="btn btn-warning"><i class="ri-calculator-line me-1"></i>Calculate</a>
+    {% endif %}
+    {% if journal.status == 'calculated' %}
+    <a href="{% url 'payroll:journal_approve' tenant_slug=current_tenant.slug pk=journal.pk %}" class="btn btn-info"><i class="ri-check-line me-1"></i>Approve</a>
+    {% endif %}
+    {% if journal.status == 'approved' %}
+    <a href="{% url 'payroll:journal_post' tenant_slug=current_tenant.slug pk=journal.pk %}" class="btn btn-success"><i class="ri-send-plane-line me-1"></i>Post to GL</a>
+    {% endif %}
+</div>
+
+<!-- Summary Card -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Status</p>
+                {% if journal.status == 'posted' %}
+                    <span class="badge bg-soft-success text-success fs-6">Posted</span>
+                {% elif journal.status == 'approved' %}
+                    <span class="badge bg-soft-info text-info fs-6">Approved</span>
+                {% elif journal.status == 'calculated' %}
+                    <span class="badge bg-soft-warning text-warning fs-6">Calculated</span>
+                {% else %}
+                    <span class="badge bg-soft-secondary text-secondary fs-6">Draft</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Total Gross</p>
+                <h4>{{ journal.total_gross|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Total Deductions</p>
+                <h4>{{ journal.total_deductions|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Total Net</p>
+                <h4 class="text-success">{{ journal.total_net|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Journal Info -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Journal Details</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Pay Period</dt>
+                    <dd class="col-sm-7">{{ journal.pay_period_start }} to {{ journal.pay_period_end }}</dd>
+                    <dt class="col-sm-5 text-muted">Pay Date</dt>
+                    <dd class="col-sm-7">{{ journal.pay_date }}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Fiscal Period</dt>
+                    <dd class="col-sm-7">{{ journal.fiscal_period|default:"-" }}</dd>
+                    <dt class="col-sm-5 text-muted">GL Entry</dt>
+                    <dd class="col-sm-7">{{ journal.gl_journal_entry|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Items -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Employee Pay Details</h5>
+    </div>
+    <div class="card-body">
+        {% if lines %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th class="text-end">Gross</th>
+                        <th class="text-end">Fed Tax</th>
+                        <th class="text-end">State Tax</th>
+                        <th class="text-end">SS</th>
+                        <th class="text-end">Medicare</th>
+                        <th class="text-end">Benefits</th>
+                        <th class="text-end">Garnish.</th>
+                        <th class="text-end">Net Pay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in lines %}
+                    <tr>
+                        <td>{{ line.employee.full_name }}</td>
+                        <td class="text-end">{{ line.gross_pay|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.federal_tax|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.state_tax|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.social_security|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.medicare|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.benefits_deduction|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ line.garnishment_deduction|floatformat:2|intcomma }}</td>
+                        <td class="text-end fw-semibold">{{ line.net_pay|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No employee lines.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
