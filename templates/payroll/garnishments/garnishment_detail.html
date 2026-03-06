@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Garnishment - {{ garnishment.employee.full_name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Garnishment - {{ garnishment.employee.full_name }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:garnishment_list' tenant_slug=current_tenant.slug %}">Garnishments</a></li>
+            <li class="breadcrumb-item active">Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Garnishment Details</h5>
+        <a href="{% url 'payroll:garnishment_edit' tenant_slug=current_tenant.slug pk=garnishment.pk %}" class="btn btn-sm btn-soft-primary"><i class="ri-pencil-line me-1"></i>Edit</a>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Employee</dt>
+                    <dd class="col-sm-7">{{ garnishment.employee.full_name }}</dd>
+                    <dt class="col-sm-5 text-muted">Type</dt>
+                    <dd class="col-sm-7"><span class="badge bg-soft-secondary text-secondary">{{ garnishment.get_garnishment_type_display }}</span></dd>
+                    <dt class="col-sm-5 text-muted">Case Number</dt>
+                    <dd class="col-sm-7">{{ garnishment.case_number|default:"-" }}</dd>
+                    <dt class="col-sm-5 text-muted">Issuing Authority</dt>
+                    <dd class="col-sm-7">{{ garnishment.issuing_authority|default:"-" }}</dd>
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if garnishment.status == 'active' %}
+                            <span class="badge bg-soft-success text-success">Active</span>
+                        {% elif garnishment.status == 'completed' %}
+                            <span class="badge bg-soft-info text-info">Completed</span>
+                        {% else %}
+                            <span class="badge bg-soft-warning text-warning">Suspended</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Amount</dt>
+                    <dd class="col-sm-7">{{ garnishment.amount|floatformat:2|intcomma }}{% if garnishment.is_percentage %}%{% endif %}</dd>
+                    <dt class="col-sm-5 text-muted">Priority</dt>
+                    <dd class="col-sm-7">{{ garnishment.priority }}</dd>
+                    <dt class="col-sm-5 text-muted">Total Required</dt>
+                    <dd class="col-sm-7">{{ garnishment.total_required|floatformat:2|intcomma }}</dd>
+                    <dt class="col-sm-5 text-muted">Total Paid</dt>
+                    <dd class="col-sm-7">{{ garnishment.total_paid|floatformat:2|intcomma }}</dd>
+                    <dt class="col-sm-5 text-muted">Remaining</dt>
+                    <dd class="col-sm-7 fw-semibold">{{ garnishment.remaining_balance|floatformat:2|intcomma }}</dd>
+                </dl>
+            </div>
+        </div>
+        {% if garnishment.total_required > 0 %}
+        <div class="mt-3">
+            <div class="progress" style="height: 20px;">
+                {% widthratio garnishment.total_paid garnishment.total_required 100 as pct %}
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ pct }}%" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">{{ pct }}%</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if garnishment.notes %}
+        <hr>
+        <p class="text-muted mb-0">{{ garnishment.notes }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
