@@ -10,6 +10,7 @@ Usage:
     python manage.py seed_data --coa        # Seed chart of accounts
     python manage.py seed_data --dashboard  # Seed dashboard data
     python manage.py seed_data --ic         # Seed inventory & cost management
+    python manage.py seed_data --pr         # Seed payroll integration
 """
 import random
 from datetime import date, timedelta
@@ -52,6 +53,7 @@ class Command(BaseCommand):
         parser.add_argument('--cm', action='store_true', help='Seed cash management data only')
         parser.add_argument('--fa', action='store_true', help='Seed fixed assets data only')
         parser.add_argument('--ic', action='store_true', help='Seed inventory & cost management data only')
+        parser.add_argument('--pr', action='store_true', help='Seed payroll integration data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -62,6 +64,7 @@ class Command(BaseCommand):
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
+            options['pr'],
         ])
 
         # Always seed system-level data
@@ -114,9 +117,35 @@ class Command(BaseCommand):
             self.stdout.write('Seeding inventory & cost management data...')
             self._seed_ic_data()
 
+        if seed_all or options['pr']:
+            self.stdout.write('Seeding payroll integration data...')
+            self._seed_pr_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean PR (Payroll) data first
+        try:
+            from apps.payroll.models import (
+                PayrollReconciliation, WorkersCompAssignment, WorkersCompClass,
+                Garnishment, EmployeeBenefit, BenefitPlan,
+                TaxRemittance, TaxWithholding, PayrollJournalLine,
+                PayrollJournal, Employee,
+            )
+            PayrollReconciliation.unscoped.all().delete()
+            WorkersCompAssignment.objects.all().delete()
+            WorkersCompClass.unscoped.all().delete()
+            Garnishment.unscoped.all().delete()
+            EmployeeBenefit.objects.all().delete()
+            BenefitPlan.unscoped.all().delete()
+            TaxRemittance.unscoped.all().delete()
+            TaxWithholding.unscoped.all().delete()
+            PayrollJournalLine.objects.all().delete()
+            PayrollJournal.unscoped.all().delete()
+            Employee.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean IC data first (depends on AP vendors and GL accounts)
         try:
             from apps.inventory.models import (
@@ -3644,4 +3673,649 @@ class Command(BaseCommand):
             f'  Created IC data (categories, UoMs, items, warehouses, cost layers, '
             f'requisitions, POs, receipts, transactions, transfers, COGS, '
             f'reorder suggestions, cycle counts, landed cost vouchers)'
+        )
+
+    # =================================================================
+    # PAYROLL INTEGRATION
+    # =================================================================
+
+    def _seed_pr_data(self):
+        """Seed payroll integration sample data."""
+        from apps.payroll.models import (
+            Employee, PayrollJournal, PayrollJournalLine,
+            TaxWithholding, TaxRemittance,
+            BenefitPlan, EmployeeBenefit,
+            Garnishment,
+            WorkersCompClass, WorkersCompAssignment,
+            PayrollReconciliation,
+        )
+        from apps.general_ledger.models import Account
+        from apps.tenants.managers import set_current_tenant
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found. Skipping PR seeding.')
+            return
+
+        for tenant in tenants:
+            set_current_tenant(tenant)
+
+            # Get GL accounts — need expense and liability accounts
+            expense_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['EXP', 'EXPENSE', 'OE']
+            )[:10])
+            liability_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['CL', 'LIA', 'LIABILITY', 'NCL']
+            )[:5])
+
+            # Fallback: use any non-header accounts
+            all_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False
+            )[:15])
+            if len(expense_accounts) < 3:
+                expense_accounts = all_accounts[:8]
+            if len(liability_accounts) < 2:
+                liability_accounts = all_accounts[8:12] if len(all_accounts) > 8 else all_accounts[:4]
+
+            if len(expense_accounts) < 2 or len(liability_accounts) < 1:
+                self.stdout.write(f'  Skipping PR for {tenant.name}: not enough GL accounts.')
+                continue
+
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
+                continue
+
+            fiscal_period = FiscalPeriod.unscoped.filter(tenant=tenant).first()
+
+            # =============================================================
+            # 1. Employees
+            # =============================================================
+            employees_data = [
+                {
+                    'first_name': 'John', 'last_name': 'Martinez',
+                    'email': 'john.martinez@company.com', 'phone': '555-0101',
+                    'department': 'Engineering', 'position': 'Senior Developer',
+                    'pay_type': 'salary', 'pay_rate': Decimal('95000.00'),
+                    'pay_frequency': 'biweekly', 'filing_status': 'married',
+                    'federal_allowances': 3, 'state_allowances': 2,
+                    'hire_days_ago': 730,
+                },
+                {
+                    'first_name': 'Sarah', 'last_name': 'Chen',
+                    'email': 'sarah.chen@company.com', 'phone': '555-0102',
+                    'department': 'Finance', 'position': 'Controller',
+                    'pay_type': 'salary', 'pay_rate': Decimal('110000.00'),
+                    'pay_frequency': 'semimonthly', 'filing_status': 'single',
+                    'federal_allowances': 1, 'state_allowances': 1,
+                    'hire_days_ago': 1095,
+                },
+                {
+                    'first_name': 'Michael', 'last_name': 'Johnson',
+                    'email': 'michael.johnson@company.com', 'phone': '555-0103',
+                    'department': 'Operations', 'position': 'Warehouse Manager',
+                    'pay_type': 'salary', 'pay_rate': Decimal('72000.00'),
+                    'pay_frequency': 'biweekly', 'filing_status': 'married',
+                    'federal_allowances': 4, 'state_allowances': 3,
+                    'hire_days_ago': 1460,
+                },
+                {
+                    'first_name': 'Emily', 'last_name': 'Davis',
+                    'email': 'emily.davis@company.com', 'phone': '555-0104',
+                    'department': 'Operations', 'position': 'Production Worker',
+                    'pay_type': 'hourly', 'pay_rate': Decimal('28.50'),
+                    'pay_frequency': 'weekly', 'filing_status': 'single',
+                    'federal_allowances': 1, 'state_allowances': 1,
+                    'hire_days_ago': 365,
+                },
+                {
+                    'first_name': 'Robert', 'last_name': 'Wilson',
+                    'email': 'robert.wilson@company.com', 'phone': '555-0105',
+                    'department': 'Sales', 'position': 'Sales Representative',
+                    'pay_type': 'salary', 'pay_rate': Decimal('65000.00'),
+                    'pay_frequency': 'biweekly', 'filing_status': 'head_of_household',
+                    'federal_allowances': 2, 'state_allowances': 2,
+                    'hire_days_ago': 545,
+                },
+                {
+                    'first_name': 'Lisa', 'last_name': 'Anderson',
+                    'email': 'lisa.anderson@company.com', 'phone': '555-0106',
+                    'department': 'Engineering', 'position': 'QA Engineer',
+                    'pay_type': 'salary', 'pay_rate': Decimal('82000.00'),
+                    'pay_frequency': 'biweekly', 'filing_status': 'married',
+                    'federal_allowances': 2, 'state_allowances': 2,
+                    'hire_days_ago': 900,
+                },
+                {
+                    'first_name': 'David', 'last_name': 'Brown',
+                    'email': 'david.brown@company.com', 'phone': '555-0107',
+                    'department': 'Operations', 'position': 'Maintenance Technician',
+                    'pay_type': 'hourly', 'pay_rate': Decimal('32.00'),
+                    'pay_frequency': 'weekly', 'filing_status': 'married',
+                    'federal_allowances': 3, 'state_allowances': 2,
+                    'hire_days_ago': 1200,
+                },
+                {
+                    'first_name': 'Jennifer', 'last_name': 'Taylor',
+                    'email': 'jennifer.taylor@company.com', 'phone': '555-0108',
+                    'department': 'HR', 'position': 'HR Manager',
+                    'pay_type': 'salary', 'pay_rate': Decimal('88000.00'),
+                    'pay_frequency': 'semimonthly', 'filing_status': 'single',
+                    'federal_allowances': 1, 'state_allowances': 1,
+                    'hire_days_ago': 600,
+                },
+            ]
+
+            employees = []
+            for ed in employees_data:
+                emp, _ = Employee.unscoped.get_or_create(
+                    tenant=tenant, email=ed['email'],
+                    defaults={
+                        'employee_number': Employee.generate_employee_number(tenant),
+                        'first_name': ed['first_name'],
+                        'last_name': ed['last_name'],
+                        'phone': ed['phone'],
+                        'department': ed['department'],
+                        'position': ed['position'],
+                        'hire_date': date.today() - timedelta(days=ed['hire_days_ago']),
+                        'pay_type': ed['pay_type'],
+                        'pay_rate': ed['pay_rate'],
+                        'pay_frequency': ed['pay_frequency'],
+                        'filing_status': ed['filing_status'],
+                        'federal_allowances': ed['federal_allowances'],
+                        'state_allowances': ed['state_allowances'],
+                        'gl_expense_account': expense_accounts[len(employees) % len(expense_accounts)],
+                        'is_active': True,
+                    }
+                )
+                employees.append(emp)
+
+            # =============================================================
+            # 2. Tax Withholdings (per employee)
+            # =============================================================
+            tax_configs = [
+                {'tax_type': 'federal', 'rate': Decimal('22.0000'), 'annual_limit': None, 'is_employer_paid': False},
+                {'tax_type': 'state', 'rate': Decimal('5.7500'), 'annual_limit': None, 'is_employer_paid': False},
+                {'tax_type': 'social_security', 'rate': Decimal('6.2000'), 'annual_limit': Decimal('168600.00'), 'is_employer_paid': False},
+                {'tax_type': 'medicare', 'rate': Decimal('1.4500'), 'annual_limit': None, 'is_employer_paid': False},
+                {'tax_type': 'futa', 'rate': Decimal('6.0000'), 'annual_limit': Decimal('7000.00'), 'is_employer_paid': True},
+                {'tax_type': 'suta', 'rate': Decimal('3.4000'), 'annual_limit': Decimal('35000.00'), 'is_employer_paid': True},
+            ]
+
+            for emp in employees:
+                for tc in tax_configs:
+                    TaxWithholding.unscoped.get_or_create(
+                        tenant=tenant, employee=emp, tax_type=tc['tax_type'],
+                        effective_date=emp.hire_date,
+                        defaults={
+                            'rate': tc['rate'],
+                            'ytd_amount': (emp.pay_rate * tc['rate'] / Decimal('100') * Decimal('0.15')).quantize(Decimal('0.01')),
+                            'annual_limit': tc['annual_limit'],
+                            'is_employer_paid': tc['is_employer_paid'],
+                        }
+                    )
+
+            # =============================================================
+            # 3. Benefit Plans
+            # =============================================================
+            benefit_plans_data = [
+                {
+                    'code': 'HEALTH-PPO', 'name': 'Health Insurance - PPO Plan',
+                    'benefit_type': 'health_insurance',
+                    'employer_contribution_type': 'fixed',
+                    'employer_contribution_amount': Decimal('450.00'),
+                    'employer_match_limit': None,
+                },
+                {
+                    'code': 'DENTAL-STD', 'name': 'Dental Insurance - Standard',
+                    'benefit_type': 'dental',
+                    'employer_contribution_type': 'fixed',
+                    'employer_contribution_amount': Decimal('75.00'),
+                    'employer_match_limit': None,
+                },
+                {
+                    'code': 'VISION-BAS', 'name': 'Vision Insurance - Basic',
+                    'benefit_type': 'vision',
+                    'employer_contribution_type': 'fixed',
+                    'employer_contribution_amount': Decimal('25.00'),
+                    'employer_match_limit': None,
+                },
+                {
+                    'code': '401K-MATCH', 'name': '401(k) Retirement Plan',
+                    'benefit_type': '401k',
+                    'employer_contribution_type': 'match',
+                    'employer_contribution_amount': Decimal('50.00'),
+                    'employer_match_limit': Decimal('500.00'),
+                },
+                {
+                    'code': 'LIFE-BASIC', 'name': 'Basic Life Insurance',
+                    'benefit_type': 'life',
+                    'employer_contribution_type': 'fixed',
+                    'employer_contribution_amount': Decimal('35.00'),
+                    'employer_match_limit': None,
+                },
+                {
+                    'code': 'HSA-PLAN', 'name': 'Health Savings Account',
+                    'benefit_type': 'hsa',
+                    'employer_contribution_type': 'fixed',
+                    'employer_contribution_amount': Decimal('100.00'),
+                    'employer_match_limit': None,
+                },
+            ]
+
+            benefit_plans = []
+            for i, bp in enumerate(benefit_plans_data):
+                plan, _ = BenefitPlan.unscoped.get_or_create(
+                    tenant=tenant, code=bp['code'],
+                    defaults={
+                        'name': bp['name'],
+                        'benefit_type': bp['benefit_type'],
+                        'employer_contribution_type': bp['employer_contribution_type'],
+                        'employer_contribution_amount': bp['employer_contribution_amount'],
+                        'employer_match_limit': bp['employer_match_limit'],
+                        'gl_expense_account': expense_accounts[min(i, len(expense_accounts) - 1)],
+                        'gl_liability_account': liability_accounts[min(i, len(liability_accounts) - 1)],
+                        'is_active': True,
+                    }
+                )
+                benefit_plans.append(plan)
+
+            # =============================================================
+            # 4. Employee Benefit Enrollments
+            # =============================================================
+            enrollment_map = {
+                0: [0, 1, 2, 3, 4, 5],     # John - all plans
+                1: [0, 1, 3, 4],            # Sarah - health, dental, 401k, life
+                2: [0, 1, 2, 3, 4],         # Michael - all except HSA
+                3: [0, 1, 4],               # Emily - health, dental, life
+                4: [0, 3, 4],               # Robert - health, 401k, life
+                5: [0, 1, 2, 3, 4, 5],     # Lisa - all plans
+                6: [0, 1, 4],               # David - health, dental, life
+                7: [0, 1, 3, 4, 5],         # Jennifer - health, dental, 401k, life, hsa
+            }
+
+            employee_contributions = {
+                'HEALTH-PPO': Decimal('150.00'),
+                'DENTAL-STD': Decimal('25.00'),
+                'VISION-BAS': Decimal('10.00'),
+                '401K-MATCH': Decimal('350.00'),
+                'LIFE-BASIC': Decimal('0.00'),
+                'HSA-PLAN': Decimal('75.00'),
+            }
+
+            for emp_idx, plan_indices in enrollment_map.items():
+                if emp_idx >= len(employees):
+                    continue
+                emp = employees[emp_idx]
+                for plan_idx in plan_indices:
+                    if plan_idx >= len(benefit_plans):
+                        continue
+                    plan = benefit_plans[plan_idx]
+                    EmployeeBenefit.objects.get_or_create(
+                        employee=emp, benefit_plan=plan,
+                        defaults={
+                            'employee_contribution': employee_contributions.get(plan.code, Decimal('0.00')),
+                            'enrollment_date': emp.hire_date + timedelta(days=30),
+                            'is_active': True,
+                        }
+                    )
+
+            # =============================================================
+            # 5. Garnishments
+            # =============================================================
+            garnishments_data = [
+                {
+                    'employee_idx': 2,  # Michael Johnson
+                    'garnishment_type': 'child_support',
+                    'case_number': 'CS-2024-04512',
+                    'description': 'Monthly child support per court order',
+                    'amount': Decimal('650.00'),
+                    'is_percentage': False,
+                    'max_percentage': Decimal('50.00'),
+                    'priority': 1,
+                    'total_required': Decimal('0.00'),
+                    'total_paid': Decimal('7800.00'),
+                    'status': 'active',
+                    'issuing_authority': 'County Family Court',
+                },
+                {
+                    'employee_idx': 4,  # Robert Wilson
+                    'garnishment_type': 'student_loan',
+                    'case_number': 'SL-2023-88741',
+                    'description': 'Federal student loan wage garnishment',
+                    'amount': Decimal('15.00'),
+                    'is_percentage': True,
+                    'max_percentage': Decimal('15.00'),
+                    'priority': 2,
+                    'total_required': Decimal('35000.00'),
+                    'total_paid': Decimal('4875.00'),
+                    'status': 'active',
+                    'issuing_authority': 'US Department of Education',
+                },
+                {
+                    'employee_idx': 6,  # David Brown
+                    'garnishment_type': 'tax_levy',
+                    'case_number': 'TL-2025-00198',
+                    'description': 'IRS tax levy for unpaid 2022 taxes',
+                    'amount': Decimal('500.00'),
+                    'is_percentage': False,
+                    'max_percentage': Decimal('25.00'),
+                    'priority': 1,
+                    'total_required': Decimal('8500.00'),
+                    'total_paid': Decimal('3000.00'),
+                    'status': 'active',
+                    'issuing_authority': 'Internal Revenue Service',
+                },
+            ]
+
+            for gd in garnishments_data:
+                if gd['employee_idx'] >= len(employees):
+                    continue
+                emp = employees[gd['employee_idx']]
+                Garnishment.unscoped.get_or_create(
+                    tenant=tenant, employee=emp, case_number=gd['case_number'],
+                    defaults={
+                        'garnishment_type': gd['garnishment_type'],
+                        'description': gd['description'],
+                        'amount': gd['amount'],
+                        'is_percentage': gd['is_percentage'],
+                        'max_percentage': gd['max_percentage'],
+                        'priority': gd['priority'],
+                        'start_date': date.today() - timedelta(days=180),
+                        'total_required': gd['total_required'],
+                        'total_paid': gd['total_paid'],
+                        'status': gd['status'],
+                        'issuing_authority': gd['issuing_authority'],
+                    }
+                )
+
+            # =============================================================
+            # 6. Workers Comp Classes
+            # =============================================================
+            comp_classes_data = [
+                {
+                    'code': 'WC-8810', 'name': 'Clerical Office Employees',
+                    'description': 'Standard office and clerical work',
+                    'rate': Decimal('0.3500'),
+                },
+                {
+                    'code': 'WC-8742', 'name': 'Sales Outside',
+                    'description': 'Outside sales representatives',
+                    'rate': Decimal('0.5200'),
+                },
+                {
+                    'code': 'WC-3632', 'name': 'Machine Shop',
+                    'description': 'Machine shop and manufacturing operations',
+                    'rate': Decimal('3.7500'),
+                },
+                {
+                    'code': 'WC-7380', 'name': 'Drivers',
+                    'description': 'Delivery and transport drivers',
+                    'rate': Decimal('5.2000'),
+                },
+                {
+                    'code': 'WC-5606', 'name': 'Contractors - Executive',
+                    'description': 'Executive supervisors for construction/contractors',
+                    'rate': Decimal('2.1000'),
+                },
+            ]
+
+            comp_classes = []
+            for i, cc in enumerate(comp_classes_data):
+                comp_cls, _ = WorkersCompClass.unscoped.get_or_create(
+                    tenant=tenant, code=cc['code'],
+                    defaults={
+                        'name': cc['name'],
+                        'description': cc['description'],
+                        'rate': cc['rate'],
+                        'effective_date': date(date.today().year, 1, 1),
+                        'gl_expense_account': expense_accounts[min(i, len(expense_accounts) - 1)],
+                        'is_active': True,
+                    }
+                )
+                comp_classes.append(comp_cls)
+
+            # =============================================================
+            # 7. Workers Comp Assignments
+            # =============================================================
+            # Map: employee index -> comp class index
+            wc_assignments = {
+                0: 0,   # John (Engineering) -> Clerical
+                1: 0,   # Sarah (Finance) -> Clerical
+                2: 2,   # Michael (Operations/Warehouse) -> Machine Shop
+                3: 2,   # Emily (Operations/Production) -> Machine Shop
+                4: 1,   # Robert (Sales) -> Sales Outside
+                5: 0,   # Lisa (Engineering) -> Clerical
+                6: 2,   # David (Operations/Maintenance) -> Machine Shop
+                7: 0,   # Jennifer (HR) -> Clerical
+            }
+
+            for emp_idx, cc_idx in wc_assignments.items():
+                if emp_idx >= len(employees) or cc_idx >= len(comp_classes):
+                    continue
+                WorkersCompAssignment.objects.get_or_create(
+                    employee=employees[emp_idx],
+                    comp_class=comp_classes[cc_idx],
+                    effective_date=employees[emp_idx].hire_date,
+                )
+
+            # =============================================================
+            # 8. Payroll Journals (3 pay runs)
+            # =============================================================
+            journals = []
+            payroll_runs = [
+                {
+                    'days_ago_start': 42, 'days_ago_end': 29, 'days_ago_pay': 26,
+                    'status': 'posted',
+                },
+                {
+                    'days_ago_start': 28, 'days_ago_end': 15, 'days_ago_pay': 12,
+                    'status': 'posted',
+                },
+                {
+                    'days_ago_start': 14, 'days_ago_end': 1, 'days_ago_pay': 0,
+                    'status': 'calculated',
+                },
+            ]
+
+            for pr_data in payroll_runs:
+                jnum = PayrollJournal.generate_journal_number(tenant)
+                journal, j_created = PayrollJournal.unscoped.get_or_create(
+                    tenant=tenant, journal_number=jnum,
+                    defaults={
+                        'pay_period_start': date.today() - timedelta(days=pr_data['days_ago_start']),
+                        'pay_period_end': date.today() - timedelta(days=pr_data['days_ago_end']),
+                        'pay_date': date.today() - timedelta(days=pr_data['days_ago_pay']),
+                        'status': pr_data['status'],
+                        'fiscal_period': fiscal_period,
+                        'created_by': users[0],
+                        'notes': f'Bi-weekly payroll run',
+                    }
+                )
+                journals.append((journal, j_created))
+
+            # =============================================================
+            # 9. Payroll Journal Lines (employee pay details)
+            # =============================================================
+            for journal, j_created in journals:
+                if not j_created:
+                    continue
+
+                total_gross = Decimal('0.00')
+                total_deductions = Decimal('0.00')
+                total_net = Decimal('0.00')
+
+                for emp in employees:
+                    # Calculate gross pay
+                    if emp.pay_type == 'hourly':
+                        regular_hours = Decimal('80.00')  # 2-week period
+                        overtime_hours = Decimal(str(random.choice([0, 0, 4, 6, 8])))
+                        gross = regular_hours * emp.pay_rate
+                        ot_pay = overtime_hours * emp.pay_rate * Decimal('1.50')
+                    else:
+                        regular_hours = Decimal('80.00')
+                        overtime_hours = Decimal('0.00')
+                        if emp.pay_frequency == 'biweekly':
+                            gross = (emp.pay_rate / Decimal('26')).quantize(Decimal('0.01'))
+                        elif emp.pay_frequency == 'semimonthly':
+                            gross = (emp.pay_rate / Decimal('24')).quantize(Decimal('0.01'))
+                        elif emp.pay_frequency == 'weekly':
+                            gross = (emp.pay_rate / Decimal('52')).quantize(Decimal('0.01'))
+                        else:
+                            gross = (emp.pay_rate / Decimal('12')).quantize(Decimal('0.01'))
+                        ot_pay = Decimal('0.00')
+
+                    total_gross_pay = gross + ot_pay
+
+                    # Tax calculations
+                    fed_tax = (total_gross_pay * Decimal('0.22')).quantize(Decimal('0.01'))
+                    state_tax = (total_gross_pay * Decimal('0.0575')).quantize(Decimal('0.01'))
+                    local_tax = (total_gross_pay * Decimal('0.01')).quantize(Decimal('0.01'))
+                    ss_tax = (total_gross_pay * Decimal('0.062')).quantize(Decimal('0.01'))
+                    med_tax = (total_gross_pay * Decimal('0.0145')).quantize(Decimal('0.01'))
+
+                    # Benefits deductions (from employee contribution)
+                    benefits_ded = Decimal('0.00')
+                    for eb in EmployeeBenefit.objects.filter(employee=emp, is_active=True):
+                        benefits_ded += eb.employee_contribution
+
+                    # Garnishment deductions
+                    garn_ded = Decimal('0.00')
+                    for g in Garnishment.unscoped.filter(tenant=tenant, employee=emp, status='active'):
+                        if g.is_percentage:
+                            garn_ded += (total_gross_pay * g.amount / Decimal('100')).quantize(Decimal('0.01'))
+                        else:
+                            garn_ded += g.amount
+
+                    total_ded = fed_tax + state_tax + local_tax + ss_tax + med_tax + benefits_ded + garn_ded
+                    net = total_gross_pay - total_ded
+
+                    PayrollJournalLine.objects.create(
+                        payroll_journal=journal,
+                        employee=emp,
+                        regular_hours=regular_hours,
+                        overtime_hours=overtime_hours,
+                        gross_pay=total_gross_pay,
+                        overtime_pay=ot_pay,
+                        federal_tax=fed_tax,
+                        state_tax=state_tax,
+                        local_tax=local_tax,
+                        social_security=ss_tax,
+                        medicare=med_tax,
+                        benefits_deduction=benefits_ded,
+                        garnishment_deduction=garn_ded,
+                        other_deductions=Decimal('0.00'),
+                        total_deductions=total_ded,
+                        net_pay=net,
+                    )
+
+                    total_gross += total_gross_pay
+                    total_deductions += total_ded
+                    total_net += net
+
+                # Update journal totals
+                journal.total_gross = total_gross
+                journal.total_deductions = total_deductions
+                journal.total_net = total_net
+                journal.save()
+
+            # =============================================================
+            # 10. Tax Remittances
+            # =============================================================
+            remittance_data = [
+                {
+                    'tax_type': 'federal',
+                    'period_start_ago': 60, 'period_end_ago': 31,
+                    'amount': Decimal('12500.00'),
+                    'status': 'paid', 'days_ago_due': 15, 'paid': True,
+                },
+                {
+                    'tax_type': 'state',
+                    'period_start_ago': 60, 'period_end_ago': 31,
+                    'amount': Decimal('3250.00'),
+                    'status': 'paid', 'days_ago_due': 15, 'paid': True,
+                },
+                {
+                    'tax_type': 'social_security',
+                    'period_start_ago': 60, 'period_end_ago': 31,
+                    'amount': Decimal('5100.00'),
+                    'status': 'paid', 'days_ago_due': 15, 'paid': True,
+                },
+                {
+                    'tax_type': 'federal',
+                    'period_start_ago': 30, 'period_end_ago': 1,
+                    'amount': Decimal('13200.00'),
+                    'status': 'pending', 'days_ago_due': -10, 'paid': False,
+                },
+                {
+                    'tax_type': 'state',
+                    'period_start_ago': 30, 'period_end_ago': 1,
+                    'amount': Decimal('3400.00'),
+                    'status': 'pending', 'days_ago_due': -10, 'paid': False,
+                },
+                {
+                    'tax_type': 'futa',
+                    'period_start_ago': 90, 'period_end_ago': 1,
+                    'amount': Decimal('1680.00'),
+                    'status': 'overdue', 'days_ago_due': 5, 'paid': False,
+                },
+            ]
+
+            for rd in remittance_data:
+                rnum = TaxRemittance.generate_remittance_number(tenant)
+                TaxRemittance.unscoped.get_or_create(
+                    tenant=tenant, remittance_number=rnum,
+                    defaults={
+                        'tax_type': rd['tax_type'],
+                        'period_start': date.today() - timedelta(days=rd['period_start_ago']),
+                        'period_end': date.today() - timedelta(days=rd['period_end_ago']),
+                        'amount_due': rd['amount'],
+                        'amount_paid': rd['amount'] if rd['paid'] else Decimal('0.00'),
+                        'due_date': date.today() - timedelta(days=rd['days_ago_due']),
+                        'paid_date': (date.today() - timedelta(days=rd['days_ago_due'] + 2)) if rd['paid'] else None,
+                        'status': rd['status'],
+                    }
+                )
+
+            # =============================================================
+            # 11. Payroll Reconciliations (for posted journals)
+            # =============================================================
+            for journal, j_created in journals:
+                if journal.status != 'posted':
+                    continue
+
+                lines = journal.lines.all()
+                t_gross = sum(l.gross_pay for l in lines)
+                t_taxes = sum(
+                    l.federal_tax + l.state_tax + l.local_tax + l.social_security + l.medicare
+                    for l in lines
+                )
+                t_benefits = sum(l.benefits_deduction for l in lines)
+                t_garnishments = sum(l.garnishment_deduction for l in lines)
+                t_net = sum(l.net_pay for l in lines)
+                variance = t_gross - t_taxes - t_benefits - t_garnishments - t_net
+
+                rnum = PayrollReconciliation.generate_reconciliation_number(tenant)
+                PayrollReconciliation.unscoped.get_or_create(
+                    tenant=tenant, reconciliation_number=rnum,
+                    defaults={
+                        'payroll_journal': journal,
+                        'reconciliation_date': journal.pay_date + timedelta(days=1),
+                        'total_gross': t_gross,
+                        'total_taxes': t_taxes,
+                        'total_benefits': t_benefits,
+                        'total_garnishments': t_garnishments,
+                        'total_net': t_net,
+                        'variance_amount': variance,
+                        'status': 'reconciled' if variance == Decimal('0.00') else 'exception',
+                        'reconciled_by': users[0],
+                        'notes': 'Auto-generated reconciliation from seed data.',
+                    }
+                )
+
+        self.stdout.write(
+            f'  Created PR data (employees, tax withholdings, benefit plans, '
+            f'enrollments, garnishments, workers comp classes & assignments, '
+            f'payroll journals with lines, tax remittances, reconciliations)'
         )
