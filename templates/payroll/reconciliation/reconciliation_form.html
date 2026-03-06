@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New Reconciliation{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New Payroll Reconciliation</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:reconciliation_list' tenant_slug=current_tenant.slug %}">Reconciliation</a></li>
+            <li class="breadcrumb-item active">New</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Payroll Journal <span class="text-danger">*</span></label>
+                    {{ form.payroll_journal }}
+                    {% if form.payroll_journal.errors %}<div class="text-danger small">{{ form.payroll_journal.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Reconciliation Date <span class="text-danger">*</span></label>
+                    {{ form.reconciliation_date }}
+                    {% if form.reconciliation_date.errors %}<div class="text-danger small">{{ form.reconciliation_date.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-equalizer-line me-1"></i>Run Reconciliation</button>
+                <a href="{% url 'payroll:reconciliation_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
