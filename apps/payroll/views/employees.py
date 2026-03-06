@@ -33,6 +33,19 @@ def employee_list(request, tenant_slug):
     elif status_filter == 'inactive':
         qs = qs.filter(is_active=False)
 
+    department_filter = request.GET.get('department', '')
+    if department_filter:
+        qs = qs.filter(department=department_filter)
+
+    pay_type_filter = request.GET.get('pay_type', '')
+    if pay_type_filter:
+        qs = qs.filter(pay_type=pay_type_filter)
+
+    # Get distinct departments for filter dropdown
+    departments = Employee.objects.filter(
+        tenant=tenant
+    ).exclude(department='').values_list('department', flat=True).distinct().order_by('department')
+
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
@@ -40,6 +53,7 @@ def employee_list(request, tenant_slug):
         'employees': page_obj,
         'page_obj': page_obj,
         'total_count': qs.count(),
+        'departments': departments,
     })
 
 
