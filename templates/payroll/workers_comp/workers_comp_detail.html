@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ comp_class.code }} - {{ comp_class.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ comp_class.code }} - {{ comp_class.name }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:comp_class_list' tenant_slug=current_tenant.slug %}">Workers Comp</a></li>
+            <li class="breadcrumb-item active">Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Class Details</h5>
+        <a href="{% url 'payroll:comp_class_edit' tenant_slug=current_tenant.slug pk=comp_class.pk %}" class="btn btn-sm btn-soft-primary"><i class="ri-pencil-line me-1"></i>Edit</a>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Code</dt>
+                    <dd class="col-sm-7"><strong>{{ comp_class.code }}</strong></dd>
+                    <dt class="col-sm-5 text-muted">Name</dt>
+                    <dd class="col-sm-7">{{ comp_class.name }}</dd>
+                    <dt class="col-sm-5 text-muted">Rate</dt>
+                    <dd class="col-sm-7">{{ comp_class.rate|floatformat:4 }} per $100</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Effective</dt>
+                    <dd class="col-sm-7">{{ comp_class.effective_date }}</dd>
+                    <dt class="col-sm-5 text-muted">End Date</dt>
+                    <dd class="col-sm-7">{{ comp_class.end_date|default:"-" }}</dd>
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if comp_class.is_active %}<span class="badge bg-soft-success text-success">Active</span>
+                        {% else %}<span class="badge bg-soft-danger text-danger">Inactive</span>{% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Assigned Employees</h5>
+        <a href="{% url 'payroll:assignment_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-user-add-line me-1"></i>Assign</a>
+    </div>
+    <div class="card-body">
+        {% if assignments %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Effective Date</th>
+                        <th>End Date</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assignments %}
+                    <tr>
+                        <td>{{ a.employee.full_name }}</td>
+                        <td>{{ a.effective_date }}</td>
+                        <td>{{ a.end_date|default:"-" }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'payroll:assignment_edit' tenant_slug=current_tenant.slug pk=a.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No employees assigned to this class.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
