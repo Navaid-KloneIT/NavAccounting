@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Employee{% else %}New Employee{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Employee - {{ employee.employee_number }}{% else %}New Employee{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:employee_list' tenant_slug=current_tenant.slug %}">Employees</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <h6 class="text-uppercase text-muted mb-3">Personal Information</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">First Name <span class="text-danger">*</span></label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Phone</label>
+                    {{ form.phone }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Department</label>
+                    {{ form.department }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Position</label>
+                    {{ form.position }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Hire Date <span class="text-danger">*</span></label>
+                    {{ form.hire_date }}
+                    {% if form.hire_date.errors %}<div class="text-danger small">{{ form.hire_date.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Termination Date</label>
+                    {{ form.termination_date }}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Compensation</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pay Type <span class="text-danger">*</span></label>
+                    {{ form.pay_type }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pay Rate <span class="text-danger">*</span></label>
+                    {{ form.pay_rate }}
+                    {% if form.pay_rate.errors %}<div class="text-danger small">{{ form.pay_rate.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pay Frequency <span class="text-danger">*</span></label>
+                    {{ form.pay_frequency }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">GL Expense Account <span class="text-danger">*</span></label>
+                    {{ form.gl_expense_account }}
+                    {% if form.gl_expense_account.errors %}<div class="text-danger small">{{ form.gl_expense_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Tax Filing</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Filing Status</label>
+                    {{ form.filing_status }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Federal Allowances</label>
+                    {{ form.federal_allowances }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">State Allowances</label>
+                    {{ form.state_allowances }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Employee{% endif %}</button>
+                <a href="{% url 'payroll:employee_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
