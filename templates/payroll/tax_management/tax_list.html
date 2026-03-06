@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Tax Withholdings{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Tax Withholdings</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Payroll</li>
+            <li class="breadcrumb-item active">Tax Withholdings</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Tax Withholdings ({{ total_count }})</h5>
+        <a href="{% url 'payroll:tax_withholding_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Withholding</a>
+    </div>
+    <div class="card-body">
+        {% if withholdings %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Tax Type</th>
+                        <th class="text-end">Rate (%)</th>
+                        <th class="text-end">YTD Amount</th>
+                        <th class="text-end">Annual Limit</th>
+                        <th>Employer Paid</th>
+                        <th>Effective</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tw in withholdings %}
+                    <tr>
+                        <td>{{ tw.employee.full_name }}</td>
+                        <td>{{ tw.get_tax_type_display }}</td>
+                        <td class="text-end">{{ tw.rate|floatformat:4 }}%</td>
+                        <td class="text-end">{{ tw.ytd_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ tw.annual_limit|floatformat:2|intcomma|default:"-" }}</td>
+                        <td>{% if tw.is_employer_paid %}<span class="badge bg-soft-info text-info">Yes</span>{% else %}-{% endif %}</td>
+                        <td>{{ tw.effective_date }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'payroll:tax_withholding_edit' tenant_slug=current_tenant.slug pk=tw.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-government-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No tax withholdings found.</p>
+            <a href="{% url 'payroll:tax_withholding_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Add Withholding</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
