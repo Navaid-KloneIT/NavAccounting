@@ -24,6 +24,39 @@
         <a href="{% url 'payroll:remittance_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Remittance</a>
     </div>
     <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Remittance #...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="paid" {% if request.GET.status == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="overdue" {% if request.GET.status == 'overdue' %}selected{% endif %}>Overdue</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="tax_type" class="form-select form-select-sm">
+                    <option value="">All Tax Types</option>
+                    <option value="federal" {% if request.GET.tax_type == 'federal' %}selected{% endif %}>Federal Income</option>
+                    <option value="state" {% if request.GET.tax_type == 'state' %}selected{% endif %}>State Income</option>
+                    <option value="local" {% if request.GET.tax_type == 'local' %}selected{% endif %}>Local Income</option>
+                    <option value="social_security" {% if request.GET.tax_type == 'social_security' %}selected{% endif %}>Social Security</option>
+                    <option value="medicare" {% if request.GET.tax_type == 'medicare' %}selected{% endif %}>Medicare</option>
+                    <option value="futa" {% if request.GET.tax_type == 'futa' %}selected{% endif %}>FUTA</option>
+                    <option value="suta" {% if request.GET.tax_type == 'suta' %}selected{% endif %}>SUTA</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line me-1"></i>Filter</button>
+                <a href="{% url 'payroll:remittance_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light">Reset</a>
+            </div>
+        </form>
+
         {% if remittances %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
