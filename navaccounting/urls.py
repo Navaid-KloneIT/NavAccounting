@@ -24,6 +24,7 @@ urlpatterns = [
         path('cm/', include('apps.cash_management.urls')),
         path('fa/', include('apps.fixed_assets.urls')),
         path('ic/', include('apps.inventory.urls')),
+        path('pr/', include('apps.payroll.urls')),
     ])),
 
     # Vendor Portal (outside tenant scope, token-based auth)
