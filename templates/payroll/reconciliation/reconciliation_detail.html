@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ recon.reconciliation_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ recon.reconciliation_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:reconciliation_list' tenant_slug=current_tenant.slug %}">Reconciliation</a></li>
+            <li class="breadcrumb-item active">Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Status</p>
+                {% if recon.status == 'reconciled' %}
+                    <span class="badge bg-soft-success text-success fs-6">Reconciled</span>
+                {% elif recon.status == 'exception' %}
+                    <span class="badge bg-soft-danger text-danger fs-6">Exception</span>
+                {% else %}
+                    <span class="badge bg-soft-secondary text-secondary fs-6">Draft</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Total Gross</p>
+                <h4>{{ recon.total_gross|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Total Net</p>
+                <h4>{{ recon.total_net|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">Variance</p>
+                <h4 class="{% if recon.variance_amount != 0 %}text-danger{% else %}text-success{% endif %}">{{ recon.variance_amount|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Reconciliation Breakdown</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Payroll Journal</dt>
+                    <dd class="col-sm-7">
+                        <a href="{% url 'payroll:journal_detail' tenant_slug=current_tenant.slug pk=recon.payroll_journal.pk %}">
+                            {{ recon.payroll_journal.journal_number }}
+                        </a>
+                    </dd>
+                    <dt class="col-sm-5 text-muted">Recon Date</dt>
+                    <dd class="col-sm-7">{{ recon.reconciliation_date }}</dd>
+                    <dt class="col-sm-5 text-muted">Reconciled By</dt>
+                    <dd class="col-sm-7">{{ recon.reconciled_by|default:"-" }}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">Total Gross Pay</td>
+                        <td class="text-end fw-semibold">{{ recon.total_gross|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Less: Taxes</td>
+                        <td class="text-end text-danger">-{{ recon.total_taxes|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Less: Benefits</td>
+                        <td class="text-end text-danger">-{{ recon.total_benefits|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Less: Garnishments</td>
+                        <td class="text-end text-danger">-{{ recon.total_garnishments|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr class="border-top">
+                        <td class="fw-semibold">Total Net Pay</td>
+                        <td class="text-end fw-bold">{{ recon.total_net|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold {% if recon.variance_amount != 0 %}text-danger{% endif %}">Variance</td>
+                        <td class="text-end fw-bold {% if recon.variance_amount != 0 %}text-danger{% endif %}">{{ recon.variance_amount|floatformat:2|intcomma }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        {% if recon.notes %}
+        <hr>
+        <p class="text-muted mb-0">{{ recon.notes }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
