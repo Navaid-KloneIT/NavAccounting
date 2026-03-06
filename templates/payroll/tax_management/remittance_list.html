@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Tax Remittances{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Tax Remittances</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Payroll</li>
+            <li class="breadcrumb-item active">Remittances</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Tax Remittances ({{ total_count }})</h5>
+        <a href="{% url 'payroll:remittance_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Remittance</a>
+    </div>
+    <div class="card-body">
+        {% if remittances %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Remittance #</th>
+                        <th>Tax Type</th>
+                        <th>Period</th>
+                        <th class="text-end">Amount Due</th>
+                        <th class="text-end">Amount Paid</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in remittances %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'payroll:remittance_detail' tenant_slug=current_tenant.slug pk=r.pk %}">{{ r.remittance_number }}</a>
+                        </td>
+                        <td>{{ r.get_tax_type_display }}</td>
+                        <td>{{ r.period_start }} - {{ r.period_end }}</td>
+                        <td class="text-end">{{ r.amount_due|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ r.amount_paid|floatformat:2|intcomma }}</td>
+                        <td>{{ r.due_date }}</td>
+                        <td>
+                            {% if r.status == 'paid' %}
+                                <span class="badge bg-soft-success text-success">Paid</span>
+                            {% elif r.status == 'overdue' %}
+                                <span class="badge bg-soft-danger text-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-soft-warning text-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'payroll:remittance_detail' tenant_slug=current_tenant.slug pk=r.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-eye-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-bank-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No tax remittances found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
