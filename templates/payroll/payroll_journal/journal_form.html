@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Payroll Journal{% else %}New Payroll Journal{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Payroll Journal{% else %}New Payroll Journal{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'payroll:journal_list' tenant_slug=current_tenant.slug %}">Journals</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Journal Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pay Period Start <span class="text-danger">*</span></label>
+                    {{ form.pay_period_start }}
+                    {% if form.pay_period_start.errors %}<div class="text-danger small">{{ form.pay_period_start.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pay Period End <span class="text-danger">*</span></label>
+                    {{ form.pay_period_end }}
+                    {% if form.pay_period_end.errors %}<div class="text-danger small">{{ form.pay_period_end.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Pay Date <span class="text-danger">*</span></label>
+                    {{ form.pay_date }}
+                    {% if form.pay_date.errors %}<div class="text-danger small">{{ form.pay_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Fiscal Period</label>
+                    {{ form.fiscal_period }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Employee Lines</h5>
+        </div>
+        <div class="card-body">
+            {{ formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Regular Hours</th>
+                            <th>Overtime Hours</th>
+                            <th>Other Deductions</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line_form in formset %}
+                        <tr>
+                            <td>{{ line_form.employee }}{{ line_form.id }}</td>
+                            <td>{{ line_form.regular_hours }}</td>
+                            <td>{{ line_form.overtime_hours }}</td>
+                            <td>{{ line_form.other_deductions }}</td>
+                            <td class="text-center">{% if line_form.instance.pk %}{{ line_form.DELETE }}{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Journal{% endif %}</button>
+        <a href="{% url 'payroll:journal_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}
