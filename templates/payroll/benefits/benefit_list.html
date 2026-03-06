@@ -27,6 +27,39 @@
         </div>
     </div>
     <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Code or name...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="benefit_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    <option value="401k" {% if request.GET.benefit_type == '401k' %}selected{% endif %}>401(k)</option>
+                    <option value="health_insurance" {% if request.GET.benefit_type == 'health_insurance' %}selected{% endif %}>Health Insurance</option>
+                    <option value="dental" {% if request.GET.benefit_type == 'dental' %}selected{% endif %}>Dental</option>
+                    <option value="vision" {% if request.GET.benefit_type == 'vision' %}selected{% endif %}>Vision</option>
+                    <option value="life" {% if request.GET.benefit_type == 'life' %}selected{% endif %}>Life Insurance</option>
+                    <option value="hsa" {% if request.GET.benefit_type == 'hsa' %}selected{% endif %}>HSA</option>
+                    <option value="fsa" {% if request.GET.benefit_type == 'fsa' %}selected{% endif %}>FSA</option>
+                    <option value="other" {% if request.GET.benefit_type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line me-1"></i>Filter</button>
+                <a href="{% url 'payroll:benefit_plan_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light">Reset</a>
+            </div>
+        </form>
+
         {% if plans %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
