@@ -39,6 +39,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Cash Management** — Bank account management, bank feeds, transaction import (CSV), bank reconciliation with auto-match, cash positioning dashboard, treasury forecasting, intercompany transfers with GL integration, bank fee analysis
 - **Fixed Assets** — Asset register with categories & locations, acquisition tracking (purchase/lease/donation/CIP), depreciation engine (straight-line, declining balance, units of production), asset transfers with approval workflow, disposals & retirements (sale/scrap/write-off with gain/loss GL posting), impairment testing, physical inventory with barcode scanning & reconciliation, tax depreciation books (MACRS/bonus/Section 179)
 - **Inventory & Cost Management** — Item master with categories, units of measure & warehouses, purchase requisitions with PO conversion, purchase orders with approval workflow, goods receipts with cost layer creation, inventory transactions (adjustments/scrap), inter-warehouse transfers, COGS calculation engine (FIFO/LIFO/weighted average/standard), inventory valuation report, reorder point planning with auto-PO generation, cycle counting with variance GL posting, landed cost allocation with GL integration
+- **Payroll Integration** — Employee master with pay types (salary/hourly) and frequencies, payroll journal with calculate/approve/post workflow, tax withholding configuration (federal/state/local/FICA/FUTA/SUTA), tax remittance tracking, benefit plans (401k/health/dental/vision/HSA/FSA) with employee enrollment, court-ordered garnishment management with priority ordering, workers comp class assignments with rate tracking, gross-to-net payroll reconciliation with variance detection, GL journal entry posting
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -93,6 +94,7 @@ NavAccounting/
 │   ├── cash_management/            # Bank Accounts, Feeds, Transactions, Reconciliation, Cash Position, Forecasts, Transfers, Bank Fees
 │   ├── fixed_assets/               # Asset Register, Acquisitions, Depreciation, Transfers, Disposals, Impairment, Inventory, Tax Books
 │   ├── inventory/                  # Item Master, Purchasing, Goods Receipts, Transactions, Transfers, COGS, Reorder Planning, Cycle Counts, Landed Cost
+│   ├── payroll/                    # Employees, Payroll Journals, Tax Withholding, Tax Remittance, Benefits, Garnishments, Workers Comp, Reconciliation
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -165,6 +167,14 @@ NavAccounting/
 │   │   ├── reorder/                # Reorder dashboard
 │   │   ├── cycle_counts/           # Plan list, plan form, session list, session form, session detail, count form
 │   │   └── landed_cost/            # Landed cost list, form, detail
+│   ├── payroll/                    # PR templates (22 files across 7 subdirectories)
+│   │   ├── employees/              # Employee list, form, detail
+│   │   ├── payroll_journal/        # Journal list, form, detail
+│   │   ├── tax_management/         # Withholding list, form, remittance list, form, detail
+│   │   ├── benefits/               # Benefit plan list, form, detail, enrollment form
+│   │   ├── garnishments/           # Garnishment list, form, detail
+│   │   ├── workers_comp/           # Comp class list, form, detail, assignment form
+│   │   └── reconciliation/         # Reconciliation list, form, detail
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -393,6 +403,9 @@ These paths skip tenant resolution:
 | — | COGSCalculation, COGSEntry, ReorderSuggestion |
 | — | CycleCountPlan, CycleCountSession, CycleCountItem |
 | — | LandedCostVoucher, LandedCostLine, LandedCostAllocation |
+| — | Employee, PayrollJournal, TaxWithholding, TaxRemittance |
+| — | BenefitPlan, Garnishment, WorkersCompClass |
+| — | PayrollReconciliation |
 
 ---
 
@@ -439,7 +452,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -743,6 +756,49 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/ic/landed-cost/create/<receipt_pk>/` | Create voucher | New landed cost voucher from receipt |
 | `/t/<slug>/ic/landed-cost/<pk>/` | Voucher detail | Voucher info, cost lines, allocations |
 | `/t/<slug>/ic/landed-cost/<pk>/post/` | Post voucher | Post landed cost (allocates + GL JE) |
+| **Payroll — Employee Master** | | |
+| `/t/<slug>/pr/employees/` | Employee list | All employees with filters |
+| `/t/<slug>/pr/employees/create/` | Create employee | New employee form |
+| `/t/<slug>/pr/employees/<pk>/` | Employee detail | Employee info, tax, benefits, garnishments |
+| `/t/<slug>/pr/employees/<pk>/edit/` | Edit employee | Edit employee details |
+| **Payroll — Payroll Journal** | | |
+| `/t/<slug>/pr/journals/` | Journal list | All payroll journals |
+| `/t/<slug>/pr/journals/create/` | Create journal | New payroll journal with employee lines |
+| `/t/<slug>/pr/journals/<pk>/` | Journal detail | Journal info with pay breakdown |
+| `/t/<slug>/pr/journals/<pk>/calculate/` | Calculate journal | Calculate gross, taxes, deductions, net |
+| `/t/<slug>/pr/journals/<pk>/approve/` | Approve journal | Approve a calculated journal |
+| `/t/<slug>/pr/journals/<pk>/post/` | Post journal | Post to GL (creates journal entry) |
+| **Payroll — Tax Management** | | |
+| `/t/<slug>/pr/tax-withholdings/` | Withholding list | All tax withholdings |
+| `/t/<slug>/pr/tax-withholdings/create/` | Create withholding | New tax withholding config |
+| `/t/<slug>/pr/tax-withholdings/<pk>/edit/` | Edit withholding | Edit withholding rate/limit |
+| `/t/<slug>/pr/remittances/` | Remittance list | All tax remittances |
+| `/t/<slug>/pr/remittances/create/` | Create remittance | New tax remittance |
+| `/t/<slug>/pr/remittances/<pk>/` | Remittance detail | Remittance info and payment status |
+| `/t/<slug>/pr/remittances/<pk>/pay/` | Pay remittance | Mark remittance as paid (posts GL) |
+| **Payroll — Benefits Accounting** | | |
+| `/t/<slug>/pr/benefits/` | Benefit plan list | All benefit plans |
+| `/t/<slug>/pr/benefits/create/` | Create plan | New benefit plan form |
+| `/t/<slug>/pr/benefits/<pk>/` | Plan detail | Plan info with enrolled employees |
+| `/t/<slug>/pr/benefits/<pk>/edit/` | Edit plan | Edit benefit plan |
+| `/t/<slug>/pr/benefits/enroll/` | Enroll employee | Enroll employee in plan |
+| `/t/<slug>/pr/benefits/enroll/<pk>/edit/` | Edit enrollment | Edit enrollment details |
+| **Payroll — Garnishments** | | |
+| `/t/<slug>/pr/garnishments/` | Garnishment list | All garnishments with filters |
+| `/t/<slug>/pr/garnishments/create/` | Create garnishment | New garnishment order |
+| `/t/<slug>/pr/garnishments/<pk>/` | Garnishment detail | Garnishment info with progress |
+| `/t/<slug>/pr/garnishments/<pk>/edit/` | Edit garnishment | Edit garnishment details |
+| **Payroll — Workers Comp** | | |
+| `/t/<slug>/pr/workers-comp/` | Comp class list | All workers comp classes |
+| `/t/<slug>/pr/workers-comp/create/` | Create class | New workers comp class |
+| `/t/<slug>/pr/workers-comp/<pk>/` | Class detail | Class info with assigned employees |
+| `/t/<slug>/pr/workers-comp/<pk>/edit/` | Edit class | Edit workers comp class |
+| `/t/<slug>/pr/workers-comp/assign/` | Assign employee | Assign employee to comp class |
+| `/t/<slug>/pr/workers-comp/assign/<pk>/edit/` | Edit assignment | Edit comp assignment |
+| **Payroll — Reconciliation** | | |
+| `/t/<slug>/pr/reconciliation/` | Reconciliation list | All payroll reconciliations |
+| `/t/<slug>/pr/reconciliation/create/` | Create reconciliation | Run gross-to-net reconciliation |
+| `/t/<slug>/pr/reconciliation/<pk>/` | Reconciliation detail | Reconciliation breakdown with variance |
 
 ---
 
@@ -1113,7 +1169,53 @@ When cycle count variances are approved:
 
 Auto-scan engine checks all items where `quantity_on_hand` falls below `reorder_point`, generates suggestions with economic order quantity, and supports one-click PO creation from approved suggestions.
 
-### 12. `dashboard` — Dashboard & Analytics
+### 12. `payroll` — Payroll Integration Module
+
+Full payroll lifecycle with 7 submodules, 11 models, 36 views, and 22 templates.
+
+- **Employee** — Employee profiles with auto-generated numbers (`EMP-NNNN`), pay types (salary/hourly), pay frequencies (weekly/biweekly/semimonthly/monthly), filing status, federal/state allowances, GL expense account mapping
+- **PayrollJournal** — Payroll runs with auto-generated numbers (`PR-YYYY-NNNN`), status workflow (Draft → Calculated → Approved → Posted → Void), pay period tracking, fiscal period linkage, GL journal entry creation
+- **PayrollJournalLine** — Individual employee pay details within a journal: gross pay, regular/overtime hours, tax withholdings (federal/state/local/SS/Medicare), benefits deductions, garnishment deductions, net pay
+- **TaxWithholding** — Per-employee tax withholding configuration with 7 tax types (Federal, State, Local, Social Security, Medicare, FUTA, SUTA), rates, annual limits, YTD tracking, employer-paid flag
+- **TaxRemittance** — Tax remittance tracking with auto-generated numbers (`TR-YYYY-NNNN`), status workflow (Pending → Paid → Overdue), GL journal entry on payment
+- **BenefitPlan** — Benefit plans with types (401k, health/dental/vision insurance, life, HSA, FSA), employer contribution types (fixed/percentage/match), match limits, GL expense and liability account mapping
+- **EmployeeBenefit** — Employee enrollment in benefit plans with per-period contribution amounts
+- **Garnishment** — Court-ordered deductions with 6 types (child support, tax levy, student loan, creditor, bankruptcy, other), fixed or percentage amounts, priority ordering, max percentage of disposable income, total required/paid tracking with remaining balance
+- **WorkersCompClass** — Workers compensation classification codes with rates per $100 payroll, effective dates, GL expense account mapping
+- **WorkersCompAssignment** — Assignment of employees to workers comp classes with effective date tracking
+- **PayrollReconciliation** — Gross-to-net reconciliation with auto-generated numbers (`REC-YYYY-NNNN`), status (Draft → Reconciled → Exception), total breakdown (gross, taxes, benefits, garnishments, net), variance detection
+
+#### Payroll Journal Workflow
+
+```
+Draft → Calculate → Calculated → Approve → Approved → Post → Posted (creates GL Journal Entry)
+                                                             → Void
+```
+
+#### GL Integration
+
+When a payroll journal is posted, `services.py` creates a posted journal entry:
+- **Debit**: Salary/Wage Expense account (per employee)
+- **Credit**: Net Pay payable, Tax Withholdings payable
+
+When a tax remittance is paid:
+- Creates GL journal entry for the remittance payment
+
+#### Payroll Calculation Engine
+
+The calculation service (`services.py`) handles:
+- **Hourly employees**: Regular hours × rate + overtime hours × 1.5× rate
+- **Salaried employees**: Annual rate ÷ pay frequency divisor (52/26/24/12)
+- **Tax withholdings**: Applies configured rates for each tax type
+- **Benefits deductions**: Sums active employee contributions
+- **Garnishments**: Applies priority-ordered deductions with remaining balance checks
+- **Net pay**: Gross - all deductions
+
+#### Gross-to-Net Reconciliation
+
+Verifies payroll accuracy by comparing journal totals against line-level sums, flagging any variance as an exception for investigation.
+
+### 13. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -1191,6 +1293,15 @@ Auto-scan engine checks all items where `quantity_on_hand` falls below `reorder_
 
 ---
 
+## Payroll Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_payroll` | View Payroll module |
+| `manage_payroll` | Full payroll management access |
+
+---
+
 ## Frontend & Theming
 
 ### Layout System
@@ -1261,6 +1372,7 @@ Permissions are organized by module:
 - `bank` — view_bank, manage_bank, manage_bank_feeds, view_cash_position, manage_forecasts, manage_transfers, approve_transfers, view_bank_fees
 - `fixed_assets` — view_assets, manage_assets
 - `inventory` — view_inventory, manage_inventory
+- `payroll` — view_payroll, manage_payroll
 - `admin` — admin_full
 
 ### Access Control Decorators
