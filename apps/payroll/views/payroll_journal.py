@@ -27,6 +27,13 @@ def journal_list(request, tenant_slug):
     if status_filter:
         qs = qs.filter(status=status_filter)
 
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    if date_from:
+        qs = qs.filter(pay_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(pay_date__lte=date_to)
+
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
