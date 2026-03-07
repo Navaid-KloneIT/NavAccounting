@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Budget Line{% else %}New Budget Line{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Budget Line{% else %}New Budget Line{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}">Projects</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_detail' tenant_slug=current_tenant.slug pk=project.pk %}">{{ project.project_number }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:budget_list' tenant_slug=current_tenant.slug project_pk=project.pk %}">Budgets</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Description <span class="text-danger">*</span></label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">WBS Element</label>
+                    {{ form.wbs_element }}
+                    {% if form.wbs_element.errors %}<div class="text-danger small">{{ form.wbs_element.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">GL Account <span class="text-danger">*</span></label>
+                    {{ form.gl_account }}
+                    {% if form.gl_account.errors %}<div class="text-danger small">{{ form.gl_account.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Budget Hours</label>
+                    {{ form.budget_hours }}
+                    {% if form.budget_hours.errors %}<div class="text-danger small">{{ form.budget_hours.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Budget Rate</label>
+                    {{ form.budget_rate }}
+                    {% if form.budget_rate.errors %}<div class="text-danger small">{{ form.budget_rate.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Budget Amount</label>
+                    {{ form.budget_amount }}
+                    {% if form.budget_amount.errors %}<div class="text-danger small">{{ form.budget_amount.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Revised Amount</label>
+                    {{ form.revised_amount }}
+                    {% if form.revised_amount.errors %}<div class="text-danger small">{{ form.revised_amount.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Fiscal Period</label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="text-danger small">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Budget Line{% endif %}</button>
+                <a href="{% url 'project_costing:budget_list' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
