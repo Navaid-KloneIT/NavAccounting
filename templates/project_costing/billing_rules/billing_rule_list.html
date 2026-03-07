@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Billing Rules - {{ project.project_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Billing Rules - {{ project.project_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}">Projects</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_detail' tenant_slug=current_tenant.slug pk=project.pk %}">{{ project.project_number }}</a></li>
+            <li class="breadcrumb-item active">Billing Rules</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Billing Rules</h5>
+        <a href="{% url 'project_costing:billing_rule_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Billing Rule</a>
+    </div>
+    <div class="card-body">
+        {% if billing_rules %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Description</th>
+                        <th>Rate Type</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">Markup %</th>
+                        <th>Effective Date</th>
+                        <th>End Date</th>
+                        <th class="text-center">Active</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in billing_rules %}
+                    <tr>
+                        <td>{{ rule.description }}</td>
+                        <td><span class="badge bg-soft-info text-info">{{ rule.get_rate_type_display }}</span></td>
+                        <td class="text-end">{{ rule.rate|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ rule.markup_percentage|floatformat:2 }}%</td>
+                        <td>{{ rule.effective_date }}</td>
+                        <td>{{ rule.end_date|default:"-" }}</td>
+                        <td class="text-center">
+                            {% if rule.is_active %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'project_costing:billing_rule_edit' tenant_slug=current_tenant.slug project_pk=project.pk pk=rule.pk %}" class="btn btn-sm btn-soft-info" title="Edit"><i class="ri-pencil-line"></i></a>
+                            <a href="{% url 'project_costing:billing_rule_delete' tenant_slug=current_tenant.slug project_pk=project.pk pk=rule.pk %}" class="btn btn-sm btn-soft-danger" title="Delete"><i class="ri-delete-bin-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-price-tag-3-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No billing rules found.</p>
+            <a href="{% url 'project_costing:billing_rule_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Add First Billing Rule</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
