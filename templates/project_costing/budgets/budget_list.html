@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Budgets - {{ project.project_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Budgets - {{ project.project_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}">Projects</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_detail' tenant_slug=current_tenant.slug pk=project.pk %}">{{ project.project_number }}</a></li>
+            <li class="breadcrumb-item active">Budgets</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Budget Lines</h5>
+        <a href="{% url 'project_costing:budget_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Budget Line</a>
+    </div>
+    <div class="card-body">
+        {% if budgets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Description</th>
+                        <th>WBS Element</th>
+                        <th>GL Account</th>
+                        <th class="text-end">Budget Hours</th>
+                        <th class="text-end">Budget Rate</th>
+                        <th class="text-end">Budget Amount</th>
+                        <th class="text-end">Revised Amount</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for budget in budgets %}
+                    <tr>
+                        <td class="fw-semibold">{{ budget.description }}</td>
+                        <td>{{ budget.wbs_element|default:"-" }}</td>
+                        <td>{{ budget.gl_account }}</td>
+                        <td class="text-end">{{ budget.budget_hours|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ budget.budget_rate|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ budget.budget_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ budget.revised_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'project_costing:budget_edit' tenant_slug=current_tenant.slug project_pk=project.pk pk=budget.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                            <a href="{% url 'project_costing:budget_delete' tenant_slug=current_tenant.slug project_pk=project.pk pk=budget.pk %}" class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="5" class="text-end">Totals:</th>
+                        <th class="text-end">{{ totals.total_budget|floatformat:2|intcomma|default:"0.00" }}</th>
+                        <th class="text-end">{{ totals.total_revised|floatformat:2|intcomma|default:"0.00" }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-money-dollar-circle-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No budget lines found.</p>
+            <a href="{% url 'project_costing:budget_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Create First Budget Line</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{% url 'project_costing:project_detail' tenant_slug=current_tenant.slug pk=project.pk %}" class="btn btn-outline-secondary"><i class="ri-arrow-left-line me-1"></i>Back to Project</a>
+{% endblock %}
