@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Revenue Recognition Detail{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Revenue Recognition Detail</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:rev_rec_list' tenant_slug=current_tenant.slug %}">Revenue Recognition</a></li>
+            <li class="breadcrumb-item active">Detail</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Project Info Header -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-pie-chart-2-line text-primary"></i></div>
+            <h5 class="card-title mb-0">{{ entry.project }}</h5>
+        </div>
+        {% if entry.status == 'draft' %}
+            <span class="badge bg-soft-warning text-warning">Draft</span>
+        {% elif entry.status == 'posted' %}
+            <span class="badge bg-soft-success text-success">Posted</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Method</dt>
+                    <dd class="col-sm-7">{{ entry.get_method_display }}</dd>
+                    <dt class="col-sm-5 text-muted">Completion %</dt>
+                    <dd class="col-sm-7">{{ entry.completion_percentage|floatformat:2 }}%</dd>
+                    <dt class="col-sm-5 text-muted">Contract Amount</dt>
+                    <dd class="col-sm-7">{{ entry.contract_amount|floatformat:2|intcomma }}</dd>
+                    <dt class="col-sm-5 text-muted">Prior Recognized</dt>
+                    <dd class="col-sm-7">{{ entry.prior_recognized|floatformat:2|intcomma }}</dd>
+                    <dt class="col-sm-5 text-muted">This Period</dt>
+                    <dd class="col-sm-7"><strong>{{ entry.recognized_this_period|floatformat:2|intcomma }}</strong></dd>
+                    <dt class="col-sm-5 text-muted">Cumulative</dt>
+                    <dd class="col-sm-7"><strong>{{ entry.cumulative_recognized|floatformat:2|intcomma }}</strong></dd>
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if entry.status == 'draft' %}
+                            <span class="badge bg-soft-warning text-warning">Draft</span>
+                        {% elif entry.status == 'posted' %}
+                            <span class="badge bg-soft-success text-success">Posted</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+            <!-- Right Column -->
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Fiscal Period</dt>
+                    <dd class="col-sm-7">{{ entry.fiscal_period }}</dd>
+                    <dt class="col-sm-5 text-muted">Recognition Date</dt>
+                    <dd class="col-sm-7">{{ entry.recognition_date }}</dd>
+                    <dt class="col-sm-5 text-muted">GL Journal Entry</dt>
+                    <dd class="col-sm-7">
+                        {% if entry.journal_entry %}
+                            <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=entry.journal_entry.pk %}">{{ entry.journal_entry }}</a>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notes Section -->
+{% if entry.notes %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Notes</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-0">{{ entry.notes }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="d-flex gap-2">
+    {% if entry.status == 'draft' %}
+    <form method="post" action="{% url 'project_costing:rev_rec_calculate' tenant_slug=current_tenant.slug pk=entry.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-info"><i class="ri-calculator-line me-1"></i>Recalculate</button>
+    </form>
+    <form method="post" action="{% url 'project_costing:rev_rec_post' tenant_slug=current_tenant.slug pk=entry.pk %}" onsubmit="return confirm('Are you sure you want to post this entry? This action cannot be undone.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success"><i class="ri-check-double-line me-1"></i>Post</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'project_costing:rev_rec_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary"><i class="ri-arrow-left-line me-1"></i>Back to List</a>
+</div>
+{% endblock %}
