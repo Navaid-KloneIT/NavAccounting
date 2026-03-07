@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.fixed_assets',
     'apps.inventory',
     'apps.payroll',
+    'apps.project_costing',
 ]
 
 MIDDLEWARE = [
