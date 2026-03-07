@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Create Invoice{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Create Invoice</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:invoice_list' tenant_slug=current_tenant.slug %}">Invoices</a></li>
+            <li class="breadcrumb-item active">Create</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Invoice Details -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-list-3-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Invoice Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_project" class="form-label">Project <span class="text-danger">*</span></label>
+                    {{ form.project }}
+                    {% if form.project.errors %}<div class="invalid-feedback d-block">{{ form.project.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_invoice_date" class="form-label">Invoice Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.invoice_date }}
+                    </div>
+                    {% if form.invoice_date.errors %}<div class="invalid-feedback d-block">{{ form.invoice_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_due_date" class="form-label">Due Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.due_date }}
+                    </div>
+                    {% if form.due_date.errors %}<div class="invalid-feedback d-block">{{ form.due_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_fiscal_period" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-list-check text-success"></i></div>
+                <h5 class="card-title mb-0">Line Items</h5>
+            </div>
+            <button type="button" id="add-line" class="btn btn-sm btn-outline-primary">
+                <i class="ri-add-line me-1"></i> Add Line
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {{ formset.management_form }}
+            {% if formset.non_form_errors %}
+            <div class="alert alert-danger m-3">
+                {% for error in formset.non_form_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 200px;">Description</th>
+                            <th style="min-width: 100px;">Qty</th>
+                            <th style="min-width: 120px;">Unit Price</th>
+                            <th style="min-width: 120px;">Amount</th>
+                            <th style="min-width: 160px;">WBS Element</th>
+                            <th style="min-width: 140px;">Line Type</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lines-container">
+                        {% for line_form in formset %}
+                        <tr class="line-row">
+                            <td>
+                                {{ line_form.description }}
+                                {{ line_form.id }}
+                                {% if line_form.description.errors %}<div class="invalid-feedback d-block">{{ line_form.description.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.quantity }}
+                                {% if line_form.quantity.errors %}<div class="invalid-feedback d-block">{{ line_form.quantity.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.unit_price }}
+                                {% if line_form.unit_price.errors %}<div class="invalid-feedback d-block">{{ line_form.unit_price.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.amount }}
+                                {% if line_form.amount.errors %}<div class="invalid-feedback d-block">{{ line_form.amount.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.wbs_element }}
+                                {% if line_form.wbs_element.errors %}<div class="invalid-feedback d-block">{{ line_form.wbs_element.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.line_type }}
+                                {% if line_form.line_type.errors %}<div class="invalid-feedback d-block">{{ line_form.line_type.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {% if line_form.DELETE %}
+                                <div class="form-check">
+                                    {{ line_form.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty form template for JS cloning -->
+    <div id="empty-form" class="d-none">
+        <tr class="line-row">
+            <td>{{ formset.empty_form.description }}{{ formset.empty_form.id }}</td>
+            <td>{{ formset.empty_form.quantity }}</td>
+            <td>{{ formset.empty_form.unit_price }}</td>
+            <td>{{ formset.empty_form.amount }}</td>
+            <td>{{ formset.empty_form.wbs_element }}</td>
+            <td>{{ formset.empty_form.line_type }}</td>
+            <td>
+                {% if formset.empty_form.DELETE %}
+                <div class="form-check">
+                    {{ formset.empty_form.DELETE }}
+                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'project_costing:invoice_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Create Invoice
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dynamic formset - add new lines
+    const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+    let formCount = {{ formset.total_form_count }};
+
+    document.getElementById('add-line').addEventListener('click', function() {
+        const container = document.getElementById('lines-container');
+        const newForm = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        formCount++;
+        document.getElementById('id_lines-TOTAL_FORMS').value = formCount;
+    });
+
+    // Recalculate amount = qty * unit_price on change
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('[name$="-quantity"], [name$="-unit_price"]')) {
+            var row = e.target.closest('tr');
+            if (row) {
+                var qty = parseFloat(row.querySelector('[name$="-quantity"]').value) || 0;
+                var price = parseFloat(row.querySelector('[name$="-unit_price"]').value) || 0;
+                var amountField = row.querySelector('[name$="-amount"]');
+                if (amountField) {
+                    amountField.value = (qty * price).toFixed(2);
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
