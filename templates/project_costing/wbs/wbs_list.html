@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}WBS Elements - {{ project.project_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">WBS Elements - {{ project.project_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}">Projects</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_detail' tenant_slug=current_tenant.slug pk=project.pk %}">{{ project.project_number }}</a></li>
+            <li class="breadcrumb-item active">WBS</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">WBS Elements ({{ wbs_elements|length }})</h5>
+        <a href="{% url 'project_costing:wbs_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New WBS Element</a>
+    </div>
+    <div class="card-body">
+        {% if wbs_elements %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th class="text-center">Level</th>
+                        <th>Parent</th>
+                        <th class="text-end">Budget Hours</th>
+                        <th class="text-end">Budget Amount</th>
+                        <th class="text-center">Billable</th>
+                        <th class="text-center">Active</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wbs in wbs_elements %}
+                    <tr>
+                        <td class="fw-semibold">{{ wbs.code }}</td>
+                        <td>{{ wbs.name }}</td>
+                        <td class="text-center">{{ wbs.level }}</td>
+                        <td>{{ wbs.parent|default:"-" }}</td>
+                        <td class="text-end">{{ wbs.budget_hours|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ wbs.budget_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-center">
+                            {% if wbs.is_billable %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if wbs.is_active %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'project_costing:wbs_edit' tenant_slug=current_tenant.slug project_pk=project.pk pk=wbs.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                            <a href="{% url 'project_costing:wbs_delete' tenant_slug=current_tenant.slug project_pk=project.pk pk=wbs.pk %}" class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-node-tree" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No WBS elements found.</p>
+            <a href="{% url 'project_costing:wbs_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Create First WBS Element</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{% url 'project_costing:project_detail' tenant_slug=current_tenant.slug pk=project.pk %}" class="btn btn-outline-secondary"><i class="ri-arrow-left-line me-1"></i>Back to Project</a>
+{% endblock %}
