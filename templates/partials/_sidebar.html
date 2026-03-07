@@ -814,6 +814,102 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Project/Job Costing <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Projects -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'project_costing' and 'project' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-building-4-line"></i>
+                    <span class="menu-text">Projects</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'project_costing' and 'project' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'project_list' %}active{% endif %}">
+                            <span class="menu-text">All Projects</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'project_costing:project_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'project_create' %}active{% endif %}">
+                            <span class="menu-text">New Project</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Time & Expense -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'project_costing' and 'time_entry' in request.resolver_match.url_name or request.resolver_match.app_name == 'project_costing' and 'expense' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-time-line"></i>
+                    <span class="menu-text">Time & Expense</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'project_costing' and 'time_entry' in request.resolver_match.url_name or request.resolver_match.app_name == 'project_costing' and 'expense' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'project_costing:time_entry_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'time_entry_list' %}active{% endif %}">
+                            <span class="menu-text">Time Entries</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'project_costing:expense_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}">
+                            <span class="menu-text">Expenses</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Revenue Recognition -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'project_costing:rev_rec_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'project_costing' and 'rev_rec' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-pie-chart-2-line"></i>
+                    <span class="menu-text">Revenue Recognition</span>
+                </a>
+            </li>
+
+            <!-- Project Billing -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'project_costing:invoice_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'project_costing' and 'invoice' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-file-list-3-line"></i>
+                    <span class="menu-text">Project Billing</span>
+                </a>
+            </li>
+
+            <!-- Profitability -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'project_costing:profitability_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'project_costing' and 'profitability' in request.resolver_match.url_name or request.resolver_match.app_name == 'project_costing' and 'snapshot' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-line-chart-line"></i>
+                    <span class="menu-text">Profitability</span>
+                </a>
+            </li>
+
+            <!-- Resource Planning -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'project_costing:assignment_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'project_costing' and 'assignment' in request.resolver_match.url_name or request.resolver_match.app_name == 'project_costing' and 'utilization' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-team-line"></i>
+                    <span class="menu-text">Resource Planning</span>
+                </a>
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Inventory & Cost <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Item Master -->
