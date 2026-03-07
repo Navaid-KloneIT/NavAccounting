@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Time Entries{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Time Entries</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item active">Time Entries</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Time Entries ({{ total_count }})</h5>
+        <a href="{% url 'project_costing:time_entry_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Time Entry</a>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Employee, project, description...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="project" class="form-select form-select-sm">
+                    <option value="">All Projects</option>
+                    {% for proj in projects %}
+                    <option value="{{ proj.pk }}" {% if request.GET.project == proj.pk|stringformat:"d" %}selected{% endif %}>{{ proj.project_number }} - {{ proj.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="billing_status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="unbilled" {% if request.GET.billing_status == 'unbilled' %}selected{% endif %}>Unbilled</option>
+                    <option value="billed" {% if request.GET.billing_status == 'billed' %}selected{% endif %}>Billed</option>
+                    <option value="non_billable" {% if request.GET.billing_status == 'non_billable' %}selected{% endif %}>Non-Billable</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line me-1"></i>Filter</button>
+                <a href="{% url 'project_costing:time_entry_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light">Reset</a>
+            </div>
+        </form>
+
+        {% if time_entries %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Employee</th>
+                        <th>Project</th>
+                        <th>WBS</th>
+                        <th class="text-end">Hours</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-center">Billable</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in time_entries %}
+                    <tr>
+                        <td>{{ entry.entry_date }}</td>
+                        <td>{{ entry.employee }}</td>
+                        <td>{{ entry.project.project_number }}</td>
+                        <td>{{ entry.wbs_element|default:"-" }}</td>
+                        <td class="text-end">{{ entry.hours|floatformat:2 }}</td>
+                        <td class="text-end">{{ entry.hourly_rate|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ entry.total_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-center">
+                            {% if entry.is_billable %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.billing_status == 'billed' %}
+                                <span class="badge bg-soft-primary text-primary">Billed</span>
+                            {% elif entry.billing_status == 'non_billable' %}
+                                <span class="badge bg-soft-secondary text-secondary">Non-Billable</span>
+                            {% else %}
+                                <span class="badge bg-soft-warning text-warning">Unbilled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{% url 'project_costing:time_entry_edit' tenant_slug=current_tenant.slug pk=entry.pk %}" class="btn btn-sm btn-soft-info" title="Edit"><i class="ri-pencil-line"></i></a>
+                                <a href="{% url 'project_costing:time_entry_delete' tenant_slug=current_tenant.slug pk=entry.pk %}" class="btn btn-sm btn-soft-danger" title="Delete"><i class="ri-delete-bin-line"></i></a>
+                                {% if not entry.approved_date %}
+                                <form method="post" action="{% url 'project_costing:time_entry_approve' tenant_slug=current_tenant.slug pk=entry.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-soft-success" title="Approve"><i class="ri-check-line"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="fw-semibold">Totals</td>
+                        <td class="text-end fw-semibold">{{ totals.total_hours|floatformat:2|default:"0.00" }}</td>
+                        <td></td>
+                        <td class="text-end fw-semibold">{{ totals.total_amount|floatformat:2|intcomma|default:"0.00" }}</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-time-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No time entries found.</p>
+            <a href="{% url 'project_costing:time_entry_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Add First Time Entry</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
