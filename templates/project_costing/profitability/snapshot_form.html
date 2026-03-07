@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New Snapshot - {{ project.project_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New Snapshot - {{ project.project_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:profitability_dashboard' tenant_slug=current_tenant.slug %}">Profitability</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:profitability_detail' tenant_slug=current_tenant.slug project_pk=project.pk %}">{{ project.project_number }}</a></li>
+            <li class="breadcrumb-item active">New Snapshot</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Dates</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Snapshot Date <span class="text-danger">*</span></label>
+                    {{ form.snapshot_date }}
+                    {% if form.snapshot_date.errors %}<div class="text-danger small">{{ form.snapshot_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fiscal Period</label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="text-danger small">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Financials</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Budget Amount</label>
+                    {{ form.budget_amount }}
+                    {% if form.budget_amount.errors %}<div class="text-danger small">{{ form.budget_amount.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Actual Cost</label>
+                    {{ form.actual_cost }}
+                    {% if form.actual_cost.errors %}<div class="text-danger small">{{ form.actual_cost.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Actual Revenue</label>
+                    {{ form.actual_revenue }}
+                    {% if form.actual_revenue.errors %}<div class="text-danger small">{{ form.actual_revenue.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Committed Cost</label>
+                    {{ form.committed_cost }}
+                    {% if form.committed_cost.errors %}<div class="text-danger small">{{ form.committed_cost.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Earned Value</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estimate at Completion</label>
+                    {{ form.estimate_at_completion }}
+                    {% if form.estimate_at_completion.errors %}<div class="text-danger small">{{ form.estimate_at_completion.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Estimate to Complete</label>
+                    {{ form.estimate_to_complete }}
+                    {% if form.estimate_to_complete.errors %}<div class="text-danger small">{{ form.estimate_to_complete.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Earned Value</label>
+                    {{ form.earned_value }}
+                    {% if form.earned_value.errors %}<div class="text-danger small">{{ form.earned_value.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Performance</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Cost Variance</label>
+                    {{ form.cost_variance }}
+                    {% if form.cost_variance.errors %}<div class="text-danger small">{{ form.cost_variance.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Schedule Variance</label>
+                    {{ form.schedule_variance }}
+                    {% if form.schedule_variance.errors %}<div class="text-danger small">{{ form.schedule_variance.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Cost Performance Index</label>
+                    {{ form.cost_performance_index }}
+                    {% if form.cost_performance_index.errors %}<div class="text-danger small">{{ form.cost_performance_index.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Schedule Performance Index</label>
+                    {{ form.schedule_performance_index }}
+                    {% if form.schedule_performance_index.errors %}<div class="text-danger small">{{ form.schedule_performance_index.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Notes</h6>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>Create Snapshot</button>
+                <a href="{% url 'project_costing:profitability_detail' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
