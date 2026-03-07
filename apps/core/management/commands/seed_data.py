@@ -11,6 +11,7 @@ Usage:
     python manage.py seed_data --dashboard  # Seed dashboard data
     python manage.py seed_data --ic         # Seed inventory & cost management
     python manage.py seed_data --pr         # Seed payroll integration
+    python manage.py seed_data --pj         # Seed project/job costing
 """
 import random
 from datetime import date, timedelta
@@ -54,6 +55,7 @@ class Command(BaseCommand):
         parser.add_argument('--fa', action='store_true', help='Seed fixed assets data only')
         parser.add_argument('--ic', action='store_true', help='Seed inventory & cost management data only')
         parser.add_argument('--pr', action='store_true', help='Seed payroll integration data only')
+        parser.add_argument('--pj', action='store_true', help='Seed project/job costing data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -64,7 +66,7 @@ class Command(BaseCommand):
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
-            options['pr'],
+            options['pr'], options['pj'],
         ])
 
         # Always seed system-level data
@@ -121,9 +123,37 @@ class Command(BaseCommand):
             self.stdout.write('Seeding payroll integration data...')
             self._seed_pr_data()
 
+        if seed_all or options['pj']:
+            self.stdout.write('Seeding project/job costing data...')
+            self._seed_pj_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean PJ (Project/Job Costing) data first
+        try:
+            from apps.project_costing.models import (
+                ProfitabilitySnapshot, ResourceAssignment,
+                ProjectInvoiceLine, ProjectInvoice,
+                RevenueRecognition, ProjectMilestone,
+                ExpenseEntry, TimeEntry,
+                BillingRule, ProjectBudget, WBSElement, Project,
+            )
+            ProfitabilitySnapshot.unscoped.all().delete()
+            ResourceAssignment.unscoped.all().delete()
+            ProjectInvoiceLine.objects.all().delete()
+            ProjectInvoice.unscoped.all().delete()
+            RevenueRecognition.unscoped.all().delete()
+            ProjectMilestone.unscoped.all().delete()
+            ExpenseEntry.unscoped.all().delete()
+            TimeEntry.unscoped.all().delete()
+            BillingRule.unscoped.all().delete()
+            ProjectBudget.unscoped.all().delete()
+            WBSElement.unscoped.all().delete()
+            Project.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean PR (Payroll) data first
         try:
             from apps.payroll.models import (
@@ -4318,4 +4348,508 @@ class Command(BaseCommand):
             f'  Created PR data (employees, tax withholdings, benefit plans, '
             f'enrollments, garnishments, workers comp classes & assignments, '
             f'payroll journals with lines, tax remittances, reconciliations)'
+        )
+
+    # =================================================================
+    # PROJECT / JOB COSTING
+    # =================================================================
+
+    def _seed_pj_data(self):
+        """Seed project/job costing sample data."""
+        from apps.project_costing.models import (
+            Project, WBSElement, ProjectBudget, BillingRule,
+            TimeEntry, ExpenseEntry,
+            RevenueRecognition, ProjectMilestone,
+            ProjectInvoice, ProjectInvoiceLine,
+            ProfitabilitySnapshot, ResourceAssignment,
+        )
+        from apps.general_ledger.models import Account
+        from apps.payroll.models import Employee
+        from apps.tenants.managers import set_current_tenant
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found. Skipping PJ seeding.')
+            return
+
+        for tenant in tenants:
+            set_current_tenant(tenant)
+
+            # --- GL accounts (revenue + expense) ---
+            revenue_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['REV', 'REVENUE', 'INC', 'OI']
+            )[:5])
+            expense_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['EXP', 'EXPENSE', 'OE']
+            )[:10])
+            all_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False
+            )[:15])
+
+            if len(revenue_accounts) < 1:
+                revenue_accounts = all_accounts[:3]
+            if len(expense_accounts) < 2:
+                expense_accounts = all_accounts[3:10] if len(all_accounts) > 3 else all_accounts
+
+            if len(revenue_accounts) < 1 or len(expense_accounts) < 1:
+                self.stdout.write(f'  Skipping PJ for {tenant.name}: not enough GL accounts.')
+                continue
+
+            # --- Employees ---
+            employees = list(Employee.unscoped.filter(tenant=tenant, is_active=True))
+            if not employees:
+                self.stdout.write(f'  Skipping PJ for {tenant.name}: no employees. Run --pr first.')
+                continue
+
+            users = list(CustomUser.objects.all()[:3])
+            fiscal_periods = list(FiscalPeriod.unscoped.filter(tenant=tenant).order_by('start_date')[:6])
+
+            # =============================================================
+            # 1. Projects (5)
+            # =============================================================
+            projects_data = [
+                {
+                    'name': 'Corporate HQ Renovation',
+                    'description': 'Full interior renovation of the corporate headquarters building.',
+                    'client_name': 'Acme Corporation',
+                    'client_contact': 'James Reed, james@acme.com',
+                    'status': 'active',
+                    'billing_type': 'fixed_price',
+                    'contract_amount': Decimal('450000.00'),
+                    'budget_amount': Decimal('400000.00'),
+                    'retention_percentage': Decimal('10.00'),
+                    'start_days_ago': 180,
+                    'end_days_future': 120,
+                },
+                {
+                    'name': 'ERP System Implementation',
+                    'description': 'Enterprise resource planning system deployment and customization.',
+                    'client_name': 'Beta Industries',
+                    'client_contact': 'Maria Lopez, maria@beta.com',
+                    'status': 'active',
+                    'billing_type': 'time_materials',
+                    'contract_amount': Decimal('320000.00'),
+                    'budget_amount': Decimal('280000.00'),
+                    'retention_percentage': Decimal('5.00'),
+                    'start_days_ago': 90,
+                    'end_days_future': 270,
+                },
+                {
+                    'name': 'Highway Bridge Repair',
+                    'description': 'Structural repair and reinforcement of Route 66 overpass.',
+                    'client_name': 'State DOT',
+                    'client_contact': 'Tom Harris, tom@statedot.gov',
+                    'status': 'active',
+                    'billing_type': 'cost_plus',
+                    'contract_amount': Decimal('850000.00'),
+                    'budget_amount': Decimal('780000.00'),
+                    'retention_percentage': Decimal('10.00'),
+                    'start_days_ago': 240,
+                    'end_days_future': 60,
+                },
+                {
+                    'name': 'Mobile App Development',
+                    'description': 'Cross-platform mobile application for customer portal.',
+                    'client_name': 'TechStart LLC',
+                    'client_contact': 'Anna Kim, anna@techstart.io',
+                    'status': 'planning',
+                    'billing_type': 'fixed_price',
+                    'contract_amount': Decimal('175000.00'),
+                    'budget_amount': Decimal('150000.00'),
+                    'retention_percentage': Decimal('0.00'),
+                    'start_days_ago': 10,
+                    'end_days_future': 350,
+                },
+                {
+                    'name': 'Warehouse Automation Phase 1',
+                    'description': 'Install conveyor systems and automated picking stations.',
+                    'client_name': 'Global Logistics Inc.',
+                    'client_contact': 'Dan Nguyen, dan@globallog.com',
+                    'status': 'completed',
+                    'billing_type': 'time_materials',
+                    'contract_amount': Decimal('220000.00'),
+                    'budget_amount': Decimal('200000.00'),
+                    'retention_percentage': Decimal('5.00'),
+                    'start_days_ago': 400,
+                    'end_days_future': -30,
+                },
+            ]
+
+            projects = []
+            for pd in projects_data:
+                proj, created = Project.unscoped.get_or_create(
+                    tenant=tenant,
+                    project_number=Project.generate_project_number(tenant),
+                    defaults={
+                        'name': pd['name'],
+                        'description': pd['description'],
+                        'client_name': pd['client_name'],
+                        'client_contact': pd['client_contact'],
+                        'status': pd['status'],
+                        'billing_type': pd['billing_type'],
+                        'contract_amount': pd['contract_amount'],
+                        'budget_amount': pd['budget_amount'],
+                        'retention_percentage': pd['retention_percentage'],
+                        'start_date': date.today() - timedelta(days=pd['start_days_ago']),
+                        'end_date': date.today() + timedelta(days=pd['end_days_future']),
+                        'manager': employees[0] if employees else None,
+                        'revenue_account': random.choice(revenue_accounts),
+                        'expense_account': random.choice(expense_accounts),
+                        'is_active': pd['status'] != 'cancelled',
+                    }
+                )
+                projects.append(proj)
+
+            # =============================================================
+            # 2. WBS Elements (per project, 2-3 each)
+            # =============================================================
+            wbs_templates = [
+                [
+                    {'code': '1000', 'name': 'Design & Planning', 'level': 1, 'order': 1,
+                     'hours': Decimal('500'), 'amount': Decimal('75000.00')},
+                    {'code': '2000', 'name': 'Construction', 'level': 1, 'order': 2,
+                     'hours': Decimal('2000'), 'amount': Decimal('250000.00')},
+                    {'code': '3000', 'name': 'Finishing & Inspection', 'level': 1, 'order': 3,
+                     'hours': Decimal('300'), 'amount': Decimal('75000.00')},
+                ],
+                [
+                    {'code': '1000', 'name': 'Requirements & Analysis', 'level': 1, 'order': 1,
+                     'hours': Decimal('400'), 'amount': Decimal('60000.00')},
+                    {'code': '2000', 'name': 'Development & Configuration', 'level': 1, 'order': 2,
+                     'hours': Decimal('1200'), 'amount': Decimal('160000.00')},
+                    {'code': '3000', 'name': 'Testing & Go-Live', 'level': 1, 'order': 3,
+                     'hours': Decimal('400'), 'amount': Decimal('60000.00')},
+                ],
+                [
+                    {'code': '1000', 'name': 'Site Prep & Demolition', 'level': 1, 'order': 1,
+                     'hours': Decimal('800'), 'amount': Decimal('200000.00')},
+                    {'code': '2000', 'name': 'Structural Work', 'level': 1, 'order': 2,
+                     'hours': Decimal('2500'), 'amount': Decimal('450000.00')},
+                    {'code': '3000', 'name': 'Deck & Surface', 'level': 1, 'order': 3,
+                     'hours': Decimal('600'), 'amount': Decimal('130000.00')},
+                ],
+                [
+                    {'code': '1000', 'name': 'UI/UX Design', 'level': 1, 'order': 1,
+                     'hours': Decimal('200'), 'amount': Decimal('30000.00')},
+                    {'code': '2000', 'name': 'Backend Development', 'level': 1, 'order': 2,
+                     'hours': Decimal('600'), 'amount': Decimal('80000.00')},
+                    {'code': '3000', 'name': 'QA & Deployment', 'level': 1, 'order': 3,
+                     'hours': Decimal('200'), 'amount': Decimal('40000.00')},
+                ],
+                [
+                    {'code': '1000', 'name': 'Equipment Procurement', 'level': 1, 'order': 1,
+                     'hours': Decimal('100'), 'amount': Decimal('80000.00')},
+                    {'code': '2000', 'name': 'Installation & Wiring', 'level': 1, 'order': 2,
+                     'hours': Decimal('800'), 'amount': Decimal('100000.00')},
+                ],
+            ]
+
+            all_wbs = {}  # project_pk -> list of WBSElement
+            for i, proj in enumerate(projects):
+                wbs_list = []
+                for wbs_data in wbs_templates[i % len(wbs_templates)]:
+                    wbs, _ = WBSElement.unscoped.get_or_create(
+                        tenant=tenant,
+                        project=proj,
+                        code=wbs_data['code'],
+                        defaults={
+                            'name': wbs_data['name'],
+                            'level': wbs_data['level'],
+                            'display_order': wbs_data['order'],
+                            'budget_hours': wbs_data['hours'],
+                            'budget_amount': wbs_data['amount'],
+                            'is_billable': True,
+                            'is_active': True,
+                        }
+                    )
+                    wbs_list.append(wbs)
+                all_wbs[proj.pk] = wbs_list
+
+            # =============================================================
+            # 3. Project Budgets (per WBS element)
+            # =============================================================
+            for proj in projects:
+                for wbs in all_wbs.get(proj.pk, []):
+                    ProjectBudget.unscoped.get_or_create(
+                        tenant=tenant,
+                        project=proj,
+                        wbs_element=wbs,
+                        gl_account=random.choice(expense_accounts),
+                        defaults={
+                            'description': f'Budget for {wbs.name}',
+                            'budget_hours': wbs.budget_hours,
+                            'budget_rate': Decimal('75.00'),
+                            'budget_amount': wbs.budget_amount,
+                            'revised_amount': wbs.budget_amount,
+                            'fiscal_period': fiscal_periods[0] if fiscal_periods else None,
+                        }
+                    )
+
+            # =============================================================
+            # 4. Billing Rules (per project)
+            # =============================================================
+            billing_rule_templates = [
+                {'desc': 'Standard Hourly Rate', 'rate_type': 'hourly', 'rate': Decimal('125.00'), 'markup': Decimal('0.00')},
+                {'desc': 'Senior Staff Rate', 'rate_type': 'hourly', 'rate': Decimal('175.00'), 'markup': Decimal('0.00')},
+                {'desc': 'Expense Markup', 'rate_type': 'percentage', 'rate': Decimal('0.00'), 'markup': Decimal('15.00')},
+            ]
+            for proj in projects[:3]:  # billing rules for active projects
+                for br_data in billing_rule_templates[:2]:
+                    BillingRule.unscoped.get_or_create(
+                        tenant=tenant,
+                        project=proj,
+                        description=br_data['desc'],
+                        defaults={
+                            'rate_type': br_data['rate_type'],
+                            'rate': br_data['rate'],
+                            'markup_percentage': br_data['markup'],
+                            'effective_date': proj.start_date,
+                            'is_active': True,
+                        }
+                    )
+
+            # =============================================================
+            # 5. Time Entries
+            # =============================================================
+            time_descriptions = [
+                'Design review meeting', 'Code development sprint',
+                'Client requirements gathering', 'Testing and QA',
+                'Documentation update', 'Architecture planning',
+                'Bug fixing session', 'Database optimization',
+                'Deployment and configuration', 'Stakeholder presentation',
+            ]
+            for proj in projects[:3]:  # time entries for active projects
+                wbs_list = all_wbs.get(proj.pk, [])
+                for k in range(random.randint(8, 15)):
+                    emp = random.choice(employees)
+                    hours = Decimal(str(random.choice([2, 4, 6, 8])))
+                    rate = Decimal(str(random.choice([75, 100, 125, 150])))
+                    entry_date = date.today() - timedelta(days=random.randint(1, 120))
+                    is_billable = random.random() > 0.15
+                    TimeEntry.unscoped.create(
+                        tenant=tenant,
+                        project=proj,
+                        wbs_element=random.choice(wbs_list) if wbs_list else None,
+                        employee=emp,
+                        entry_date=entry_date,
+                        hours=hours,
+                        hourly_rate=rate,
+                        description=random.choice(time_descriptions),
+                        is_billable=is_billable,
+                        billing_status='unbilled' if is_billable else 'non_billable',
+                        approved_by=users[0] if users and random.random() > 0.3 else None,
+                        approved_date=entry_date if users and random.random() > 0.3 else None,
+                    )
+
+            # =============================================================
+            # 6. Expense Entries
+            # =============================================================
+            expense_items = [
+                ('Equipment rental - Excavator', Decimal('2500.00'), 'Heavy Machinery Co.'),
+                ('Software licenses', Decimal('1200.00'), 'Microsoft'),
+                ('Travel - Client site visit', Decimal('850.00'), 'Delta Airlines'),
+                ('Subcontractor - Electrical', Decimal('4500.00'), 'Spark Electric LLC'),
+                ('Office supplies', Decimal('180.00'), 'Staples'),
+                ('Safety equipment', Decimal('620.00'), 'Safety First Inc.'),
+                ('Concrete materials', Decimal('3200.00'), 'BuildMart Supply'),
+                ('Cloud hosting fees', Decimal('450.00'), 'AWS'),
+            ]
+            for proj in projects[:3]:
+                wbs_list = all_wbs.get(proj.pk, [])
+                for _ in range(random.randint(3, 6)):
+                    desc, amt, vendor = random.choice(expense_items)
+                    is_billable = random.random() > 0.2
+                    markup = Decimal('15.00') if is_billable and random.random() > 0.5 else Decimal('0.00')
+                    ExpenseEntry.unscoped.create(
+                        tenant=tenant,
+                        project=proj,
+                        wbs_element=random.choice(wbs_list) if wbs_list else None,
+                        gl_account=random.choice(expense_accounts),
+                        entry_date=date.today() - timedelta(days=random.randint(5, 90)),
+                        description=desc,
+                        amount=amt,
+                        vendor_name=vendor,
+                        is_billable=is_billable,
+                        markup_percentage=markup,
+                        receipt_reference=f'REC-{random.randint(1000, 9999)}',
+                    )
+
+            # =============================================================
+            # 7. Revenue Recognition
+            # =============================================================
+            if fiscal_periods:
+                for proj in projects[:3]:
+                    pct = random.choice([25, 40, 55, 70, 85])
+                    contract = proj.contract_amount
+                    cumulative = contract * Decimal(str(pct)) / Decimal('100')
+                    prior = cumulative * Decimal('0.6')
+                    this_period = cumulative - prior
+                    RevenueRecognition.unscoped.create(
+                        tenant=tenant,
+                        project=proj,
+                        fiscal_period=fiscal_periods[0],
+                        recognition_date=date.today() - timedelta(days=30),
+                        method='percentage_complete',
+                        completion_percentage=Decimal(str(pct)),
+                        contract_amount=contract,
+                        total_recognized_prior=prior,
+                        recognized_this_period=this_period,
+                        cumulative_recognized=cumulative,
+                        status='posted',
+                        notes=f'Revenue recognition at {pct}% completion.',
+                    )
+
+            # =============================================================
+            # 8. Milestones
+            # =============================================================
+            milestone_templates = [
+                [
+                    ('Design Approval', Decimal('45000.00'), 'pending', 30),
+                    ('Phase 1 Complete', Decimal('135000.00'), 'completed', 90),
+                    ('Final Inspection', Decimal('135000.00'), 'pending', 180),
+                ],
+                [
+                    ('Requirements Sign-off', Decimal('32000.00'), 'completed', 30),
+                    ('UAT Complete', Decimal('96000.00'), 'pending', 180),
+                    ('Go-Live', Decimal('96000.00'), 'pending', 270),
+                ],
+                [
+                    ('Demolition Complete', Decimal('85000.00'), 'completed', 60),
+                    ('Structural Completion', Decimal('425000.00'), 'pending', 200),
+                    ('Final Handover', Decimal('170000.00'), 'pending', 300),
+                ],
+            ]
+            for i, proj in enumerate(projects[:3]):
+                for m_name, m_amount, m_status, days_offset in milestone_templates[i]:
+                    actual = date.today() - timedelta(days=random.randint(1, 30)) if m_status == 'completed' else None
+                    pct = Decimal('100') if m_status == 'completed' else Decimal(str(random.randint(0, 60)))
+                    ProjectMilestone.unscoped.get_or_create(
+                        tenant=tenant,
+                        project=proj,
+                        name=m_name,
+                        defaults={
+                            'description': f'Milestone: {m_name}',
+                            'amount': m_amount,
+                            'target_date': proj.start_date + timedelta(days=days_offset),
+                            'actual_date': actual,
+                            'status': m_status,
+                            'completion_percentage': pct,
+                        }
+                    )
+
+            # =============================================================
+            # 9. Project Invoices with Lines
+            # =============================================================
+            for proj in projects[:3]:
+                for inv_i in range(random.randint(1, 3)):
+                    inv_num = ProjectInvoice.generate_invoice_number(tenant)
+                    inv_date = date.today() - timedelta(days=random.randint(10, 90))
+                    subtotal = Decimal(str(random.randint(15000, 60000)))
+                    retention = subtotal * proj.retention_percentage / Decimal('100')
+                    tax = subtotal * Decimal('0.08')
+                    total = subtotal - retention + tax
+                    status = random.choice(['draft', 'approved', 'sent', 'paid'])
+
+                    invoice, created = ProjectInvoice.unscoped.get_or_create(
+                        tenant=tenant,
+                        invoice_number=inv_num,
+                        defaults={
+                            'project': proj,
+                            'invoice_date': inv_date,
+                            'due_date': inv_date + timedelta(days=30),
+                            'description': f'Progress billing #{inv_i + 1} for {proj.name}',
+                            'subtotal': subtotal,
+                            'retention_amount': retention,
+                            'tax_amount': tax,
+                            'total_amount': total,
+                            'status': status,
+                            'fiscal_period': fiscal_periods[0] if fiscal_periods else None,
+                            'notes': f'Auto-generated invoice from seed data.',
+                        }
+                    )
+
+                    if created:
+                        wbs_list = all_wbs.get(proj.pk, [])
+                        line_types = ['time', 'expense', 'milestone', 'other']
+                        for line_i in range(random.randint(2, 4)):
+                            qty = Decimal(str(random.randint(10, 80)))
+                            unit_price = Decimal(str(random.choice([75, 100, 125, 150, 200])))
+                            ProjectInvoiceLine.objects.create(
+                                invoice=invoice,
+                                description=f'{random.choice(["Engineering services", "Materials", "Consulting", "Travel expenses", "Subcontractor work"])} - Period {inv_i + 1}',
+                                quantity=qty,
+                                unit_price=unit_price,
+                                wbs_element=random.choice(wbs_list) if wbs_list else None,
+                                line_type=random.choice(line_types),
+                            )
+
+            # =============================================================
+            # 10. Profitability Snapshots
+            # =============================================================
+            for proj in projects[:3]:
+                budget = proj.budget_amount
+                actual_cost = budget * Decimal(str(random.randint(40, 90))) / Decimal('100')
+                actual_revenue = proj.contract_amount * Decimal(str(random.randint(30, 80))) / Decimal('100')
+                committed = budget * Decimal('0.1')
+                earned = budget * Decimal(str(random.randint(35, 85))) / Decimal('100')
+                eac = actual_cost + (budget - earned)
+                etc = eac - actual_cost
+                cv = earned - actual_cost
+                sv = earned - (budget * Decimal('0.5'))
+                cpi = earned / actual_cost if actual_cost else Decimal('1.0000')
+                spi = earned / (budget * Decimal('0.5')) if budget else Decimal('1.0000')
+
+                ProfitabilitySnapshot.unscoped.create(
+                    tenant=tenant,
+                    project=proj,
+                    snapshot_date=date.today() - timedelta(days=random.randint(1, 15)),
+                    fiscal_period=fiscal_periods[0] if fiscal_periods else None,
+                    budget_amount=budget,
+                    actual_cost=actual_cost,
+                    actual_revenue=actual_revenue,
+                    committed_cost=committed,
+                    estimate_at_completion=eac,
+                    estimate_to_complete=etc,
+                    earned_value=earned,
+                    cost_variance=cv,
+                    schedule_variance=sv,
+                    cost_performance_index=min(cpi, Decimal('9.9999')),
+                    schedule_performance_index=min(spi, Decimal('9.9999')),
+                    notes='Auto-generated snapshot from seed data.',
+                )
+
+            # =============================================================
+            # 11. Resource Assignments
+            # =============================================================
+            roles = ['Project Manager', 'Lead Engineer', 'Developer', 'QA Analyst',
+                     'Business Analyst', 'Architect', 'Technician', 'Designer']
+            for proj in projects[:4]:
+                wbs_list = all_wbs.get(proj.pk, [])
+                assigned_emps = random.sample(employees, min(len(employees), random.randint(2, 4)))
+                for emp in assigned_emps:
+                    alloc = Decimal(str(random.choice([25, 50, 75, 100])))
+                    planned = Decimal(str(random.randint(80, 400)))
+                    actual = planned * Decimal(str(random.randint(20, 95))) / Decimal('100')
+                    ResourceAssignment.unscoped.get_or_create(
+                        tenant=tenant,
+                        project=proj,
+                        employee=emp,
+                        defaults={
+                            'wbs_element': random.choice(wbs_list) if wbs_list else None,
+                            'role': random.choice(roles),
+                            'allocation_percentage': alloc,
+                            'start_date': proj.start_date,
+                            'end_date': proj.end_date,
+                            'planned_hours': planned,
+                            'actual_hours': actual,
+                            'is_active': proj.status in ('active', 'planning'),
+                        }
+                    )
+
+        self.stdout.write(
+            f'  Created PJ data (projects, WBS elements, budgets, billing rules, '
+            f'time entries, expenses, revenue recognition, milestones, '
+            f'invoices with lines, profitability snapshots, resource assignments)'
         )
