@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Resource Assignments{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Resource Assignments</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item active">Resources</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Resource Assignments ({{ total_count }})</h5>
+        <div class="d-flex gap-2">
+            <a href="{% url 'project_costing:utilization_report' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-outline-primary"><i class="ri-bar-chart-2-line me-1"></i>Utilization Report</a>
+            <a href="{% url 'project_costing:assignment_create' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-success"><i class="ri-add-line me-1"></i>New Assignment</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Employee, role...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="project" class="form-select form-select-sm">
+                    <option value="">All Projects</option>
+                    {% for proj in projects %}
+                    <option value="{{ proj.pk }}" {% if request.GET.project == proj.pk|stringformat:"d" %}selected{% endif %}>{{ proj.project_number }} - {{ proj.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="active" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="yes" {% if request.GET.active == 'yes' %}selected{% endif %}>Active</option>
+                    <option value="no" {% if request.GET.active == 'no' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-search-line me-1"></i>Filter</button>
+                <a href="{% url 'project_costing:assignment_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light">Reset</a>
+            </div>
+        </form>
+
+        {% if assignments %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Project</th>
+                        <th>WBS</th>
+                        <th>Role</th>
+                        <th class="text-end">Allocation %</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th class="text-end">Planned Hrs</th>
+                        <th class="text-end">Actual Hrs</th>
+                        <th class="text-center">Active</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assignments %}
+                    <tr>
+                        <td class="fw-semibold">{{ a.employee }}</td>
+                        <td>{{ a.project.project_number }}</td>
+                        <td>{{ a.wbs_element|default:"-" }}</td>
+                        <td>{{ a.role|default:"-" }}</td>
+                        <td class="text-end">{{ a.allocation_percentage|floatformat:0 }}%</td>
+                        <td>{{ a.start_date }}</td>
+                        <td>{{ a.end_date|default:"-" }}</td>
+                        <td class="text-end">{{ a.planned_hours|floatformat:2 }}</td>
+                        <td class="text-end">{{ a.actual_hours|floatformat:2 }}</td>
+                        <td class="text-center">
+                            {% if a.is_active %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-danger text-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'project_costing:assignment_edit' tenant_slug=current_tenant.slug pk=a.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                            <a href="{% url 'project_costing:assignment_delete' tenant_slug=current_tenant.slug pk=a.pk %}" class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-team-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No resource assignments found.</p>
+            <a href="{% url 'project_costing:assignment_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i>Create First Assignment</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
