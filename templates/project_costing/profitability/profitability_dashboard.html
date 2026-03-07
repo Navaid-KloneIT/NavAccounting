@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Profitability Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Profitability Dashboard</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item active">Profitability</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Project Profitability Overview</h5>
+        <a href="{% url 'project_costing:snapshot_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-outline-primary"><i class="ri-camera-line me-1"></i>Snapshots</a>
+    </div>
+    <div class="card-body">
+        {% if project_data %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Project #</th>
+                        <th>Name</th>
+                        <th class="text-end">Budget</th>
+                        <th class="text-end">Total Cost</th>
+                        <th class="text-end">Revenue</th>
+                        <th class="text-end">Profit</th>
+                        <th class="text-end">Margin %</th>
+                        <th class="text-end">Budget Used %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in project_data %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'project_costing:profitability_detail' tenant_slug=current_tenant.slug project_pk=item.project.pk %}">{{ item.project.project_number }}</a>
+                        </td>
+                        <td>{{ item.project.name }}</td>
+                        <td class="text-end">{{ item.project.budget_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ item.total_cost|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ item.revenue|floatformat:2|intcomma }}</td>
+                        <td class="text-end">
+                            <span class="{% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ item.profit|floatformat:2|intcomma }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <span class="{% if item.margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ item.margin|floatformat:1 }}%
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            {% if item.budget_used > 100 %}
+                                <span class="badge bg-soft-danger text-danger">{{ item.budget_used|floatformat:1 }}%</span>
+                            {% elif item.budget_used >= 80 %}
+                                <span class="badge bg-soft-warning text-warning">{{ item.budget_used|floatformat:1 }}%</span>
+                            {% else %}
+                                <span class="badge bg-soft-success text-success">{{ item.budget_used|floatformat:1 }}%</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-line-chart-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No profitability data available.</p>
+            <a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-building-4-line me-1"></i>View Projects</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
