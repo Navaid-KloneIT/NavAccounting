@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Assignment{% else %}New Assignment{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Assignment{% else %}New Assignment{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:assignment_list' tenant_slug=current_tenant.slug %}">Resources</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Assignment Details</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Project <span class="text-danger">*</span></label>
+                    {{ form.project }}
+                    {% if form.project.errors %}<div class="text-danger small">{{ form.project.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">WBS Element</label>
+                    {{ form.wbs_element }}
+                    {% if form.wbs_element.errors %}<div class="text-danger small">{{ form.wbs_element.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Employee <span class="text-danger">*</span></label>
+                    {{ form.employee }}
+                    {% if form.employee.errors %}<div class="text-danger small">{{ form.employee.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Role</label>
+                    {{ form.role }}
+                    {% if form.role.errors %}<div class="text-danger small">{{ form.role.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Schedule & Allocation</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Allocation %</label>
+                    {{ form.allocation_percentage }}
+                    {% if form.allocation_percentage.errors %}<div class="text-danger small">{{ form.allocation_percentage.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}<div class="text-danger small">{{ form.start_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">End Date</label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}<div class="text-danger small">{{ form.end_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Planned Hours</label>
+                    {{ form.planned_hours }}
+                    {% if form.planned_hours.errors %}<div class="text-danger small">{{ form.planned_hours.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Assignment{% endif %}</button>
+                <a href="{% url 'project_costing:assignment_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
