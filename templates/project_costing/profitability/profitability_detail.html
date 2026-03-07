@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Profitability - {{ project.project_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Profitability - {{ project.project_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Project Costing</li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:profitability_dashboard' tenant_slug=current_tenant.slug %}">Profitability</a></li>
+            <li class="breadcrumb-item active">{{ project.project_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row mb-3">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Total Cost</h6>
+                <h4 class="mb-0">{{ total_cost|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Revenue</h6>
+                <h4 class="mb-0">{{ revenue|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Profit</h6>
+                <h4 class="mb-0 {% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">{{ profit|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Budget Amount</h6>
+                <h4 class="mb-0">{{ project.budget_amount|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Cost Breakdown -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Cost Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-7 text-muted">Time Cost ({{ time_cost.hours|floatformat:2|default:"0.00" }} hrs)</dt>
+                    <dd class="col-5 text-end">{{ time_cost.amount|floatformat:2|intcomma|default:"0.00" }}</dd>
+                    <dt class="col-7 text-muted">Expense Cost</dt>
+                    <dd class="col-5 text-end">{{ expense_cost|floatformat:2|intcomma|default:"0.00" }}</dd>
+                    <dt class="col-7 text-muted border-top pt-2 fw-bold">Total</dt>
+                    <dd class="col-5 text-end border-top pt-2 fw-bold">{{ total_cost|floatformat:2|intcomma|default:"0.00" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- WBS Cost Breakdown -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">WBS Cost Breakdown</h5>
+            </div>
+            <div class="card-body">
+                {% if wbs_costs %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>WBS Code</th>
+                                <th>WBS Name</th>
+                                <th class="text-end">Hours</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wbs in wbs_costs %}
+                            <tr>
+                                <td class="fw-semibold">{{ wbs.code }}</td>
+                                <td>{{ wbs.name }}</td>
+                                <td class="text-end">{{ wbs.hours|floatformat:2 }}</td>
+                                <td class="text-end">{{ wbs.amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No WBS cost data available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Snapshots -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Snapshots</h5>
+            </div>
+            <div class="card-body">
+                {% if snapshots %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th class="text-end">Budget</th>
+                                <th class="text-end">Actual Cost</th>
+                                <th class="text-end">Revenue</th>
+                                <th class="text-end">Cost Variance</th>
+                                <th class="text-end">CPI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for snap in snapshots %}
+                            <tr>
+                                <td>{{ snap.snapshot_date }}</td>
+                                <td class="text-end">{{ snap.budget_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ snap.actual_cost|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ snap.actual_revenue|floatformat:2|intcomma }}</td>
+                                <td class="text-end">
+                                    <span class="{% if snap.cost_variance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ snap.cost_variance|floatformat:2|intcomma }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="{% if snap.cost_performance_index >= 1 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ snap.cost_performance_index|floatformat:2 }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No snapshots recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Create Snapshot -->
+        <div class="card">
+            <div class="card-body text-center">
+                <a href="{% url 'project_costing:snapshot_create' tenant_slug=current_tenant.slug project_pk=project.pk %}" class="btn btn-success w-100"><i class="ri-camera-line me-1"></i>Create Snapshot</a>
+            </div>
+        </div>
+
+        <!-- Project Summary -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Summary</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5 text-muted">Project #</dt>
+                    <dd class="col-7"><strong>{{ project.project_number }}</strong></dd>
+                    <dt class="col-5 text-muted">Name</dt>
+                    <dd class="col-7">{{ project.name }}</dd>
+                    <dt class="col-5 text-muted">Client</dt>
+                    <dd class="col-7">{{ project.client_name|default:"-" }}</dd>
+                    <dt class="col-5 text-muted">Status</dt>
+                    <dd class="col-7">
+                        {% if project.status == 'active' %}
+                            <span class="badge bg-soft-success text-success">Active</span>
+                        {% elif project.status == 'planning' %}
+                            <span class="badge bg-soft-info text-info">Planning</span>
+                        {% elif project.status == 'on_hold' %}
+                            <span class="badge bg-soft-warning text-warning">On Hold</span>
+                        {% elif project.status == 'completed' %}
+                            <span class="badge bg-soft-primary text-primary">Completed</span>
+                        {% else %}
+                            <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                        {% endif %}
+                    </dd>
+                    <dt class="col-5 text-muted">Billing</dt>
+                    <dd class="col-7">{{ project.get_billing_type_display }}</dd>
+                    <dt class="col-5 text-muted">Start</dt>
+                    <dd class="col-7">{{ project.start_date }}</dd>
+                    <dt class="col-5 text-muted">End</dt>
+                    <dd class="col-7">{{ project.end_date|default:"-" }}</dd>
+                    <dt class="col-5 text-muted">Contract</dt>
+                    <dd class="col-7">{{ project.contract_amount|floatformat:2|intcomma }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a href="{% url 'project_costing:profitability_dashboard' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary"><i class="ri-arrow-left-line me-1"></i>Back to Dashboard</a>
+{% endblock %}
