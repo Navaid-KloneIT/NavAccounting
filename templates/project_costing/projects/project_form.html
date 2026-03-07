@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Project{% else %}New Project{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Project - {{ project.project_number }}{% else %}New Project{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}">Projects</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <h6 class="text-uppercase text-muted mb-3">Project Information</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Project Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Status</label>
+                    {{ form.status }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Billing Type <span class="text-danger">*</span></label>
+                    {{ form.billing_type }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Client Name</label>
+                    {{ form.client_name }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Client Contact</label>
+                    {{ form.client_contact }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Schedule & Budget</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}<div class="text-danger small">{{ form.start_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">End Date</label>
+                    {{ form.end_date }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Contract Amount</label>
+                    {{ form.contract_amount }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Budget Amount</label>
+                    {{ form.budget_amount }}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Accounting & Management</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Project Manager</label>
+                    {{ form.manager }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Revenue Account <span class="text-danger">*</span></label>
+                    {{ form.revenue_account }}
+                    {% if form.revenue_account.errors %}<div class="text-danger small">{{ form.revenue_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Expense Account <span class="text-danger">*</span></label>
+                    {{ form.expense_account }}
+                    {% if form.expense_account.errors %}<div class="text-danger small">{{ form.expense_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Retention %</label>
+                    {{ form.retention_percentage }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Project{% endif %}</button>
+                <a href="{% url 'project_costing:project_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
