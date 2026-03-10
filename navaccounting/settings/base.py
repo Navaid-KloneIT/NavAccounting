@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.inventory',
     'apps.payroll',
     'apps.project_costing',
+    'apps.multi_entity',
 ]
 
 MIDDLEWARE = [
