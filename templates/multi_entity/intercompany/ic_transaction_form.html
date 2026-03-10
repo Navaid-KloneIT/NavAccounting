@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit IC Transaction{% else %}New IC Transaction{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if is_edit %}Edit Inter-Company Transaction{% else %}New Inter-Company Transaction{% endif %}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Multi-Entity</li>
+        <li class="breadcrumb-item"><a href="{% url 'multi_entity:ic_transaction_list' tenant_slug=current_tenant.slug %}">IC Transactions</a></li>
+        <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- Transaction Details -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-exchange-funds-line me-1"></i> Transaction Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.from_entity.id_for_label }}" class="form-label">From Entity</label>
+                            {{ form.from_entity }}
+                            {% if form.from_entity.errors %}
+                            <div class="invalid-feedback d-block">{{ form.from_entity.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.to_entity.id_for_label }}" class="form-label">To Entity</label>
+                            {{ form.to_entity }}
+                            {% if form.to_entity.errors %}
+                            <div class="invalid-feedback d-block">{{ form.to_entity.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.transaction_type.id_for_label }}" class="form-label">Transaction Type</label>
+                            {{ form.transaction_type }}
+                            {% if form.transaction_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.transaction_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                            <div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-money-dollar-circle-line me-1"></i> Financial</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.amount.id_for_label }}" class="form-label">Amount</label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                            <div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.currency.id_for_label }}" class="form-label">Currency</label>
+                            {{ form.currency }}
+                            {% if form.currency.errors %}
+                            <div class="invalid-feedback d-block">{{ form.currency.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.exchange_rate.id_for_label }}" class="form-label">Exchange Rate</label>
+                            {{ form.exchange_rate }}
+                            {% if form.exchange_rate.errors %}
+                            <div class="invalid-feedback d-block">{{ form.exchange_rate.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Period & Reference -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-calendar-line me-1"></i> Period & Reference</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fiscal_period.id_for_label }}" class="form-label">Fiscal Period</label>
+                            {{ form.fiscal_period }}
+                            {% if form.fiscal_period.errors %}
+                            <div class="invalid-feedback d-block">{{ form.fiscal_period.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.reference.id_for_label }}" class="form-label">Reference</label>
+                            {{ form.reference }}
+                            {% if form.reference.errors %}
+                            <div class="invalid-feedback d-block">{{ form.reference.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-file-text-line me-1"></i> Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2 mb-4">
+                <a href="{% url 'multi_entity:ic_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ri-save-line me-1"></i> {% if is_edit %}Save Changes{% else %}Create Transaction{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
