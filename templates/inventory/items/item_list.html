@@ -68,7 +68,7 @@
                 <select name="category" class="form-select">
                     <option value="">All Categories</option>
                     {% for cat in categories %}
-                    <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|slugify %}selected{% endif %}>{{ cat.name }}</option>
+                    <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"d" %}selected{% endif %}>{{ cat.name }}</option>
                     {% endfor %}
                 </select>
             </div>
