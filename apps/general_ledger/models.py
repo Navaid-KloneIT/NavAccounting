@@ -119,6 +119,10 @@ class JournalEntry(TenantAwareModel):
         ('ic_adjustment', 'IC Inventory Adjustment'),
         ('ic_cogs', 'IC Cost of Goods Sold'),
         ('ic_landed_cost', 'IC Landed Cost'),
+        ('me_intercompany', 'ME Intercompany'),
+        ('me_elimination', 'ME Elimination'),
+        ('me_translation', 'ME Currency Translation'),
+        ('me_gaap_adjust', 'ME GAAP Adjustment'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
