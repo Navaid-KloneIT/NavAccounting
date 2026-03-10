@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}TP Transactions{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Transfer Pricing Transactions</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item active">TP Transactions</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-9 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'multi_entity:tp_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'multi_entity:tp_transaction_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New TP Transaction</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Policy</th>
+                        <th>IC Transaction</th>
+                        <th class="text-end">Transfer Price</th>
+                        <th class="text-end">Arm's Length Price</th>
+                        <th class="text-end">Variance</th>
+                        <th class="text-end">Variance %</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'multi_entity:tp_policy_detail' tenant_slug=current_tenant.slug pk=txn.policy.pk %}">{{ txn.policy.name }}</a>
+                        </td>
+                        <td>{{ txn.intercompany_transaction.transaction_number }}</td>
+                        <td class="text-end">{{ txn.transfer_price|intcomma }}</td>
+                        <td class="text-end">{{ txn.arms_length_price|intcomma }}</td>
+                        <td class="text-end {% if txn.variance < 0 %}text-danger{% endif %}">{{ txn.variance|intcomma }}</td>
+                        <td class="text-end {% if txn.variance_percentage < 0 %}text-danger{% endif %}">{{ txn.variance_percentage }}%</td>
+                        <td>
+                            {% if txn.status == 'draft' %}
+                                <span class="badge bg-soft-warning text-warning">Draft</span>
+                            {% elif txn.status == 'reviewed' %}
+                                <span class="badge bg-soft-info text-info">Reviewed</span>
+                            {% elif txn.status == 'approved' %}
+                                <span class="badge bg-soft-success text-success">Approved</span>
+                            {% elif txn.status == 'flagged' %}
+                                <span class="badge bg-soft-danger text-danger">Flagged</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ txn.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'multi_entity:tp_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'multi_entity:tp_transaction_edit' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-exchange-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No transfer pricing transactions found.</p>
+            <a href="{% url 'multi_entity:tp_transaction_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First TP Transaction</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
