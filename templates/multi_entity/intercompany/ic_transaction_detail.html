@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ txn.transaction_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ txn.transaction_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Multi-Entity</li>
+        <li class="breadcrumb-item"><a href="{% url 'multi_entity:ic_transaction_list' tenant_slug=current_tenant.slug %}">IC Transactions</a></li>
+        <li class="breadcrumb-item active">{{ txn.transaction_number }}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column: Transaction Info -->
+    <div class="col-lg-8">
+        <!-- Transaction Info Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-exchange-funds-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Transaction Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Transaction Number</dt>
+                    <dd class="col-sm-8">{{ txn.transaction_number }}</dd>
+
+                    <dt class="col-sm-4 text-muted">From Entity</dt>
+                    <dd class="col-sm-8">{{ txn.from_entity }}</dd>
+
+                    <dt class="col-sm-4 text-muted">To Entity</dt>
+                    <dd class="col-sm-8">{{ txn.to_entity }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Transaction Type</dt>
+                    <dd class="col-sm-8"><span class="badge badge-soft-secondary">{{ txn.get_transaction_type_display }}</span></dd>
+
+                    <dt class="col-sm-4 text-muted">Date</dt>
+                    <dd class="col-sm-8">{{ txn.date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Amount</dt>
+                    <dd class="col-sm-8"><strong>{{ txn.amount|floatformat:2|intcomma }}</strong></dd>
+
+                    <dt class="col-sm-4 text-muted">Currency</dt>
+                    <dd class="col-sm-8">{{ txn.currency }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Exchange Rate</dt>
+                    <dd class="col-sm-8">{{ txn.exchange_rate|floatformat:6|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Fiscal Period</dt>
+                    <dd class="col-sm-8">{{ txn.fiscal_period|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Reference</dt>
+                    <dd class="col-sm-8">{{ txn.reference|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Description</dt>
+                    <dd class="col-sm-8">{{ txn.description|default:"-" }}</dd>
+
+                    {% if txn.notes %}
+                    <dt class="col-sm-4 text-muted">Notes</dt>
+                    <dd class="col-sm-8">{{ txn.notes }}</dd>
+                    {% endif %}
+
+                    <dt class="col-sm-4 text-muted">Status</dt>
+                    <dd class="col-sm-8">
+                        {% if txn.status == 'draft' %}
+                        <span class="badge bg-soft-warning text-warning">Draft</span>
+                        {% elif txn.status == 'pending' %}
+                        <span class="badge bg-soft-warning text-warning">Pending</span>
+                        {% elif txn.status == 'confirmed' %}
+                        <span class="badge bg-soft-info text-info">Confirmed</span>
+                        {% elif txn.status == 'posted' %}
+                        <span class="badge bg-soft-success text-success">Posted</span>
+                        {% elif txn.status == 'cancelled' %}
+                        <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                        {% else %}
+                        <span class="badge badge-soft-secondary">{{ txn.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Linked Journal Entries Card -->
+        {% if txn.from_journal_entry or txn.to_journal_entry %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-file-list-3-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Linked Journal Entries</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Entity</th>
+                                <th>Entry Number</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if txn.from_journal_entry %}
+                            <tr>
+                                <td>{{ txn.from_entity }}</td>
+                                <td>
+                                    <strong>{{ txn.from_journal_entry.entry_number }}</strong>
+                                </td>
+                                <td>
+                                    {% if txn.from_journal_entry.status == 'posted' %}
+                                    <span class="badge bg-soft-success text-success">Posted</span>
+                                    {% elif txn.from_journal_entry.status == 'draft' %}
+                                    <span class="badge bg-soft-warning text-warning">Draft</span>
+                                    {% else %}
+                                    <span class="badge badge-soft-secondary">{{ txn.from_journal_entry.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if txn.to_journal_entry %}
+                            <tr>
+                                <td>{{ txn.to_entity }}</td>
+                                <td>
+                                    <strong>{{ txn.to_journal_entry.entry_number }}</strong>
+                                </td>
+                                <td>
+                                    {% if txn.to_journal_entry.status == 'posted' %}
+                                    <span class="badge bg-soft-success text-success">Posted</span>
+                                    {% elif txn.to_journal_entry.status == 'draft' %}
+                                    <span class="badge bg-soft-warning text-warning">Draft</span>
+                                    {% else %}
+                                    <span class="badge badge-soft-secondary">{{ txn.to_journal_entry.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Actions & Status -->
+    <div class="col-lg-4">
+        <!-- Quick Actions Card -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if txn.status == 'draft' or txn.status == 'pending' %}
+                <form method="post" action="{% url 'multi_entity:ic_transaction_confirm' tenant_slug=current_tenant.slug pk=txn.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info btn-sm w-100 mb-2">
+                        <i class="ri-check-line me-1"></i> Confirm Transaction
+                    </button>
+                </form>
+                {% endif %}
+                {% if txn.status == 'confirmed' %}
+                <form method="post" action="{% url 'multi_entity:ic_transaction_post' tenant_slug=current_tenant.slug pk=txn.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2">
+                        <i class="ri-checkbox-circle-line me-1"></i> Post Transaction
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'multi_entity:ic_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-3">Current Status</h6>
+                {% if txn.status == 'draft' %}
+                <span class="badge bg-soft-warning text-warning fs-5 px-4 py-2">Draft</span>
+                {% elif txn.status == 'pending' %}
+                <span class="badge bg-soft-warning text-warning fs-5 px-4 py-2">Pending</span>
+                {% elif txn.status == 'confirmed' %}
+                <span class="badge bg-soft-info text-info fs-5 px-4 py-2">Confirmed</span>
+                {% elif txn.status == 'posted' %}
+                <span class="badge bg-soft-success text-success fs-5 px-4 py-2">Posted</span>
+                {% elif txn.status == 'cancelled' %}
+                <span class="badge bg-soft-danger text-danger fs-5 px-4 py-2">Cancelled</span>
+                {% else %}
+                <span class="badge badge-soft-secondary fs-5 px-4 py-2">{{ txn.get_status_display }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
