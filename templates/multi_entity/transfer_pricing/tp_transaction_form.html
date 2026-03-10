@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New TP Transaction{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New Transfer Pricing Transaction</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:tp_transaction_list' tenant_slug=current_tenant.slug %}">TP Transactions</a></li>
+            <li class="breadcrumb-item active">New</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Transaction Details</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Policy <span class="text-danger">*</span></label>
+                    {{ form.policy }}
+                    {% if form.policy.errors %}<div class="text-danger small">{{ form.policy.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Intercompany Transaction <span class="text-danger">*</span></label>
+                    {{ form.intercompany_transaction }}
+                    {% if form.intercompany_transaction.errors %}<div class="text-danger small">{{ form.intercompany_transaction.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Transfer Price <span class="text-danger">*</span></label>
+                    {{ form.transfer_price }}
+                    {% if form.transfer_price.errors %}<div class="text-danger small">{{ form.transfer_price.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Arm's Length Price <span class="text-danger">*</span></label>
+                    {{ form.arms_length_price }}
+                    {% if form.arms_length_price.errors %}<div class="text-danger small">{{ form.arms_length_price.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Review Notes</label>
+                    {{ form.review_notes }}
+                    {% if form.review_notes.errors %}<div class="text-danger small">{{ form.review_notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Create TP Transaction</button>
+                <a href="{% url 'multi_entity:tp_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
