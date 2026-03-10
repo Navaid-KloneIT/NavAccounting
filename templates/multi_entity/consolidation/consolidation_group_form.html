@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Consolidation Group{% else %}New Consolidation Group{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Consolidation Group - {{ group.code }}{% else %}New Consolidation Group{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:consolidation_group_list' tenant_slug=current_tenant.slug %}">Consolidation Groups</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Group Information</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Code <span class="text-danger">*</span></label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Parent Entity</label>
+                    {{ form.parent_entity }}
+                    {% if form.parent_entity.errors %}<div class="text-danger small">{{ form.parent_entity.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Reporting Currency <span class="text-danger">*</span></label>
+                    {{ form.reporting_currency }}
+                    {% if form.reporting_currency.errors %}<div class="text-danger small">{{ form.reporting_currency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-check mt-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Member Entities</h6>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Entities</label>
+                    <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                        {{ form.entities }}
+                    </div>
+                    {% if form.entities.errors %}<div class="text-danger small">{{ form.entities.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Group{% endif %}</button>
+                <a href="{% url 'multi_entity:consolidation_group_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
