@@ -28,6 +28,11 @@ def category_list(request, tenant_slug):
     search = request.GET.get('q', '').strip()
     if search:
         qs = qs.filter(Q(name__icontains=search) | Q(code__icontains=search))
+    status = request.GET.get('status', '')
+    if status == 'active':
+        qs = qs.filter(is_active=True)
+    elif status == 'inactive':
+        qs = qs.filter(is_active=False)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -100,6 +105,11 @@ def uom_list(request, tenant_slug):
     search = request.GET.get('q', '').strip()
     if search:
         qs = qs.filter(Q(name__icontains=search) | Q(code__icontains=search))
+    status = request.GET.get('status', '')
+    if status == 'active':
+        qs = qs.filter(is_active=True)
+    elif status == 'inactive':
+        qs = qs.filter(is_active=False)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -196,10 +206,13 @@ def item_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    categories = ItemCategory.objects.filter(tenant=tenant, is_active=True)
+
     return render(request, 'inventory/items/item_list.html', {
         'items': page_obj,
         'page_obj': page_obj,
         'filter_form': filter_form,
+        'categories': categories,
         'total_count': total_count,
         'total_value': total_value,
     })
@@ -289,6 +302,11 @@ def warehouse_list(request, tenant_slug):
     search = request.GET.get('q', '').strip()
     if search:
         qs = qs.filter(Q(name__icontains=search) | Q(code__icontains=search))
+    status = request.GET.get('status', '')
+    if status == 'active':
+        qs = qs.filter(is_active=True)
+    elif status == 'inactive':
+        qs = qs.filter(is_active=False)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
