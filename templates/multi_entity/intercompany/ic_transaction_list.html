@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Inter-Company Transactions{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Inter-Company Transactions</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Multi-Entity</li>
+        <li class="breadcrumb-item active">Inter-Company Transactions</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-exchange-funds-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Draft</p>
+                        <h3 class="mb-0">{{ draft_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-draft-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Posted</p>
+                        <h3 class="mb-0">{{ posted_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Transaction #, reference..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Entity</label>
+                <select name="entity" class="form-select">
+                    <option value="">All Entities</option>
+                    {% for e in entities %}
+                    <option value="{{ e.pk }}" {% if request.GET.entity == e.pk|stringformat:"d" %}selected{% endif %}>{{ e.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for value, label in type_choices %}
+                    <option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'multi_entity:ic_transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'multi_entity:ic_transaction_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> New Transaction</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Number</th>
+                        <th>From Entity</th>
+                        <th>To Entity</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th>Currency</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="{% url 'multi_entity:ic_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}">{{ txn.transaction_number }}</a>
+                            </strong>
+                        </td>
+                        <td>{{ txn.from_entity }}</td>
+                        <td>{{ txn.to_entity }}</td>
+                        <td><span class="badge badge-soft-secondary">{{ txn.get_transaction_type_display }}</span></td>
+                        <td>{{ txn.date|date:"M d, Y" }}</td>
+                        <td class="text-end">{{ txn.amount|floatformat:2|intcomma }}</td>
+                        <td>{{ txn.currency }}</td>
+                        <td>
+                            {% if txn.status == 'draft' %}
+                            <span class="badge bg-soft-warning text-warning">Draft</span>
+                            {% elif txn.status == 'pending' %}
+                            <span class="badge bg-soft-warning text-warning">Pending</span>
+                            {% elif txn.status == 'confirmed' %}
+                            <span class="badge bg-soft-info text-info">Confirmed</span>
+                            {% elif txn.status == 'posted' %}
+                            <span class="badge bg-soft-success text-success">Posted</span>
+                            {% elif txn.status == 'cancelled' %}
+                            <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                            {% else %}
+                            <span class="badge badge-soft-secondary">{{ txn.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'multi_entity:ic_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-exchange-funds-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No inter-company transactions found</h5>
+                                <p class="text-muted">Create your first inter-company transaction to get started.</p>
+                                <a href="{% url 'multi_entity:ic_transaction_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Transaction
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
