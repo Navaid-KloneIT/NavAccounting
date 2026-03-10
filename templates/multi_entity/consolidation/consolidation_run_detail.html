@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ run.run_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ run.run_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:consolidation_run_list' tenant_slug=current_tenant.slug %}">Consolidation Runs</a></li>
+            <li class="breadcrumb-item active">{{ run.run_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Run Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-play-circle-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Run Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Run Number</dt>
+                            <dd class="col-sm-7">{{ run.run_number }}</dd>
+                            <dt class="col-sm-5 text-muted">Group</dt>
+                            <dd class="col-sm-7">{{ run.consolidation_group.name }}</dd>
+                            <dt class="col-sm-5 text-muted">Period</dt>
+                            <dd class="col-sm-7">{{ run.fiscal_period }}</dd>
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if run.status == 'draft' %}
+                                    <span class="badge bg-soft-warning text-warning">Draft</span>
+                                {% elif run.status == 'in_progress' %}
+                                    <span class="badge bg-soft-info text-info">In Progress</span>
+                                {% elif run.status == 'completed' %}
+                                    <span class="badge bg-soft-success text-success">Completed</span>
+                                {% elif run.status == 'failed' %}
+                                    <span class="badge bg-soft-danger text-danger">Failed</span>
+                                {% elif run.status == 'reversed' %}
+                                    <span class="badge bg-soft-secondary text-secondary">Reversed</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Started At</dt>
+                            <dd class="col-sm-7">{{ run.started_at|date:"M d, Y H:i"|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">Completed At</dt>
+                            <dd class="col-sm-7">{{ run.completed_at|date:"M d, Y H:i"|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">Total Eliminations</dt>
+                            <dd class="col-sm-7">{{ run.total_eliminations|floatformat:2|intcomma }}</dd>
+                            <dt class="col-sm-5 text-muted">Total NCI</dt>
+                            <dd class="col-sm-7">{{ run.total_minority_interest|floatformat:2|intcomma }}</dd>
+                            <dt class="col-sm-5 text-muted">Total CTA</dt>
+                            <dd class="col-sm-7">{{ run.total_cta|floatformat:2|intcomma }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Elimination Entries -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-exchange-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Elimination Entries</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if elimination_entries %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>From Entity</th>
+                                <th>To Entity</th>
+                                <th>Debit Account</th>
+                                <th>Credit Account</th>
+                                <th class="text-end">Amount</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in elimination_entries %}
+                            <tr>
+                                <td>{{ entry.from_entity|default:"-" }}</td>
+                                <td>{{ entry.to_entity|default:"-" }}</td>
+                                <td>{{ entry.debit_account|default:"-" }}</td>
+                                <td>{{ entry.credit_account|default:"-" }}</td>
+                                <td class="text-end">{{ entry.amount|floatformat:2|intcomma }}</td>
+                                <td>{{ entry.description|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No elimination entries recorded.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Minority Interests -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-pie-chart-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Minority Interests</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if minority_interests %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Entity</th>
+                                <th>Period</th>
+                                <th class="text-end">Minority %</th>
+                                <th class="text-end">Net Income</th>
+                                <th class="text-end">Minority Share</th>
+                                <th class="text-end">Minority Equity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mi in minority_interests %}
+                            <tr>
+                                <td>{{ mi.entity|default:"-" }}</td>
+                                <td>{{ mi.period|default:"-" }}</td>
+                                <td class="text-end">{{ mi.minority_percentage|floatformat:2 }}%</td>
+                                <td class="text-end">{{ mi.net_income|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ mi.minority_share|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ mi.minority_equity|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No minority interest calculations.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if run.status == 'draft' %}
+                <form method="post" action="{% url 'multi_entity:consolidation_run_execute' tenant_slug=current_tenant.slug pk=run.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2">
+                        <i class="ri-play-circle-line me-1"></i> Execute Run
+                    </button>
+                </form>
+                {% endif %}
+                {% if run.status == 'completed' %}
+                <form method="post" action="{% url 'multi_entity:consolidation_run_reverse' tenant_slug=current_tenant.slug pk=run.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-danger btn-sm w-100 mb-2">
+                        <i class="ri-arrow-go-back-line me-1"></i> Reverse Run
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'multi_entity:consolidation_run_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Runs
+                </a>
+            </div>
+        </div>
+
+        <!-- Error Log -->
+        {% if run.error_log %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-danger p-2 me-2"><i class="ri-error-warning-line text-danger"></i></div>
+                    <h5 class="card-title mb-0">Error Log</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <pre class="mb-0 small text-danger" style="white-space: pre-wrap;">{{ run.error_log }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
