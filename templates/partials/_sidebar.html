@@ -1041,6 +1041,156 @@
                 </a>
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Multi-Entity & Consolidation <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Entities -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'multi_entity' and 'entity' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-building-4-line"></i>
+                    <span class="menu-text">Entities</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'multi_entity' and 'entity' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:entity_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'entity_list' %}active{% endif %}">
+                            <span class="menu-text">All Entities</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:entity_hierarchy' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'entity_hierarchy' %}active{% endif %}">
+                            <span class="menu-text">Entity Hierarchy</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Inter-company -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'multi_entity' and 'ic_' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-exchange-line"></i>
+                    <span class="menu-text">Inter-company</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'multi_entity' and 'ic_' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:ic_transaction_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'ic_transaction_list' %}active{% endif %}">
+                            <span class="menu-text">Transactions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:ic_balance_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'ic_balance_list' %}active{% endif %}">
+                            <span class="menu-text">IC Balances</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Currency Translation -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'multi_entity' and 'translation' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-exchange-funds-line"></i>
+                    <span class="menu-text">Currency Translation</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'multi_entity' and 'translation' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:translation_rule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'translation_rule_list' %}active{% endif %}">
+                            <span class="menu-text">Translation Rules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:translation_run' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'translation_run' %}active{% endif %}">
+                            <span class="menu-text">Run Translation</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:translation_adjustment_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'translation_adjustment_list' %}active{% endif %}">
+                            <span class="menu-text">CTA Adjustments</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Consolidation -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'multi_entity' and 'consolidation' in request.resolver_match.url_name or request.resolver_match.app_name == 'multi_entity' and 'elimination' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-merge-cells-horizontal"></i>
+                    <span class="menu-text">Consolidation</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'multi_entity' and 'consolidation' in request.resolver_match.url_name or request.resolver_match.app_name == 'multi_entity' and 'elimination' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:consolidation_group_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'consolidation_group_list' %}active{% endif %}">
+                            <span class="menu-text">Groups</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:elimination_rule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'elimination_rule_list' %}active{% endif %}">
+                            <span class="menu-text">Elimination Rules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:consolidation_run_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'consolidation_run_list' %}active{% endif %}">
+                            <span class="menu-text">Consolidation Runs</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Transfer Pricing -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'multi_entity' and 'tp_' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-price-tag-3-line"></i>
+                    <span class="menu-text">Transfer Pricing</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'multi_entity' and 'tp_' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:tp_policy_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'tp_policy_list' %}active{% endif %}">
+                            <span class="menu-text">Policies</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:tp_transaction_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'tp_transaction_list' %}active{% endif %}">
+                            <span class="menu-text">TP Transactions</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Regulatory -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'multi_entity' and 'gaap_' in request.resolver_match.url_name or request.resolver_match.app_name == 'multi_entity' and 'regulatory' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-government-line"></i>
+                    <span class="menu-text">Regulatory</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'multi_entity' and 'gaap_' in request.resolver_match.url_name or request.resolver_match.app_name == 'multi_entity' and 'regulatory' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:gaap_adjustment_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'gaap_adjustment_list' %}active{% endif %}">
+                            <span class="menu-text">GAAP Adjustments</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'multi_entity:regulatory_report_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'regulatory_report_list' %}active{% endif %}">
+                            <span class="menu-text">Reports</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
