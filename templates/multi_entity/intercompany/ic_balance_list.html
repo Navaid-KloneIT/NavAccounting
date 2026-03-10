@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Inter-Company Balances{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Inter-Company Balances</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Multi-Entity</li>
+        <li class="breadcrumb-item active">Inter-Company Balances</li>
+    </ol>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Entity</label>
+                <select name="entity" class="form-select">
+                    <option value="">All Entities</option>
+                    {% for e in entities %}
+                    <option value="{{ e.pk }}" {% if request.GET.entity == e.pk|stringformat:"d" %}selected{% endif %}>{{ e.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Reconciled</label>
+                <select name="reconciled" class="form-select">
+                    <option value="">All</option>
+                    <option value="yes" {% if request.GET.reconciled == 'yes' %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if request.GET.reconciled == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'multi_entity:ic_balance_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>From Entity</th>
+                        <th>To Entity</th>
+                        <th>Period</th>
+                        <th>Currency</th>
+                        <th class="text-end">Balance</th>
+                        <th>Reconciled</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bal in balances %}
+                    <tr>
+                        <td>{{ bal.from_entity }}</td>
+                        <td>{{ bal.to_entity }}</td>
+                        <td>{{ bal.period }}</td>
+                        <td>{{ bal.currency }}</td>
+                        <td class="text-end">
+                            <strong class="{% if bal.balance < 0 %}text-danger{% endif %}">
+                                {{ bal.balance|floatformat:2|intcomma }}
+                            </strong>
+                        </td>
+                        <td>
+                            {% if bal.is_reconciled %}
+                            <span class="badge bg-soft-success text-success">Reconciled</span>
+                            {% else %}
+                            <span class="badge bg-soft-warning text-warning">Unreconciled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if not bal.is_reconciled %}
+                            <form method="post" action="{% url 'multi_entity:ic_balance_reconcile' tenant_slug=current_tenant.slug pk=bal.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-soft-success" title="Reconcile">
+                                    <i class="ri-check-double-line"></i> Reconcile
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-scales-3-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No inter-company balances found</h5>
+                                <p class="text-muted">Balances will appear here once inter-company transactions are posted.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
