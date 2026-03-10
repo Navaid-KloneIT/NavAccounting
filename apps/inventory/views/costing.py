@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Sum, F
+from django.db.models import Q, Sum, F
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -24,17 +24,29 @@ def cogs_dashboard(request, tenant_slug):
         return redirect('tenants:select')
     set_current_tenant(tenant)
 
-    calculations = COGSCalculation.objects.filter(tenant=tenant).select_related(
+    qs = COGSCalculation.objects.filter(tenant=tenant).select_related(
         'period', 'created_by'
     ).order_by('-calculation_date')
 
-    paginator = Paginator(calculations, 15)
+    search = request.GET.get('q', '').strip()
+    if search:
+        qs = qs.filter(calculation_number__icontains=search)
+    status = request.GET.get('status', '')
+    if status:
+        qs = qs.filter(status=status)
+    method = request.GET.get('method', '')
+    if method:
+        qs = qs.filter(method=method)
+
+    paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'inventory/cogs/cogs_dashboard.html', {
         'calculations': page_obj,
         'page_obj': page_obj,
-        'total_count': calculations.count(),
+        'total_count': qs.count(),
+        'status_choices': COGSCalculation.STATUS_CHOICES,
+        'method_choices': COGSCalculation.METHOD_CHOICES,
     })
 
 
@@ -125,6 +137,16 @@ def valuation_report(request, tenant_slug):
     if category_filter:
         items = items.filter(category_id=category_filter)
 
+    search = request.GET.get('q', '').strip()
+    if search:
+        items = items.filter(
+            Q(sku__icontains=search) | Q(name__icontains=search)
+        )
+
+    costing_filter = request.GET.get('costing_method', '')
+    if costing_filter:
+        items = items.filter(costing_method=costing_filter)
+
     total_value = Decimal('0.00')
     item_data = []
     for item in items:
@@ -140,4 +162,5 @@ def valuation_report(request, tenant_slug):
         'categories': categories,
         'total_value': total_value,
         'current_category': category_filter,
+        'costing_method_choices': Item.COSTING_METHOD_CHOICES,
     })
