@@ -41,6 +41,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Inventory & Cost Management** — Item master with categories, units of measure & warehouses, purchase requisitions with PO conversion, purchase orders with approval workflow, goods receipts with cost layer creation, inventory transactions (adjustments/scrap), inter-warehouse transfers, COGS calculation engine (FIFO/LIFO/weighted average/standard), inventory valuation report, reorder point planning with auto-PO generation, cycle counting with variance GL posting, landed cost allocation with GL integration
 - **Payroll Integration** — Employee master with pay types (salary/hourly) and frequencies, payroll journal with calculate/approve/post workflow, tax withholding configuration (federal/state/local/FICA/FUTA/SUTA), tax remittance tracking, benefit plans (401k/health/dental/vision/HSA/FSA) with employee enrollment, court-ordered garnishment management with priority ordering, workers comp class assignments with rate tracking, gross-to-net payroll reconciliation with variance detection, GL journal entry posting
 - **Project/Job Costing** — Project master with WBS hierarchy, time & expense tracking, billing rules with markup, revenue recognition (percentage-of-completion/milestone/completed-contract), project invoicing with retention, profitability analysis with earned value metrics, resource planning & utilization reports, audit trail integration
+- **Multi-Entity & Consolidation** — Entity management (parent/subsidiary/branch/division/JV/associate) with hierarchical structure, intercompany transactions with paired journal entries, IC balance reconciliation, currency translation with CTA calculation, consolidation engine with elimination rules, minority interest computation, transfer pricing policies with arm's length analysis, local GAAP adjustments, regulatory report filing
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -97,6 +98,7 @@ NavAccounting/
 │   ├── inventory/                  # Item Master, Purchasing, Goods Receipts, Transactions, Transfers, COGS, Reorder Planning, Cycle Counts, Landed Cost
 │   ├── payroll/                    # Employees, Payroll Journals, Tax Withholding, Tax Remittance, Benefits, Garnishments, Workers Comp, Reconciliation
 │   ├── project_costing/            # Projects, WBS, Budgets, Billing Rules, Time Entries, Expenses, Revenue Recognition, Invoices, Profitability, Resources
+│   ├── multi_entity/               # Entities, IC Transactions, Currency Translation, Consolidation, Transfer Pricing, Regulatory Reporting
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -189,6 +191,13 @@ NavAccounting/
 │   │   ├── invoices/               # Invoice list, form, detail
 │   │   ├── profitability/          # Dashboard, detail, snapshot form, snapshot list
 │   │   └── resources/              # Assignment list, form, confirm delete, utilization report
+│   ├── multi_entity/               # ME templates (30 files across 6 subdirectories)
+│   │   ├── entities/               # Entity list, form, detail, hierarchy
+│   │   ├── intercompany/           # IC transaction list, form, detail, balance list
+│   │   ├── translation/            # Translation rule list, form, run, adjustment list, detail
+│   │   ├── consolidation/          # Group list, form, detail, elimination rule list, form, run list, form, detail
+│   │   ├── transfer_pricing/       # TP policy list, form, detail, transaction list, form
+│   │   └── regulatory/             # GAAP adjustment list, form, detail, report list, form, detail
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -321,6 +330,7 @@ python manage.py seed_data --cm
 python manage.py seed_data --fa
 python manage.py seed_data --ic
 python manage.py seed_data --pj
+python manage.py seed_data --me
 ```
 
 ### What Gets Seeded
@@ -343,6 +353,7 @@ python manage.py seed_data --pj
 | Fixed Assets | 5 asset categories (BLDG, VEHI, FURN, COMP, MACH), 3 locations (HQ, WH1, BR1), 8 assets with depreciation profiles and schedules, 4 acquisitions, 1 asset transfer, 1 MACRS tax book with entries, 1 physical inventory with items |
 | Inventory & Cost | 5 item categories (RAW, FG, COMP, PKG, MRO), 5 UoMs, 3 warehouses, 8 items with cost layers, 1 purchase requisition, 2 purchase orders with lines, 1 posted goods receipt, 2 inventory transactions (adjustment + scrap), 1 completed transfer, 1 COGS calculation with entries, 3 reorder suggestions, 1 cycle count plan + session with items, 1 landed cost voucher with cost lines and allocations |
 | Project/Job Costing | 5 projects (Corporate HQ Renovation, ERP Implementation, Highway Bridge Repair, Mobile App Development, Warehouse Automation), WBS elements with hierarchical structure, project budgets with GL accounts, billing rules, time entries, expense entries with markup, revenue recognition records, milestones, project invoices with lines, profitability snapshots, resource assignments |
+| Multi-Entity & Consolidation | 5 entities (HQ parent, EU subsidiary, UK branch, Asia JV, US division), 8 IC transactions with varied statuses, 5 IC balances, 5 currency translation rules, 3 CTA translation adjustments, 2 consolidation groups (Global + EU sub-group), 4 elimination rules, 3 consolidation runs (completed/draft/reversed), 2 elimination entries, 2 minority interest records, 4 transfer pricing policies, 5 TP transactions, 5 GAAP adjustments, 6 regulatory reports |
 
 ---
 
@@ -426,6 +437,12 @@ These paths skip tenant resolution:
 | — | TimeEntry, ExpenseEntry, RevenueRecognition |
 | — | ProjectMilestone, ProjectInvoice, ProjectInvoiceLine |
 | — | ProfitabilitySnapshot, ResourceAssignment |
+| — | Entity, IntercompanyTransaction, IntercompanyBalance |
+| — | CurrencyTranslationRule, TranslationAdjustment |
+| — | ConsolidationGroup, ConsolidationRun, EliminationRule |
+| — | EliminationEntry, MinorityInterest |
+| — | TransferPricingPolicy, TransferPricingTransaction |
+| — | LocalGAAPAdjustment, RegulatoryReport |
 
 ---
 
@@ -472,7 +489,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ, ME) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -878,6 +895,57 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/pj/resources/<pk>/edit/` | Edit assignment | Edit resource assignment |
 | `/t/<slug>/pj/resources/<pk>/delete/` | Delete assignment | Delete resource assignment |
 | `/t/<slug>/pj/resources/utilization/` | Utilization report | Employee utilization report |
+| **Multi-Entity — Entities** | | |
+| `/t/<slug>/me/entities/` | Entity list | All entities with filters |
+| `/t/<slug>/me/entities/create/` | Create entity | New entity form |
+| `/t/<slug>/me/entities/<pk>/` | Entity detail | Entity info, hierarchy, IC accounts |
+| `/t/<slug>/me/entities/<pk>/edit/` | Edit entity | Edit entity details |
+| `/t/<slug>/me/entities/hierarchy/` | Entity hierarchy | Tree view of entity structure |
+| **Multi-Entity — Intercompany** | | |
+| `/t/<slug>/me/ic-transactions/` | IC transaction list | All intercompany transactions |
+| `/t/<slug>/me/ic-transactions/create/` | Create IC transaction | New intercompany transaction |
+| `/t/<slug>/me/ic-transactions/<pk>/` | IC transaction detail | Transaction info, linked JEs |
+| `/t/<slug>/me/ic-transactions/<pk>/confirm/` | Confirm IC transaction | Confirm a draft transaction |
+| `/t/<slug>/me/ic-transactions/<pk>/post/` | Post IC transaction | Post confirmed transaction (creates paired JEs) |
+| `/t/<slug>/me/ic-balances/` | IC balance list | Intercompany balances by entity pair |
+| `/t/<slug>/me/ic-balances/<pk>/reconcile/` | Reconcile IC balance | Mark IC balance as reconciled |
+| **Multi-Entity — Currency Translation** | | |
+| `/t/<slug>/me/translation/rules/` | Translation rule list | Currency translation rules |
+| `/t/<slug>/me/translation/rules/create/` | Create translation rule | New translation rule |
+| `/t/<slug>/me/translation/rules/<pk>/edit/` | Edit translation rule | Edit translation rule |
+| `/t/<slug>/me/translation/run/` | Run translation | Execute currency translation |
+| `/t/<slug>/me/translation/adjustments/` | CTA adjustment list | Translation adjustments |
+| `/t/<slug>/me/translation/adjustments/<pk>/` | CTA adjustment detail | View CTA detail |
+| **Multi-Entity — Consolidation** | | |
+| `/t/<slug>/me/consolidation/groups/` | Group list | Consolidation groups |
+| `/t/<slug>/me/consolidation/groups/create/` | Create group | New consolidation group |
+| `/t/<slug>/me/consolidation/groups/<pk>/` | Group detail | Group info, entities, rules |
+| `/t/<slug>/me/consolidation/groups/<pk>/edit/` | Edit group | Edit consolidation group |
+| `/t/<slug>/me/consolidation/rules/` | Elimination rule list | All elimination rules |
+| `/t/<slug>/me/consolidation/rules/create/` | Create elimination rule | New elimination rule |
+| `/t/<slug>/me/consolidation/rules/<pk>/edit/` | Edit elimination rule | Edit elimination rule |
+| `/t/<slug>/me/consolidation/runs/` | Run list | All consolidation runs |
+| `/t/<slug>/me/consolidation/runs/create/` | Create run | New consolidation run |
+| `/t/<slug>/me/consolidation/runs/<pk>/` | Run detail | Run info, elimination entries, NCI |
+| `/t/<slug>/me/consolidation/runs/<pk>/execute/` | Execute run | Execute consolidation run |
+| `/t/<slug>/me/consolidation/runs/<pk>/reverse/` | Reverse run | Reverse completed run |
+| **Multi-Entity — Transfer Pricing** | | |
+| `/t/<slug>/me/transfer-pricing/policies/` | TP policy list | Transfer pricing policies |
+| `/t/<slug>/me/transfer-pricing/policies/create/` | Create TP policy | New transfer pricing policy |
+| `/t/<slug>/me/transfer-pricing/policies/<pk>/` | TP policy detail | Policy info, transactions |
+| `/t/<slug>/me/transfer-pricing/policies/<pk>/edit/` | Edit TP policy | Edit transfer pricing policy |
+| `/t/<slug>/me/transfer-pricing/transactions/` | TP transaction list | TP transactions with variance |
+| `/t/<slug>/me/transfer-pricing/transactions/create/` | Create TP transaction | New TP transaction |
+| `/t/<slug>/me/transfer-pricing/transactions/<pk>/review/` | Review TP transaction | Approve or flag TP transaction |
+| **Multi-Entity — Regulatory** | | |
+| `/t/<slug>/me/regulatory/adjustments/` | GAAP adjustment list | Local GAAP adjustments |
+| `/t/<slug>/me/regulatory/adjustments/create/` | Create GAAP adjustment | New GAAP adjustment |
+| `/t/<slug>/me/regulatory/adjustments/<pk>/` | GAAP adjustment detail | Adjustment info, JE |
+| `/t/<slug>/me/regulatory/adjustments/<pk>/post/` | Post GAAP adjustment | Post adjustment (creates JE) |
+| `/t/<slug>/me/regulatory/reports/` | Report list | Regulatory reports |
+| `/t/<slug>/me/regulatory/reports/create/` | Create report | New regulatory report |
+| `/t/<slug>/me/regulatory/reports/<pk>/` | Report detail | Report info, data |
+| `/t/<slug>/me/regulatory/reports/<pk>/file/` | File report | Mark report as filed |
 
 ---
 
@@ -1357,7 +1425,55 @@ The profitability dashboard provides earned value management (EVM) metrics:
 
 6 models are tracked via the general ledger audit trail system: Project, ProjectInvoice, RevenueRecognition, TimeEntry, ExpenseEntry, ProfitabilitySnapshot.
 
-### 14. `dashboard` — Dashboard & Analytics
+### 14. `multi_entity` — Multi-Entity & Consolidation Module
+
+Full multi-entity management with 6 submodules, 14 models, 40 views, and 30 templates.
+
+- **Entity** — Organizational entities with code/name, types (parent/subsidiary/branch/division/joint venture/associate), hierarchical parent-child structure, functional currency, ownership percentage, consolidation method (full/proportional/equity/none), IC account mapping, status workflow (Active → Inactive → Dissolved)
+- **IntercompanyTransaction** — IC transactions with auto-generated numbers (`ICX-YYYY-NNNN`), types (sale/purchase/service/loan/dividend/capital/expense allocation), paired journal entry creation (one per entity side), status workflow (Draft → Pending → Confirmed → Posted → Cancelled)
+- **IntercompanyBalance** — Running due-to/due-from balances between entity pairs per fiscal period, reconciliation tracking
+- **CurrencyTranslationRule** — Configurable translation rules by account type or specific account, rate types (current/historical/average/fixed)
+- **TranslationAdjustment** — CTA entries per entity per period with translated amounts (assets/liabilities/equity/income/expense), cumulative CTA tracking
+- **ConsolidationGroup** — Groups of entities for consolidation with M2M entity relationships, reporting currency, parent entity designation
+- **ConsolidationRun** — Consolidation execution tracking with auto-generated numbers (`CON-YYYY-NNNN`), status workflow (Draft → In Progress → Completed → Failed → Reversed), elimination and NCI totals
+- **EliminationRule** — Configurable elimination rules with types (IC receivable/payable, IC revenue/expense, investment/equity, dividend, inventory profit, custom), priority ordering, auto-apply flag
+- **EliminationEntry** — Generated elimination journal entries from consolidation runs, linked to rules and entity pairs
+- **MinorityInterest** — Non-controlling interest per entity per period with NCI percentage, income share, and equity share calculations
+- **TransferPricingPolicy** — TP policies with auto-generated numbers (`TPP-YYYY-NNNN`), pricing methods (CUP/resale price/cost plus/TNMM/profit split), markup percentage, effective date ranges, documentation
+- **TransferPricingTransaction** — TP analysis per IC transaction with transfer price vs arm's length price, variance calculation, status workflow (Draft → Reviewed → Approved → Flagged)
+- **LocalGAAPAdjustment** — GAAP adjustments with auto-generated numbers (`GAP-YYYY-NNNN`), types (reclassification/measurement/disclosure/recognition), from/to accounting standards, GL journal entry creation on posting
+- **RegulatoryReport** — Regulatory filings with auto-generated numbers (`REG-YYYY-NNNN`), types (local FS/tax return/statutory/regulatory/custom), filing reference tracking, structured report data (JSONField)
+
+#### IC Transaction Workflow
+
+```
+Draft → Confirm → Confirmed → Post → Posted (creates paired Journal Entries)
+                                    → Cancel → Cancelled
+```
+
+#### Consolidation Workflow
+
+```
+Draft → Execute → In Progress → Completed (creates elimination JEs + NCI records)
+                               → Failed
+Completed → Reverse → Reversed (creates contra JEs)
+```
+
+#### GL Integration
+
+When an IC transaction is posted, `services.py` creates paired journal entries:
+- **From entity JE**: Debit IC Receivable, Credit IC Revenue/Transfer
+- **To entity JE**: Debit IC Expense/Transfer, Credit IC Payable
+
+When consolidation runs, elimination entries create journal entries:
+- **Debit**: Elimination rule debit account (e.g., IC Payable)
+- **Credit**: Elimination rule credit account (e.g., IC Receivable)
+
+When a GAAP adjustment is posted:
+- **Debit**: Adjustment debit account
+- **Credit**: Adjustment credit account
+
+### 15. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -1453,6 +1569,15 @@ The profitability dashboard provides earned value management (EVM) metrics:
 
 ---
 
+## Multi-Entity & Consolidation Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_multi_entity` | View Multi-Entity & Consolidation module |
+| `manage_multi_entity` | Full multi-entity management access |
+
+---
+
 ## Frontend & Theming
 
 ### Layout System
@@ -1525,6 +1650,7 @@ Permissions are organized by module:
 - `inventory` — view_inventory, manage_inventory
 - `payroll` — view_payroll, manage_payroll
 - `project_costing` — view_projects, manage_projects
+- `multi_entity` — view_multi_entity, manage_multi_entity
 - `admin` — admin_full
 
 ### Access Control Decorators
