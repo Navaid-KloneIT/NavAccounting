@@ -3595,16 +3595,18 @@ class Command(BaseCommand):
             # =====================================================================
             # Reorder Suggestions
             # =====================================================================
-            for item in items[:3]:
-                if item.item_type != 'inventory' or item.reorder_point <= 0:
-                    continue
+            reorder_statuses = ['pending', 'pending', 'pending', 'approved', 'approved', 'ordered', 'dismissed']
+            inv_items = [i for i in items if i.item_type == 'inventory' and i.reorder_point > 0]
+            for idx, item in enumerate(inv_items):
+                status = reorder_statuses[idx % len(reorder_statuses)]
+                low_stock = max(Decimal('0'), item.reorder_point - Decimal(str(random.randint(5, 30))))
                 ReorderSuggestion.unscoped.get_or_create(
-                    tenant=tenant, item=item, status='pending',
+                    tenant=tenant, item=item, status=status,
                     defaults={
-                        'current_stock': item.quantity_on_hand,
+                        'current_stock': low_stock,
                         'reorder_point': item.reorder_point,
                         'suggested_quantity': item.reorder_quantity,
-                        'vendor': vendors[0] if vendors else None,
+                        'vendor': vendors[idx % len(vendors)] if vendors else None,
                     }
                 )
 
