@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Entity{% else %}New Entity{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Entity - {{ entity.code }}{% else %}New Entity{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:entity_list' tenant_slug=current_tenant.slug %}">Entities</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Basic Information</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Code <span class="text-danger">*</span></label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Legal Name</label>
+                    {{ form.legal_name }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Entity Type <span class="text-danger">*</span></label>
+                    {{ form.entity_type }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Parent Entity</label>
+                    {{ form.parent }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Functional Currency <span class="text-danger">*</span></label>
+                    {{ form.functional_currency }}
+                    {% if form.functional_currency.errors %}<div class="text-danger small">{{ form.functional_currency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Status</label>
+                    {{ form.status }}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Consolidation</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Ownership %</label>
+                    {{ form.ownership_percentage }}
+                    {% if form.ownership_percentage.errors %}<div class="text-danger small">{{ form.ownership_percentage.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Consolidation Method</label>
+                    {{ form.consolidation_method }}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Regulatory Information</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Tax ID</label>
+                    {{ form.tax_id }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Registration Number</label>
+                    {{ form.registration_number }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Country</label>
+                    {{ form.country }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Local GAAP</label>
+                    {{ form.local_gaap }}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">GL Account Mapping</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">IC Receivable Account</label>
+                    {{ form.ic_receivable_account }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">IC Payable Account</label>
+                    {{ form.ic_payable_account }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">CTA Account</label>
+                    {{ form.cta_account }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Minority Interest Account</label>
+                    {{ form.minority_interest_account }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Entity{% endif %}</button>
+                <a href="{% url 'multi_entity:entity_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
