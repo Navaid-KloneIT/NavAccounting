@@ -99,7 +99,7 @@
                             {% for txn in transactions %}
                             <tr>
                                 <td>
-                                    <a href="{% url 'multi_entity:tp_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}">{{ txn.intercompany_transaction.transaction_number }}</a>
+                                    <a href="{% url 'multi_entity:tp_transaction_review' tenant_slug=current_tenant.slug pk=txn.pk %}">{{ txn.intercompany_transaction.transaction_number }}</a>
                                 </td>
                                 <td class="text-end">{{ txn.transfer_price|intcomma }}</td>
                                 <td class="text-end">{{ txn.arms_length_price|intcomma }}</td>
