@@ -18,14 +18,41 @@
     </div>
 </div>
 
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Voucher #, Receipt #..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'inventory:landed_cost_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Landed Cost Vouchers ({{ total_count }})</h5>
     </div>
-    <div class="card-body">
-        {% if vouchers %}
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Voucher #</th>
@@ -43,7 +70,7 @@
                             <a href="{% url 'inventory:landed_cost_detail' tenant_slug=current_tenant.slug pk=v.pk %}">{{ v.voucher_number }}</a>
                         </td>
                         <td>{{ v.goods_receipt.receipt_number }}</td>
-                        <td>{{ v.date }}</td>
+                        <td>{{ v.date|date:"M d, Y" }}</td>
                         <td class="text-end">{{ v.total_additional_cost|floatformat:2|intcomma }}</td>
                         <td>
                             {% if v.status == 'draft' %}
@@ -58,17 +85,20 @@
                             <a href="{% url 'inventory:landed_cost_detail' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-info"><i class="ri-eye-line"></i></a>
                         </td>
                     </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-center py-5">
+                                <i class="ri-ship-line" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No landed cost vouchers found.</p>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% include "partials/_pagination.html" %}
-        {% else %}
-        <div class="text-center py-5">
-            <i class="ri-ship-line" style="font-size: 3rem; color: #ccc;"></i>
-            <p class="text-muted mt-2">No landed cost vouchers found.</p>
-        </div>
-        {% endif %}
     </div>
+    {% include "partials/_pagination.html" %}
 </div>
 {% endblock %}
