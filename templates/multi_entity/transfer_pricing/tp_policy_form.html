@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Transfer Pricing Policy{% else %}New Transfer Pricing Policy{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Policy - {{ policy.policy_number }}{% else %}New Transfer Pricing Policy{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:tp_policy_list' tenant_slug=current_tenant.slug %}">TP Policies</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Policy Details</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">From Entity <span class="text-danger">*</span></label>
+                    {{ form.from_entity }}
+                    {% if form.from_entity.errors %}<div class="text-danger small">{{ form.from_entity.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">To Entity <span class="text-danger">*</span></label>
+                    {{ form.to_entity }}
+                    {% if form.to_entity.errors %}<div class="text-danger small">{{ form.to_entity.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Pricing Method <span class="text-danger">*</span></label>
+                    {{ form.pricing_method }}
+                    {% if form.pricing_method.errors %}<div class="text-danger small">{{ form.pricing_method.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Markup Percentage</label>
+                    {{ form.markup_percentage }}
+                    {% if form.markup_percentage.errors %}<div class="text-danger small">{{ form.markup_percentage.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Effective Period</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Effective From <span class="text-danger">*</span></label>
+                    {{ form.effective_from }}
+                    {% if form.effective_from.errors %}<div class="text-danger small">{{ form.effective_from.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Effective To</label>
+                    {{ form.effective_to }}
+                    {% if form.effective_to.errors %}<div class="text-danger small">{{ form.effective_to.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Documentation</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Documentation</label>
+                    {{ form.documentation }}
+                    {% if form.documentation.errors %}<div class="text-danger small">{{ form.documentation.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Comparable Data</label>
+                    {{ form.comparable_data }}
+                    {% if form.comparable_data.errors %}<div class="text-danger small">{{ form.comparable_data.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>{% if is_edit %}Save Changes{% else %}Create Policy{% endif %}</button>
+                <a href="{% url 'multi_entity:tp_policy_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
