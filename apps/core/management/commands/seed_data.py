@@ -12,6 +12,7 @@ Usage:
     python manage.py seed_data --ic         # Seed inventory & cost management
     python manage.py seed_data --pr         # Seed payroll integration
     python manage.py seed_data --pj         # Seed project/job costing
+    python manage.py seed_data --me         # Seed multi-entity & consolidation
 """
 import random
 from datetime import date, timedelta
@@ -56,6 +57,7 @@ class Command(BaseCommand):
         parser.add_argument('--ic', action='store_true', help='Seed inventory & cost management data only')
         parser.add_argument('--pr', action='store_true', help='Seed payroll integration data only')
         parser.add_argument('--pj', action='store_true', help='Seed project/job costing data only')
+        parser.add_argument('--me', action='store_true', help='Seed multi-entity & consolidation data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -66,7 +68,7 @@ class Command(BaseCommand):
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
-            options['pr'], options['pj'],
+            options['pr'], options['pj'], options['me'],
         ])
 
         # Always seed system-level data
@@ -127,9 +129,40 @@ class Command(BaseCommand):
             self.stdout.write('Seeding project/job costing data...')
             self._seed_pj_data()
 
+        if seed_all or options['me']:
+            self.stdout.write('Seeding multi-entity & consolidation data...')
+            self._seed_me_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean ME (Multi-Entity & Consolidation) data first
+        try:
+            from apps.multi_entity.models import (
+                RegulatoryReport, LocalGAAPAdjustment,
+                TransferPricingTransaction, TransferPricingPolicy,
+                MinorityInterest, EliminationEntry, EliminationRule,
+                ConsolidationRun, ConsolidationGroup,
+                TranslationAdjustment, CurrencyTranslationRule,
+                IntercompanyBalance, IntercompanyTransaction, Entity,
+            )
+            RegulatoryReport.unscoped.all().delete()
+            LocalGAAPAdjustment.unscoped.all().delete()
+            TransferPricingTransaction.unscoped.all().delete()
+            TransferPricingPolicy.unscoped.all().delete()
+            MinorityInterest.unscoped.all().delete()
+            EliminationEntry.unscoped.all().delete()
+            ConsolidationRun.unscoped.all().delete()
+            EliminationRule.unscoped.all().delete()
+            ConsolidationGroup.unscoped.all().delete()
+            TranslationAdjustment.unscoped.all().delete()
+            CurrencyTranslationRule.unscoped.all().delete()
+            IntercompanyBalance.unscoped.all().delete()
+            IntercompanyTransaction.unscoped.all().delete()
+            Entity.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean PJ (Project/Job Costing) data first
         try:
             from apps.project_costing.models import (
@@ -4854,4 +4887,745 @@ class Command(BaseCommand):
             f'  Created PJ data (projects, WBS elements, budgets, billing rules, '
             f'time entries, expenses, revenue recognition, milestones, '
             f'invoices with lines, profitability snapshots, resource assignments)'
+        )
+
+    def _seed_me_data(self):
+        from apps.multi_entity.models import (
+            Entity, IntercompanyTransaction, IntercompanyBalance,
+            CurrencyTranslationRule, TranslationAdjustment,
+            ConsolidationGroup, ConsolidationRun, EliminationRule,
+            EliminationEntry, MinorityInterest,
+            TransferPricingPolicy, TransferPricingTransaction,
+            LocalGAAPAdjustment, RegulatoryReport,
+        )
+        from apps.general_ledger.models import Account
+        from apps.tenants.managers import set_current_tenant
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found. Skipping ME seeding.')
+            return
+
+        for tenant in tenants:
+            set_current_tenant(tenant)
+
+            # ---- Prerequisites ----
+            usd = Currency.objects.filter(code='USD').first()
+            eur = Currency.objects.filter(code='EUR').first()
+            gbp = Currency.objects.filter(code='GBP').first()
+            jpy = Currency.objects.filter(code='JPY').first()
+
+            if not usd:
+                self.stdout.write(f'  Skipping ME for {tenant.name}: no USD currency.')
+                continue
+
+            # Fallback currencies
+            if not eur:
+                eur = usd
+            if not gbp:
+                gbp = usd
+            if not jpy:
+                jpy = usd
+
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
+                continue
+            user = users[0]
+
+            fiscal_periods = list(FiscalPeriod.unscoped.filter(
+                tenant=tenant
+            ).order_by('start_date')[:6])
+            if not fiscal_periods:
+                self.stdout.write(f'  Skipping ME for {tenant.name}: no fiscal periods.')
+                continue
+
+            account_types = list(AccountType.objects.all())
+
+            # Get GL accounts by type for mapping
+            asset_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['AST', 'ASSET', 'CA', 'NCA']
+            )[:10])
+            liability_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['CL', 'LIA', 'LIABILITY', 'NCL']
+            )[:10])
+            equity_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['EQ', 'EQUITY', 'OE']
+            )[:5])
+            revenue_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['REV', 'REVENUE', 'OI']
+            )[:5])
+            expense_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['EXP', 'EXPENSE', 'OE']
+            )[:10])
+
+            # Fallback: get any non-header accounts
+            all_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False
+            )[:20])
+            if len(asset_accounts) < 2:
+                asset_accounts = all_accounts[:4]
+            if len(liability_accounts) < 2:
+                liability_accounts = all_accounts[4:8] if len(all_accounts) > 4 else all_accounts[:4]
+            if len(equity_accounts) < 2:
+                equity_accounts = all_accounts[8:12] if len(all_accounts) > 8 else all_accounts[:4]
+            if len(revenue_accounts) < 2:
+                revenue_accounts = all_accounts[12:16] if len(all_accounts) > 12 else all_accounts[:4]
+            if len(expense_accounts) < 2:
+                expense_accounts = all_accounts[16:20] if len(all_accounts) > 16 else all_accounts[:4]
+
+            if len(all_accounts) < 4:
+                self.stdout.write(f'  Skipping ME for {tenant.name}: not enough GL accounts.')
+                continue
+
+            # =============================================================
+            # 1. Entities (1 parent + 4 subsidiaries/branches)
+            # =============================================================
+            entities_data = [
+                {
+                    'code': 'HQ',
+                    'name': 'Corporate Headquarters',
+                    'legal_name': f'{tenant.name} Holdings Inc.',
+                    'entity_type': 'parent',
+                    'parent': None,
+                    'functional_currency': usd,
+                    'ownership_percentage': Decimal('100.0000'),
+                    'consolidation_method': 'full',
+                    'tax_id': '12-3456789',
+                    'country': 'United States',
+                    'local_gaap': 'US GAAP',
+                    'status': 'active',
+                },
+                {
+                    'code': 'EU-SUB',
+                    'name': 'European Operations',
+                    'legal_name': f'{tenant.name} Europe GmbH',
+                    'entity_type': 'subsidiary',
+                    'parent': 'HQ',
+                    'functional_currency': eur,
+                    'ownership_percentage': Decimal('85.0000'),
+                    'consolidation_method': 'full',
+                    'tax_id': 'DE123456789',
+                    'country': 'Germany',
+                    'local_gaap': 'IFRS',
+                    'status': 'active',
+                },
+                {
+                    'code': 'UK-BR',
+                    'name': 'UK Branch Office',
+                    'legal_name': f'{tenant.name} UK Ltd.',
+                    'entity_type': 'branch',
+                    'parent': 'EU-SUB',
+                    'functional_currency': gbp,
+                    'ownership_percentage': Decimal('100.0000'),
+                    'consolidation_method': 'full',
+                    'tax_id': 'GB987654321',
+                    'country': 'United Kingdom',
+                    'local_gaap': 'UK GAAP',
+                    'status': 'active',
+                },
+                {
+                    'code': 'ASIA-JV',
+                    'name': 'Asia Pacific Joint Venture',
+                    'legal_name': f'{tenant.name} Asia Pacific KK',
+                    'entity_type': 'joint_venture',
+                    'parent': 'HQ',
+                    'functional_currency': jpy,
+                    'ownership_percentage': Decimal('51.0000'),
+                    'consolidation_method': 'proportional',
+                    'tax_id': 'JP-1234567890',
+                    'country': 'Japan',
+                    'local_gaap': 'J-GAAP',
+                    'status': 'active',
+                },
+                {
+                    'code': 'US-DIV',
+                    'name': 'Manufacturing Division',
+                    'legal_name': f'{tenant.name} Manufacturing LLC',
+                    'entity_type': 'division',
+                    'parent': 'HQ',
+                    'functional_currency': usd,
+                    'ownership_percentage': Decimal('100.0000'),
+                    'consolidation_method': 'full',
+                    'tax_id': '98-7654321',
+                    'country': 'United States',
+                    'local_gaap': 'US GAAP',
+                    'status': 'active',
+                },
+            ]
+
+            entities = {}
+            for ed in entities_data:
+                parent_ref = ed.pop('parent')
+                parent_entity = entities.get(parent_ref) if parent_ref else None
+                entity, _ = Entity.unscoped.get_or_create(
+                    tenant=tenant,
+                    code=ed['code'],
+                    defaults={
+                        **ed,
+                        'parent': parent_entity,
+                        'ic_receivable_account': asset_accounts[0] if asset_accounts else None,
+                        'ic_payable_account': liability_accounts[0] if liability_accounts else None,
+                        'cta_account': equity_accounts[0] if equity_accounts else None,
+                        'minority_interest_account': equity_accounts[1] if len(equity_accounts) > 1 else (equity_accounts[0] if equity_accounts else None),
+                    }
+                )
+                entities[ed['code']] = entity
+
+            entity_list = list(entities.values())
+            hq = entities.get('HQ')
+            eu_sub = entities.get('EU-SUB')
+            uk_br = entities.get('UK-BR')
+            asia_jv = entities.get('ASIA-JV')
+            us_div = entities.get('US-DIV')
+
+            # =============================================================
+            # 2. Intercompany Transactions
+            # =============================================================
+            ic_txns_data = [
+                {
+                    'from': hq, 'to': eu_sub,
+                    'type': 'sale', 'amount': Decimal('150000.00'),
+                    'desc': 'IC sale of finished goods from HQ to EU subsidiary',
+                    'status': 'posted',
+                },
+                {
+                    'from': eu_sub, 'to': uk_br,
+                    'type': 'service', 'amount': Decimal('45000.00'),
+                    'desc': 'Management consulting services from EU to UK branch',
+                    'status': 'confirmed',
+                },
+                {
+                    'from': hq, 'to': asia_jv,
+                    'type': 'loan', 'amount': Decimal('500000.00'),
+                    'desc': 'Intercompany loan from HQ to Asia JV for expansion',
+                    'status': 'posted',
+                },
+                {
+                    'from': us_div, 'to': hq,
+                    'type': 'expense_allocation', 'amount': Decimal('75000.00'),
+                    'desc': 'Shared services cost allocation from manufacturing to HQ',
+                    'status': 'confirmed',
+                },
+                {
+                    'from': asia_jv, 'to': eu_sub,
+                    'type': 'purchase', 'amount': Decimal('200000.00'),
+                    'desc': 'IC purchase of raw materials from EU subsidiary',
+                    'status': 'draft',
+                },
+                {
+                    'from': hq, 'to': us_div,
+                    'type': 'capital', 'amount': Decimal('1000000.00'),
+                    'desc': 'Capital contribution to manufacturing division',
+                    'status': 'posted',
+                },
+                {
+                    'from': eu_sub, 'to': hq,
+                    'type': 'dividend', 'amount': Decimal('250000.00'),
+                    'desc': 'Dividend distribution from EU subsidiary to parent',
+                    'status': 'pending',
+                },
+                {
+                    'from': uk_br, 'to': hq,
+                    'type': 'service', 'amount': Decimal('30000.00'),
+                    'desc': 'IT support services from UK branch to HQ',
+                    'status': 'cancelled',
+                },
+            ]
+
+            ic_transactions = []
+            for idx, txn_data in enumerate(ic_txns_data):
+                txn_num = f"ICX-2026-{idx + 1:04d}"
+                txn, created = IntercompanyTransaction.unscoped.get_or_create(
+                    tenant=tenant,
+                    transaction_number=txn_num,
+                    defaults={
+                        'from_entity': txn_data['from'],
+                        'to_entity': txn_data['to'],
+                        'transaction_type': txn_data['type'],
+                        'date': fiscal_periods[min(idx, len(fiscal_periods) - 1)].start_date + timedelta(days=random.randint(1, 25)),
+                        'description': txn_data['desc'],
+                        'amount': txn_data['amount'],
+                        'currency': usd,
+                        'exchange_rate': Decimal('1.00000000'),
+                        'fiscal_period': fiscal_periods[min(idx, len(fiscal_periods) - 1)],
+                        'status': txn_data['status'],
+                        'created_by': user,
+                        'confirmed_by': users[1] if len(users) > 1 and txn_data['status'] in ('confirmed', 'posted') else None,
+                        'confirmed_at': timezone.now() if txn_data['status'] in ('confirmed', 'posted') else None,
+                    }
+                )
+                ic_transactions.append(txn)
+
+            # =============================================================
+            # 3. Intercompany Balances
+            # =============================================================
+            balance_pairs = [
+                (hq, eu_sub, Decimal('150000.00'), True),
+                (hq, asia_jv, Decimal('500000.00'), False),
+                (hq, us_div, Decimal('1000000.00'), True),
+                (eu_sub, uk_br, Decimal('45000.00'), False),
+                (eu_sub, hq, Decimal('-250000.00'), False),
+            ]
+            for from_e, to_e, bal, reconciled in balance_pairs:
+                IntercompanyBalance.unscoped.get_or_create(
+                    tenant=tenant,
+                    from_entity=from_e,
+                    to_entity=to_e,
+                    fiscal_period=fiscal_periods[0],
+                    currency=usd,
+                    defaults={
+                        'balance': bal,
+                        'is_reconciled': reconciled,
+                        'last_reconciled_at': timezone.now() if reconciled else None,
+                    }
+                )
+
+            # =============================================================
+            # 4. Currency Translation Rules
+            # =============================================================
+            acct_types = list(AccountType.objects.all())
+            rules_data = [
+                ('Assets - Current Rate', 'account_type', 'current', None),
+                ('Liabilities - Current Rate', 'account_type', 'current', None),
+                ('Equity - Historical Rate', 'account_type', 'historical', None),
+                ('Revenue - Average Rate', 'account_type', 'average', None),
+                ('Expenses - Average Rate', 'account_type', 'average', None),
+            ]
+            for idx, (name, scope, rate_type, fixed) in enumerate(rules_data):
+                CurrencyTranslationRule.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    defaults={
+                        'account_scope': scope,
+                        'account_type': acct_types[idx] if idx < len(acct_types) else None,
+                        'rate_type': rate_type,
+                        'fixed_rate': fixed,
+                        'is_active': True,
+                    }
+                )
+
+            # =============================================================
+            # 5. Translation Adjustments
+            # =============================================================
+            foreign_entities = [eu_sub, uk_br, asia_jv]
+            for ent in foreign_entities:
+                if ent.functional_currency == usd:
+                    continue
+                cta_amt = Decimal(str(random.randint(-50000, 50000)))
+                TranslationAdjustment.unscoped.get_or_create(
+                    tenant=tenant,
+                    entity=ent,
+                    fiscal_period=fiscal_periods[0],
+                    defaults={
+                        'from_currency': ent.functional_currency,
+                        'to_currency': usd,
+                        'total_assets_translated': Decimal(str(random.randint(500000, 2000000))),
+                        'total_liabilities_translated': Decimal(str(random.randint(200000, 800000))),
+                        'total_equity_translated': Decimal(str(random.randint(200000, 1000000))),
+                        'total_income_translated': Decimal(str(random.randint(100000, 500000))),
+                        'total_expense_translated': Decimal(str(random.randint(80000, 400000))),
+                        'cta_amount': cta_amt,
+                        'cta_cumulative': cta_amt,
+                        'calculated_by': user,
+                    }
+                )
+
+            # =============================================================
+            # 6. Consolidation Groups
+            # =============================================================
+            group, _ = ConsolidationGroup.unscoped.get_or_create(
+                tenant=tenant,
+                code='GRP-GLOBAL',
+                defaults={
+                    'name': 'Global Consolidation Group',
+                    'parent_entity': hq,
+                    'reporting_currency': usd,
+                    'is_active': True,
+                    'description': 'Full group consolidation including all entities.',
+                }
+            )
+            group.entities.set(entity_list)
+
+            group_eu, _ = ConsolidationGroup.unscoped.get_or_create(
+                tenant=tenant,
+                code='GRP-EU',
+                defaults={
+                    'name': 'European Sub-Group',
+                    'parent_entity': eu_sub,
+                    'reporting_currency': eur,
+                    'is_active': True,
+                    'description': 'European regional consolidation sub-group.',
+                }
+            )
+            group_eu.entities.set([eu_sub, uk_br])
+
+            # =============================================================
+            # 7. Elimination Rules
+            # =============================================================
+            elim_rules_data = [
+                {
+                    'name': 'Eliminate IC Receivables/Payables',
+                    'rule_type': 'ic_receivable_payable',
+                    'debit': liability_accounts[0],
+                    'credit': asset_accounts[0],
+                    'priority': 10,
+                },
+                {
+                    'name': 'Eliminate IC Revenue/COGS',
+                    'rule_type': 'ic_revenue_expense',
+                    'debit': revenue_accounts[0] if revenue_accounts else all_accounts[0],
+                    'credit': expense_accounts[0] if expense_accounts else all_accounts[1],
+                    'priority': 20,
+                },
+                {
+                    'name': 'Eliminate IC Dividends',
+                    'rule_type': 'ic_dividend',
+                    'debit': revenue_accounts[1] if len(revenue_accounts) > 1 else (revenue_accounts[0] if revenue_accounts else all_accounts[0]),
+                    'credit': equity_accounts[0] if equity_accounts else all_accounts[2],
+                    'priority': 30,
+                },
+                {
+                    'name': 'Eliminate Investment in Subsidiaries',
+                    'rule_type': 'ic_investment_equity',
+                    'debit': equity_accounts[0] if equity_accounts else all_accounts[2],
+                    'credit': asset_accounts[1] if len(asset_accounts) > 1 else asset_accounts[0],
+                    'priority': 40,
+                },
+            ]
+
+            elim_rules = []
+            for rd in elim_rules_data:
+                rule, _ = EliminationRule.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=rd['name'],
+                    defaults={
+                        'rule_type': rd['rule_type'],
+                        'consolidation_group': group,
+                        'debit_account': rd['debit'],
+                        'credit_account': rd['credit'],
+                        'is_auto': True,
+                        'is_active': True,
+                        'priority': rd['priority'],
+                    }
+                )
+                elim_rules.append(rule)
+
+            # =============================================================
+            # 8. Consolidation Runs
+            # =============================================================
+            runs_data = [
+                ('CON-2026-0001', fiscal_periods[0], 'completed', Decimal('195000.00'), Decimal('24500.00')),
+                ('CON-2026-0002', fiscal_periods[1] if len(fiscal_periods) > 1 else fiscal_periods[0], 'draft', Decimal('0.00'), Decimal('0.00')),
+                ('CON-2026-0003', fiscal_periods[0], 'reversed', Decimal('100000.00'), Decimal('12000.00')),
+            ]
+
+            con_runs = []
+            for run_num, fp, status, total_elim, total_nci in runs_data:
+                run, _ = ConsolidationRun.unscoped.get_or_create(
+                    tenant=tenant,
+                    run_number=run_num,
+                    defaults={
+                        'consolidation_group': group,
+                        'fiscal_period': fp,
+                        'status': status,
+                        'total_eliminations': total_elim,
+                        'total_minority_interest': total_nci,
+                        'total_cta': Decimal(str(random.randint(-30000, 30000))),
+                        'started_at': timezone.now() - timedelta(hours=random.randint(1, 48)) if status != 'draft' else None,
+                        'completed_at': timezone.now() if status in ('completed', 'reversed') else None,
+                        'created_by': user,
+                    }
+                )
+                con_runs.append(run)
+
+            # =============================================================
+            # 9. Elimination Entries (for completed run)
+            # =============================================================
+            completed_run = con_runs[0] if con_runs else None
+            if completed_run and completed_run.status == 'completed':
+                elim_entries_data = [
+                    (hq, eu_sub, elim_rules[0], Decimal('150000.00'), 'Eliminate IC receivable HQ/EU-SUB'),
+                    (eu_sub, uk_br, elim_rules[1], Decimal('45000.00'), 'Eliminate IC revenue EU-SUB/UK-BR'),
+                ]
+                for from_e, to_e, rule, amount, desc in elim_entries_data:
+                    EliminationEntry.unscoped.get_or_create(
+                        tenant=tenant,
+                        consolidation_run=completed_run,
+                        elimination_rule=rule,
+                        from_entity=from_e,
+                        to_entity=to_e,
+                        defaults={
+                            'debit_account': rule.debit_account,
+                            'credit_account': rule.credit_account,
+                            'amount': amount,
+                            'description': desc,
+                        }
+                    )
+
+            # =============================================================
+            # 10. Minority Interest
+            # =============================================================
+            nci_entities = [(eu_sub, Decimal('15.0000')), (asia_jv, Decimal('49.0000'))]
+            if completed_run:
+                for ent, nci_pct in nci_entities:
+                    net_income = Decimal(str(random.randint(100000, 500000)))
+                    total_equity = Decimal(str(random.randint(500000, 2000000)))
+                    MinorityInterest.unscoped.get_or_create(
+                        tenant=tenant,
+                        consolidation_run=completed_run,
+                        entity=ent,
+                        defaults={
+                            'fiscal_period': fiscal_periods[0],
+                            'minority_percentage': nci_pct,
+                            'net_income': net_income,
+                            'minority_share': (net_income * nci_pct / 100).quantize(Decimal('0.01')),
+                            'total_equity': total_equity,
+                            'minority_equity': (total_equity * nci_pct / 100).quantize(Decimal('0.01')),
+                        }
+                    )
+
+            # =============================================================
+            # 11. Transfer Pricing Policies
+            # =============================================================
+            tp_policies_data = [
+                {
+                    'name': 'HQ to EU Goods Transfer Policy',
+                    'from': hq, 'to': eu_sub,
+                    'method': 'cost_plus', 'markup': Decimal('15.0000'),
+                    'status': 'active',
+                    'doc': 'Cost plus 15% markup for finished goods transferred from HQ to European subsidiary. Based on comparable uncontrolled transactions in the industry.',
+                },
+                {
+                    'name': 'EU to UK Management Services',
+                    'from': eu_sub, 'to': uk_br,
+                    'method': 'tnmm', 'markup': Decimal('8.5000'),
+                    'status': 'active',
+                    'doc': 'Transactional net margin method applied to management consulting services. Benchmark study covers FY 2024-2026.',
+                },
+                {
+                    'name': 'HQ to Asia JV Technology License',
+                    'from': hq, 'to': asia_jv,
+                    'method': 'cup', 'markup': Decimal('0.0000'),
+                    'status': 'active',
+                    'doc': 'Comparable uncontrolled price based on market license agreements for similar technology. Royalty rate 5% of net sales.',
+                },
+                {
+                    'name': 'Legacy Manufacturing Policy',
+                    'from': us_div, 'to': hq,
+                    'method': 'resale_price', 'markup': Decimal('20.0000'),
+                    'status': 'expired',
+                    'doc': 'Expired resale price method for internal manufacturing transfers. Replaced by new cost plus policy.',
+                },
+            ]
+
+            tp_policies = []
+            for idx, pd in enumerate(tp_policies_data):
+                pol_num = f"TPP-2026-{idx + 1:04d}"
+                policy, _ = TransferPricingPolicy.unscoped.get_or_create(
+                    tenant=tenant,
+                    policy_number=pol_num,
+                    defaults={
+                        'name': pd['name'],
+                        'from_entity': pd['from'],
+                        'to_entity': pd['to'],
+                        'pricing_method': pd['method'],
+                        'markup_percentage': pd['markup'],
+                        'effective_from': date(2025, 1, 1),
+                        'effective_to': date(2024, 12, 31) if pd['status'] == 'expired' else None,
+                        'status': pd['status'],
+                        'documentation': pd['doc'],
+                        'comparable_data': 'Benchmark database: BvD Orbis, RoyaltyStat. Range: Q1-Q3 interquartile.',
+                        'created_by': user,
+                    }
+                )
+                tp_policies.append(policy)
+
+            # =============================================================
+            # 12. Transfer Pricing Transactions
+            # =============================================================
+            tp_txn_statuses = ['approved', 'reviewed', 'draft', 'flagged', 'approved']
+            for idx, ic_txn in enumerate(ic_transactions[:5]):
+                if idx >= len(tp_policies):
+                    pol = tp_policies[0]
+                else:
+                    pol = tp_policies[idx] if tp_policies[idx].status == 'active' else tp_policies[0]
+
+                transfer_price = ic_txn.amount
+                variance_pct = Decimal(str(random.uniform(-8.0, 12.0))).quantize(Decimal('0.0001'))
+                arms_length = (transfer_price / (1 + variance_pct / 100)).quantize(Decimal('0.01'))
+
+                TransferPricingTransaction.unscoped.get_or_create(
+                    tenant=tenant,
+                    policy=pol,
+                    intercompany_transaction=ic_txn,
+                    defaults={
+                        'transfer_price': transfer_price,
+                        'arms_length_price': arms_length,
+                        'status': tp_txn_statuses[idx % len(tp_txn_statuses)],
+                        'review_notes': 'Variance within acceptable range.' if tp_txn_statuses[idx % len(tp_txn_statuses)] in ('approved', 'reviewed') else '',
+                        'reviewed_by': users[1] if len(users) > 1 and tp_txn_statuses[idx % len(tp_txn_statuses)] != 'draft' else None,
+                        'reviewed_at': timezone.now() if tp_txn_statuses[idx % len(tp_txn_statuses)] != 'draft' else None,
+                    }
+                )
+
+            # =============================================================
+            # 13. Local GAAP Adjustments
+            # =============================================================
+            gaap_adj_data = [
+                {
+                    'entity': eu_sub,
+                    'type': 'measurement',
+                    'from_std': 'IFRS',
+                    'to_std': 'HGB (German GAAP)',
+                    'amount': Decimal('35000.00'),
+                    'desc': 'Revalue inventory from IFRS fair value to HGB lower of cost or market.',
+                    'status': 'posted',
+                },
+                {
+                    'entity': uk_br,
+                    'type': 'reclassification',
+                    'from_std': 'IFRS',
+                    'to_std': 'UK GAAP (FRS 102)',
+                    'amount': Decimal('12500.00'),
+                    'desc': 'Reclassify finance lease to operating lease under UK GAAP.',
+                    'status': 'reviewed',
+                },
+                {
+                    'entity': asia_jv,
+                    'type': 'recognition',
+                    'from_std': 'IFRS',
+                    'to_std': 'J-GAAP',
+                    'amount': Decimal('85000.00'),
+                    'desc': 'Deferred tax asset recognition difference between IFRS and J-GAAP.',
+                    'status': 'draft',
+                },
+                {
+                    'entity': hq,
+                    'type': 'disclosure',
+                    'from_std': 'IFRS',
+                    'to_std': 'US GAAP (ASC)',
+                    'amount': Decimal('0.00'),
+                    'desc': 'Additional segment reporting disclosure required under US GAAP ASC 280.',
+                    'status': 'draft',
+                },
+                {
+                    'entity': eu_sub,
+                    'type': 'other',
+                    'from_std': 'IFRS 16',
+                    'to_std': 'HGB',
+                    'amount': Decimal('22000.00'),
+                    'desc': 'Right-of-use asset adjustment from IFRS 16 to HGB lease treatment.',
+                    'status': 'posted',
+                },
+            ]
+
+            for idx, adj in enumerate(gaap_adj_data):
+                adj_num = f"GAP-2026-{idx + 1:04d}"
+                LocalGAAPAdjustment.unscoped.get_or_create(
+                    tenant=tenant,
+                    adjustment_number=adj_num,
+                    defaults={
+                        'entity': adj['entity'],
+                        'fiscal_period': fiscal_periods[0],
+                        'adjustment_type': adj['type'],
+                        'from_standard': adj['from_std'],
+                        'to_standard': adj['to_std'],
+                        'debit_account': expense_accounts[idx % len(expense_accounts)] if expense_accounts else all_accounts[0],
+                        'credit_account': liability_accounts[idx % len(liability_accounts)] if liability_accounts else all_accounts[1],
+                        'amount': adj['amount'],
+                        'description': adj['desc'],
+                        'status': adj['status'],
+                        'created_by': user,
+                    }
+                )
+
+            # =============================================================
+            # 14. Regulatory Reports
+            # =============================================================
+            reports_data = [
+                {
+                    'entity': eu_sub,
+                    'type': 'local_fs',
+                    'name': 'German Statutory Financial Statements FY2025',
+                    'gaap': 'HGB',
+                    'status': 'filed',
+                    'ref': 'EBANZ-2025-EU-001',
+                },
+                {
+                    'entity': uk_br,
+                    'type': 'statutory',
+                    'name': 'Companies House Annual Return FY2025',
+                    'gaap': 'FRS 102',
+                    'status': 'generated',
+                    'ref': '',
+                },
+                {
+                    'entity': asia_jv,
+                    'type': 'tax_return',
+                    'name': 'Japan Corporate Tax Return FY2025',
+                    'gaap': 'J-GAAP',
+                    'status': 'reviewed',
+                    'ref': '',
+                },
+                {
+                    'entity': hq,
+                    'type': 'regulatory',
+                    'name': 'SEC 10-K Annual Filing FY2025',
+                    'gaap': 'US GAAP',
+                    'status': 'filed',
+                    'ref': 'SEC-10K-2025-001',
+                },
+                {
+                    'entity': hq,
+                    'type': 'local_fs',
+                    'name': 'Consolidated Financial Statements FY2025',
+                    'gaap': 'US GAAP',
+                    'status': 'generated',
+                    'ref': '',
+                },
+                {
+                    'entity': eu_sub,
+                    'type': 'custom',
+                    'name': 'CBCR Country-by-Country Report FY2025',
+                    'gaap': 'OECD BEPS',
+                    'status': 'draft',
+                    'ref': '',
+                },
+            ]
+
+            for idx, rd in enumerate(reports_data):
+                rep_num = f"REG-2026-{idx + 1:04d}"
+                RegulatoryReport.unscoped.get_or_create(
+                    tenant=tenant,
+                    report_number=rep_num,
+                    defaults={
+                        'entity': rd['entity'],
+                        'fiscal_period': fiscal_periods[0],
+                        'report_type': rd['type'],
+                        'name': rd['name'],
+                        'gaap_standard': rd['gaap'],
+                        'status': rd['status'],
+                        'generated_at': timezone.now() if rd['status'] != 'draft' else None,
+                        'generated_by': user if rd['status'] != 'draft' else None,
+                        'filed_at': timezone.now() if rd['status'] == 'filed' else None,
+                        'filing_reference': rd['ref'],
+                        'report_data': {
+                            'period': 'FY2025',
+                            'entity_code': rd['entity'].code,
+                            'standard': rd['gaap'],
+                        },
+                    }
+                )
+
+        self.stdout.write(
+            f'  Created ME data (entities, IC transactions, IC balances, '
+            f'translation rules, CTA adjustments, consolidation groups, '
+            f'elimination rules, consolidation runs, elimination entries, '
+            f'minority interest, TP policies, TP transactions, '
+            f'GAAP adjustments, regulatory reports)'
         )
