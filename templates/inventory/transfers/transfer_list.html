@@ -23,21 +23,25 @@
     <div class="card-body">
         <form method="GET" class="row g-3 align-items-end">
             <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Transfer #..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">All Statuses</option>
-                    <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
-                    <option value="in_transit" {% if request.GET.status == 'in_transit' %}selected{% endif %}>In Transit</option>
-                    <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
-                    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-7 d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
                 <a href="{% url 'inventory:transfer_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
-            </div>
-            <div class="col-md-6 text-end">
-                <a href="{% url 'inventory:transfer_create' tenant_slug=current_tenant.slug %}" class="btn btn-success"><i class="ri-add-line me-1"></i> New Transfer</a>
+                <a href="{% url 'inventory:transfer_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New Transfer</a>
             </div>
         </form>
     </div>
@@ -82,11 +86,6 @@
                             <a href="{% url 'inventory:transfer_detail' tenant_slug=current_tenant.slug pk=t.pk %}" class="btn btn-sm btn-soft-info" title="View">
                                 <i class="ri-eye-line"></i>
                             </a>
-                            {% if t.status == 'draft' %}
-                            <a href="{% url 'inventory:transfer_edit' tenant_slug=current_tenant.slug pk=t.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
-                                <i class="ri-pencil-line"></i>
-                            </a>
-                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
