@@ -83,8 +83,8 @@
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <a href="{% url 'multi_entity:tp_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
-                            <a href="{% url 'multi_entity:tp_transaction_edit' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                            <a href="{% url 'multi_entity:tp_transaction_review' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'multi_entity:tp_transaction_review' tenant_slug=current_tenant.slug pk=txn.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
