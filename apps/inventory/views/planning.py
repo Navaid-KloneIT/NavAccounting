@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.tenants.managers import set_current_tenant
 
 from ..forms import ReorderFilterForm
-from ..models import ReorderSuggestion
+from ..models import ItemCategory, ReorderSuggestion
 
 
 # =============================================================================
@@ -42,12 +42,15 @@ def reorder_dashboard(request, tenant_slug):
         'ordered': ReorderSuggestion.objects.filter(tenant=tenant, status='ordered').count(),
     }
 
+    categories = ItemCategory.objects.filter(tenant=tenant, is_active=True)
+
     return render(request, 'inventory/reorder/reorder_dashboard.html', {
         'suggestions': page_obj,
         'page_obj': page_obj,
         'filter_form': filter_form,
         'total_count': qs.count(),
         'stats': stats,
+        'categories': categories,
     })
 
 
