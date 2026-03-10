@@ -31,6 +31,9 @@ def landed_cost_list(request, tenant_slug):
             Q(voucher_number__icontains=search) |
             Q(goods_receipt__receipt_number__icontains=search)
         )
+    status = request.GET.get('status', '')
+    if status:
+        qs = qs.filter(status=status)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -39,6 +42,7 @@ def landed_cost_list(request, tenant_slug):
         'vouchers': page_obj,
         'page_obj': page_obj,
         'total_count': qs.count(),
+        'status_choices': LandedCostVoucher.STATUS_CHOICES,
     })
 
 
