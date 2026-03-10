@@ -326,6 +326,15 @@ def receipt_list(request, tenant_slug):
             Q(receipt_number__icontains=search) |
             Q(purchase_order__po_number__icontains=search)
         )
+    status = request.GET.get('status', '')
+    if status:
+        qs = qs.filter(status=status)
+    warehouse = request.GET.get('warehouse', '')
+    if warehouse:
+        qs = qs.filter(warehouse_id=warehouse)
+
+    from ..models import Warehouse
+    warehouses = Warehouse.objects.filter(tenant=tenant, is_active=True)
 
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -334,6 +343,8 @@ def receipt_list(request, tenant_slug):
         'receipts': page_obj,
         'page_obj': page_obj,
         'total_count': qs.count(),
+        'status_choices': GoodsReceipt.STATUS_CHOICES,
+        'warehouses': warehouses,
     })
 
 
