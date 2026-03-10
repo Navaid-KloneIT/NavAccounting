@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}TP Policy - {{ policy.policy_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ policy.policy_number }} - {{ policy.name }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:tp_policy_list' tenant_slug=current_tenant.slug %}">TP Policies</a></li>
+            <li class="breadcrumb-item active">{{ policy.policy_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Policy Information -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2">
+                        <i class="ri-file-list-3-line text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Policy Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Policy #</dt>
+                            <dd class="col-sm-7"><strong>{{ policy.policy_number }}</strong></dd>
+                            <dt class="col-sm-5 text-muted">Name</dt>
+                            <dd class="col-sm-7">{{ policy.name }}</dd>
+                            <dt class="col-sm-5 text-muted">From Entity</dt>
+                            <dd class="col-sm-7">{{ policy.from_entity.code }} - {{ policy.from_entity.name }}</dd>
+                            <dt class="col-sm-5 text-muted">To Entity</dt>
+                            <dd class="col-sm-7">{{ policy.to_entity.code }} - {{ policy.to_entity.name }}</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Method</dt>
+                            <dd class="col-sm-7"><span class="badge bg-soft-info text-info">{{ policy.get_pricing_method_display }}</span></dd>
+                            <dt class="col-sm-5 text-muted">Markup %</dt>
+                            <dd class="col-sm-7">{{ policy.markup_percentage }}%</dd>
+                            <dt class="col-sm-5 text-muted">Effective From</dt>
+                            <dd class="col-sm-7">{{ policy.effective_from }}</dd>
+                            <dt class="col-sm-5 text-muted">Effective To</dt>
+                            <dd class="col-sm-7">{{ policy.effective_to|default:"-" }}</dd>
+                        </dl>
+                    </div>
+                </div>
+                {% if policy.documentation %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Documentation</h6>
+                <p class="mb-0">{{ policy.documentation }}</p>
+                {% endif %}
+                {% if policy.comparable_data %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Comparable Data</h6>
+                <p class="mb-0">{{ policy.comparable_data }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Related Transactions -->
+        {% if transactions %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2">
+                        <i class="ri-exchange-line text-warning"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Related Transactions</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>IC Transaction</th>
+                                <th class="text-end">Transfer Price</th>
+                                <th class="text-end">Arm's Length Price</th>
+                                <th class="text-end">Variance</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in transactions %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'multi_entity:tp_transaction_detail' tenant_slug=current_tenant.slug pk=txn.pk %}">{{ txn.intercompany_transaction.transaction_number }}</a>
+                                </td>
+                                <td class="text-end">{{ txn.transfer_price|intcomma }}</td>
+                                <td class="text-end">{{ txn.arms_length_price|intcomma }}</td>
+                                <td class="text-end {% if txn.variance < 0 %}text-danger{% endif %}">{{ txn.variance|intcomma }}</td>
+                                <td>
+                                    {% if txn.status == 'draft' %}
+                                        <span class="badge bg-soft-warning text-warning">Draft</span>
+                                    {% elif txn.status == 'reviewed' %}
+                                        <span class="badge bg-soft-info text-info">Reviewed</span>
+                                    {% elif txn.status == 'approved' %}
+                                        <span class="badge bg-soft-success text-success">Approved</span>
+                                    {% elif txn.status == 'flagged' %}
+                                        <span class="badge bg-soft-danger text-danger">Flagged</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">{{ txn.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                <a href="{% url 'multi_entity:tp_policy_edit' tenant_slug=current_tenant.slug pk=policy.pk %}" class="btn btn-soft-primary btn-sm w-100 mb-2">
+                    <i class="ri-pencil-line me-1"></i> Edit Policy
+                </a>
+                <a href="{% url 'multi_entity:tp_policy_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Policies
+                </a>
+            </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="card mb-3">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-3">Status</h6>
+                {% if policy.status == 'draft' %}
+                    <span class="badge bg-soft-warning text-warning fs-6 px-3 py-2">Draft</span>
+                {% elif policy.status == 'active' %}
+                    <span class="badge bg-soft-success text-success fs-6 px-3 py-2">Active</span>
+                {% elif policy.status == 'expired' %}
+                    <span class="badge bg-soft-secondary text-secondary fs-6 px-3 py-2">Expired</span>
+                {% else %}
+                    <span class="badge bg-soft-secondary text-secondary fs-6 px-3 py-2">{{ policy.get_status_display }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
