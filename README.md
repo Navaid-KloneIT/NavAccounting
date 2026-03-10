@@ -40,6 +40,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Fixed Assets** — Asset register with categories & locations, acquisition tracking (purchase/lease/donation/CIP), depreciation engine (straight-line, declining balance, units of production), asset transfers with approval workflow, disposals & retirements (sale/scrap/write-off with gain/loss GL posting), impairment testing, physical inventory with barcode scanning & reconciliation, tax depreciation books (MACRS/bonus/Section 179)
 - **Inventory & Cost Management** — Item master with categories, units of measure & warehouses, purchase requisitions with PO conversion, purchase orders with approval workflow, goods receipts with cost layer creation, inventory transactions (adjustments/scrap), inter-warehouse transfers, COGS calculation engine (FIFO/LIFO/weighted average/standard), inventory valuation report, reorder point planning with auto-PO generation, cycle counting with variance GL posting, landed cost allocation with GL integration
 - **Payroll Integration** — Employee master with pay types (salary/hourly) and frequencies, payroll journal with calculate/approve/post workflow, tax withholding configuration (federal/state/local/FICA/FUTA/SUTA), tax remittance tracking, benefit plans (401k/health/dental/vision/HSA/FSA) with employee enrollment, court-ordered garnishment management with priority ordering, workers comp class assignments with rate tracking, gross-to-net payroll reconciliation with variance detection, GL journal entry posting
+- **Project/Job Costing** — Project master with WBS hierarchy, time & expense tracking, billing rules with markup, revenue recognition (percentage-of-completion/milestone/completed-contract), project invoicing with retention, profitability analysis with earned value metrics, resource planning & utilization reports, audit trail integration
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -95,6 +96,7 @@ NavAccounting/
 │   ├── fixed_assets/               # Asset Register, Acquisitions, Depreciation, Transfers, Disposals, Impairment, Inventory, Tax Books
 │   ├── inventory/                  # Item Master, Purchasing, Goods Receipts, Transactions, Transfers, COGS, Reorder Planning, Cycle Counts, Landed Cost
 │   ├── payroll/                    # Employees, Payroll Journals, Tax Withholding, Tax Remittance, Benefits, Garnishments, Workers Comp, Reconciliation
+│   ├── project_costing/            # Projects, WBS, Budgets, Billing Rules, Time Entries, Expenses, Revenue Recognition, Invoices, Profitability, Resources
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -175,6 +177,18 @@ NavAccounting/
 │   │   ├── garnishments/           # Garnishment list, form, detail
 │   │   ├── workers_comp/           # Comp class list, form, detail, assignment form
 │   │   └── reconciliation/         # Reconciliation list, form, detail
+│   ├── project_costing/            # PJ templates (34 files across 11 subdirectories)
+│   │   ├── projects/               # Project list, form, detail
+│   │   ├── wbs/                    # WBS list, form, confirm delete
+│   │   ├── budgets/                # Budget list, form, confirm delete
+│   │   ├── billing_rules/          # Billing rule list, form, confirm delete
+│   │   ├── time_entries/           # Time entry list, form, confirm delete
+│   │   ├── expenses/               # Expense list, form, confirm delete
+│   │   ├── revenue_recognition/    # Revenue recognition list, form, detail
+│   │   ├── milestones/             # Milestone list, form
+│   │   ├── invoices/               # Invoice list, form, detail
+│   │   ├── profitability/          # Dashboard, detail, snapshot form, snapshot list
+│   │   └── resources/              # Assignment list, form, confirm delete, utilization report
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -306,6 +320,7 @@ python manage.py seed_data --ar
 python manage.py seed_data --cm
 python manage.py seed_data --fa
 python manage.py seed_data --ic
+python manage.py seed_data --pj
 ```
 
 ### What Gets Seeded
@@ -327,6 +342,7 @@ python manage.py seed_data --ic
 | Cash Management | 2 bank accounts with signatories, 2 bank feeds, 15 transactions, 2 auto-match rules, 1 forecast with 10 lines, 2 intercompany transfers, 8 bank fees |
 | Fixed Assets | 5 asset categories (BLDG, VEHI, FURN, COMP, MACH), 3 locations (HQ, WH1, BR1), 8 assets with depreciation profiles and schedules, 4 acquisitions, 1 asset transfer, 1 MACRS tax book with entries, 1 physical inventory with items |
 | Inventory & Cost | 5 item categories (RAW, FG, COMP, PKG, MRO), 5 UoMs, 3 warehouses, 8 items with cost layers, 1 purchase requisition, 2 purchase orders with lines, 1 posted goods receipt, 2 inventory transactions (adjustment + scrap), 1 completed transfer, 1 COGS calculation with entries, 3 reorder suggestions, 1 cycle count plan + session with items, 1 landed cost voucher with cost lines and allocations |
+| Project/Job Costing | 5 projects (Corporate HQ Renovation, ERP Implementation, Highway Bridge Repair, Mobile App Development, Warehouse Automation), WBS elements with hierarchical structure, project budgets with GL accounts, billing rules, time entries, expense entries with markup, revenue recognition records, milestones, project invoices with lines, profitability snapshots, resource assignments |
 
 ---
 
@@ -406,6 +422,10 @@ These paths skip tenant resolution:
 | — | Employee, PayrollJournal, TaxWithholding, TaxRemittance |
 | — | BenefitPlan, Garnishment, WorkersCompClass |
 | — | PayrollReconciliation |
+| — | Project, WBSElement, ProjectBudget, BillingRule |
+| — | TimeEntry, ExpenseEntry, RevenueRecognition |
+| — | ProjectMilestone, ProjectInvoice, ProjectInvoiceLine |
+| — | ProfitabilitySnapshot, ResourceAssignment |
 
 ---
 
@@ -452,7 +472,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -799,6 +819,65 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/pr/reconciliation/` | Reconciliation list | All payroll reconciliations |
 | `/t/<slug>/pr/reconciliation/create/` | Create reconciliation | Run gross-to-net reconciliation |
 | `/t/<slug>/pr/reconciliation/<pk>/` | Reconciliation detail | Reconciliation breakdown with variance |
+| **Project/Job Costing — Projects** | | |
+| `/t/<slug>/pj/projects/` | Project list | All projects with filters |
+| `/t/<slug>/pj/projects/create/` | Create project | New project form |
+| `/t/<slug>/pj/projects/<pk>/` | Project detail | Project overview with WBS, budgets, milestones |
+| `/t/<slug>/pj/projects/<pk>/edit/` | Edit project | Edit project details |
+| **Project/Job Costing — WBS Elements** | | |
+| `/t/<slug>/pj/projects/<project_pk>/wbs/` | WBS list | WBS elements for a project |
+| `/t/<slug>/pj/projects/<project_pk>/wbs/create/` | Create WBS | New WBS element form |
+| `/t/<slug>/pj/projects/<project_pk>/wbs/<pk>/edit/` | Edit WBS | Edit WBS element |
+| `/t/<slug>/pj/projects/<project_pk>/wbs/<pk>/delete/` | Delete WBS | Delete WBS element |
+| **Project/Job Costing — Budgets** | | |
+| `/t/<slug>/pj/projects/<project_pk>/budgets/` | Budget list | Project budgets with GL accounts |
+| `/t/<slug>/pj/projects/<project_pk>/budgets/create/` | Create budget | New budget line item |
+| `/t/<slug>/pj/projects/<project_pk>/budgets/<pk>/edit/` | Edit budget | Edit budget line |
+| `/t/<slug>/pj/projects/<project_pk>/budgets/<pk>/delete/` | Delete budget | Delete budget line |
+| **Project/Job Costing — Billing Rules** | | |
+| `/t/<slug>/pj/projects/<project_pk>/billing-rules/` | Billing rule list | Billing rules for a project |
+| `/t/<slug>/pj/projects/<project_pk>/billing-rules/create/` | Create rule | New billing rule form |
+| `/t/<slug>/pj/projects/<project_pk>/billing-rules/<pk>/edit/` | Edit rule | Edit billing rule |
+| `/t/<slug>/pj/projects/<project_pk>/billing-rules/<pk>/delete/` | Delete rule | Delete billing rule |
+| **Project/Job Costing — Time Entries** | | |
+| `/t/<slug>/pj/time-entries/` | Time entry list | All time entries with filters |
+| `/t/<slug>/pj/time-entries/create/` | Create time entry | New time entry form |
+| `/t/<slug>/pj/time-entries/<pk>/edit/` | Edit time entry | Edit time entry |
+| `/t/<slug>/pj/time-entries/<pk>/delete/` | Delete time entry | Delete time entry |
+| `/t/<slug>/pj/time-entries/<pk>/approve/` | Approve time entry | Approve a time entry |
+| **Project/Job Costing — Expenses** | | |
+| `/t/<slug>/pj/expenses/` | Expense list | All expenses with filters |
+| `/t/<slug>/pj/expenses/create/` | Create expense | New expense entry form |
+| `/t/<slug>/pj/expenses/<pk>/edit/` | Edit expense | Edit expense entry |
+| `/t/<slug>/pj/expenses/<pk>/delete/` | Delete expense | Delete expense entry |
+| **Project/Job Costing — Revenue Recognition** | | |
+| `/t/<slug>/pj/revenue-recognition/` | Revenue recognition list | All revenue recognition records |
+| `/t/<slug>/pj/revenue-recognition/create/` | Create recognition | New revenue recognition entry |
+| `/t/<slug>/pj/revenue-recognition/<pk>/` | Recognition detail | Revenue recognition detail with GL link |
+| `/t/<slug>/pj/revenue-recognition/<pk>/calculate/` | Calculate | Recalculate revenue recognition |
+| `/t/<slug>/pj/revenue-recognition/<pk>/post/` | Post recognition | Post revenue recognition |
+| **Project/Job Costing — Milestones** | | |
+| `/t/<slug>/pj/projects/<project_pk>/milestones/` | Milestone list | Project milestones with amounts |
+| `/t/<slug>/pj/projects/<project_pk>/milestones/create/` | Create milestone | New milestone form |
+| `/t/<slug>/pj/projects/<project_pk>/milestones/<pk>/edit/` | Edit milestone | Edit milestone details |
+| `/t/<slug>/pj/projects/<project_pk>/milestones/<pk>/complete/` | Complete milestone | Mark milestone as completed |
+| **Project/Job Costing — Invoices** | | |
+| `/t/<slug>/pj/invoices/` | Invoice list | All project invoices with filters |
+| `/t/<slug>/pj/invoices/create/` | Create invoice | New project invoice with line items |
+| `/t/<slug>/pj/invoices/<pk>/` | Invoice detail | Invoice info with lines and WBS |
+| `/t/<slug>/pj/invoices/<pk>/approve/` | Approve invoice | Approve a project invoice |
+| `/t/<slug>/pj/invoices/<pk>/void/` | Void invoice | Void a project invoice |
+| **Project/Job Costing — Profitability** | | |
+| `/t/<slug>/pj/profitability/` | Profitability dashboard | Project profitability overview |
+| `/t/<slug>/pj/profitability/snapshots/` | Snapshot list | All profitability snapshots |
+| `/t/<slug>/pj/profitability/<project_pk>/` | Profitability detail | Detailed project profitability analysis |
+| `/t/<slug>/pj/profitability/<project_pk>/snapshot/` | Create snapshot | Take profitability snapshot |
+| **Project/Job Costing — Resource Planning** | | |
+| `/t/<slug>/pj/resources/` | Assignment list | All resource assignments |
+| `/t/<slug>/pj/resources/create/` | Create assignment | New resource assignment form |
+| `/t/<slug>/pj/resources/<pk>/edit/` | Edit assignment | Edit resource assignment |
+| `/t/<slug>/pj/resources/<pk>/delete/` | Delete assignment | Delete resource assignment |
+| `/t/<slug>/pj/resources/utilization/` | Utilization report | Employee utilization report |
 
 ---
 
@@ -1215,7 +1294,70 @@ The calculation service (`services.py`) handles:
 
 Verifies payroll accuracy by comparing journal totals against line-level sums, flagging any variance as an exception for investigation.
 
-### 13. `dashboard` — Dashboard & Analytics
+### 13. `project_costing` — Project/Job Costing Module
+
+Full project costing lifecycle with 11 submodules, 12 models, 40 views, and 34 templates.
+
+- **Project** — Project master records with auto-generated numbers (`PJ-NNNN`), status workflow (Planning → Active → On Hold → Completed → Cancelled), billing types (time & materials/fixed price/cost plus), contract and budget amounts, retention percentage, manager assignment, revenue and expense GL account mapping
+- **WBSElement** — Hierarchical work breakdown structure with parent-child relationships, level tracking, budget hours and amounts, billable flag, display ordering
+- **ProjectBudget** — Budget line items linked to WBS elements and GL accounts, with original budget hours/rate/amount and revised amounts, fiscal period association
+- **BillingRule** — Configurable billing rules with rate types (hourly/daily/fixed/percentage), markup percentages, effective date ranges
+- **TimeEntry** — Employee time tracking with project/WBS assignment, hours and hourly rate, auto-calculated total amount, billing status (Unbilled → Billed / Non-Billable), approval workflow with approver and date
+- **ExpenseEntry** — Project expense tracking with GL account mapping, vendor reference, auto-calculated billed amount with configurable markup percentage, billing status workflow
+- **RevenueRecognition** — Revenue recognition with 3 methods (percentage-of-completion/milestone/completed-contract), fiscal period linkage, automatic calculation of cumulative and period-specific recognized amounts, GL journal entry posting
+- **ProjectMilestone** — Project milestones with amounts, target/actual dates, status workflow (Pending → Completed → Billed), completion percentage tracking
+- **ProjectInvoice** — Project invoices with auto-generated numbers (`PJI-NNNN`), status workflow (Draft → Approved → Sent → Paid → Void), line items with WBS linkage, automatic retention calculation, subtotal/tax/total computation, GL journal entry posting
+- **ProjectInvoiceLine** — Invoice line items with types (time/expense/milestone/other), quantity, unit price, auto-calculated amounts, WBS element association
+- **ProfitabilitySnapshot** — Point-in-time profitability snapshots with earned value metrics: budget amount, actual cost/revenue, committed cost, estimate at completion (EAC), estimate to complete (ETC), earned value, cost variance (CV), schedule variance (SV), cost performance index (CPI), schedule performance index (SPI)
+- **ResourceAssignment** — Employee resource assignments to projects/WBS elements with role, allocation percentage, date ranges, planned vs actual hours tracking
+
+#### Revenue Recognition Methods
+
+| Method | Description |
+|--------|-------------|
+| Percentage of Completion | Revenue recognized based on completion percentage applied to contract amount |
+| Milestone | Revenue recognized upon milestone completion |
+| Completed Contract | Revenue recognized only when project is fully completed |
+
+#### Project Status Workflow
+
+```
+Planning → Active → On Hold → Completed
+                  → Cancelled
+```
+
+#### Project Invoice Workflow
+
+```
+Draft → Approve → Approved → Send → Sent → Pay → Paid
+                                              → Void
+```
+
+#### Revenue Recognition Workflow
+
+```
+Draft → Calculate → Post → Posted (creates GL Journal Entry)
+```
+
+#### GL Integration
+
+Revenue recognition creates a posted journal entry:
+- **Debit**: Accounts Receivable / Unbilled Revenue
+- **Credit**: Project Revenue account
+
+#### Profitability Analysis
+
+The profitability dashboard provides earned value management (EVM) metrics:
+- **Cost Variance (CV)** — Earned Value minus Actual Cost
+- **Schedule Variance (SV)** — Earned Value minus Planned Value
+- **Cost Performance Index (CPI)** — Earned Value ÷ Actual Cost (>1.0 = under budget)
+- **Schedule Performance Index (SPI)** — Earned Value ÷ Planned Value (>1.0 = ahead of schedule)
+
+#### Audit Trail
+
+6 models are tracked via the general ledger audit trail system: Project, ProjectInvoice, RevenueRecognition, TimeEntry, ExpenseEntry, ProfitabilitySnapshot.
+
+### 14. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -1302,6 +1444,15 @@ Verifies payroll accuracy by comparing journal totals against line-level sums, f
 
 ---
 
+## Project/Job Costing Permissions
+
+| Codename | Description |
+|----------|-------------|
+| `view_projects` | View Project/Job Costing module |
+| `manage_projects` | Full project costing management access |
+
+---
+
 ## Frontend & Theming
 
 ### Layout System
@@ -1373,6 +1524,7 @@ Permissions are organized by module:
 - `fixed_assets` — view_assets, manage_assets
 - `inventory` — view_inventory, manage_inventory
 - `payroll` — view_payroll, manage_payroll
+- `project_costing` — view_projects, manage_projects
 - `admin` — admin_full
 
 ### Access Control Decorators
