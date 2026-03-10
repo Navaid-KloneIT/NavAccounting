@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Entity Hierarchy{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Entity Hierarchy</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:entity_list' tenant_slug=current_tenant.slug %}">Entities</a></li>
+            <li class="breadcrumb-item active">Hierarchy</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0"><i class="ri-organization-chart me-1"></i> Organization Structure</h5>
+        <a href="{% url 'multi_entity:entity_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-light"><i class="ri-list-check me-1"></i> List View</a>
+    </div>
+    <div class="card-body">
+        {% if roots %}
+        {% for root in roots %}
+        <div class="mb-4">
+            <div class="d-flex align-items-center mb-2">
+                <i class="ri-building-4-line text-primary me-2" style="font-size: 1.25rem;"></i>
+                <a href="{% url 'multi_entity:entity_detail' tenant_slug=current_tenant.slug pk=root.pk %}" class="fw-semibold text-dark">
+                    {{ root.code }} - {{ root.name }}
+                </a>
+                <span class="badge bg-soft-info text-info ms-2">{{ root.get_entity_type_display }}</span>
+                {% if root.status == 'active' %}
+                    <span class="badge bg-soft-success text-success ms-1">Active</span>
+                {% else %}
+                    <span class="badge bg-soft-danger text-danger ms-1">{{ root.get_status_display }}</span>
+                {% endif %}
+            </div>
+            {% if root.children.all %}
+            <ul class="list-unstyled ms-4">
+                {% for child in root.children.all %}
+                <li class="mb-2 ps-3 border-start border-2">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-building-2-line text-muted me-2"></i>
+                        <a href="{% url 'multi_entity:entity_detail' tenant_slug=current_tenant.slug pk=child.pk %}" class="text-dark">
+                            {{ child.code }} - {{ child.name }}
+                        </a>
+                        <span class="badge bg-soft-info text-info ms-2">{{ child.get_entity_type_display }}</span>
+                        <span class="text-muted small ms-2">({{ child.ownership_percentage }}%)</span>
+                    </div>
+                    {% if child.children.all %}
+                    <ul class="list-unstyled ms-4 mt-1">
+                        {% for grandchild in child.children.all %}
+                        <li class="mb-1 ps-3 border-start">
+                            <div class="d-flex align-items-center">
+                                <i class="ri-git-branch-line text-muted me-2"></i>
+                                <a href="{% url 'multi_entity:entity_detail' tenant_slug=current_tenant.slug pk=grandchild.pk %}" class="text-dark small">
+                                    {{ grandchild.code }} - {{ grandchild.name }}
+                                </a>
+                                <span class="text-muted small ms-2">({{ grandchild.ownership_percentage }}%)</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-organization-chart" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No entities found. Create your first entity to build the hierarchy.</p>
+            <a href="{% url 'multi_entity:entity_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create Entity</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
