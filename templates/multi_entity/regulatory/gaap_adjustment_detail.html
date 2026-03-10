@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}GAAP Adjustment - {{ adj.adjustment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ adj.adjustment_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:gaap_adjustment_list' tenant_slug=current_tenant.slug %}">GAAP Adjustments</a></li>
+            <li class="breadcrumb-item active">{{ adj.adjustment_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Adjustment Information -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2">
+                        <i class="ri-scales-3-line text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Adjustment Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Adjustment #</dt>
+                            <dd class="col-sm-7"><strong>{{ adj.adjustment_number }}</strong></dd>
+                            <dt class="col-sm-5 text-muted">Entity</dt>
+                            <dd class="col-sm-7">{{ adj.entity.code }} - {{ adj.entity.name }}</dd>
+                            <dt class="col-sm-5 text-muted">Period</dt>
+                            <dd class="col-sm-7">{{ adj.fiscal_period }}</dd>
+                            <dt class="col-sm-5 text-muted">Type</dt>
+                            <dd class="col-sm-7"><span class="badge bg-soft-info text-info">{{ adj.get_adjustment_type_display }}</span></dd>
+                            <dt class="col-sm-5 text-muted">From Standard</dt>
+                            <dd class="col-sm-7">{{ adj.from_standard }}</dd>
+                            <dt class="col-sm-5 text-muted">To Standard</dt>
+                            <dd class="col-sm-7">{{ adj.to_standard }}</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Debit Account</dt>
+                            <dd class="col-sm-7">{{ adj.debit_account }}</dd>
+                            <dt class="col-sm-5 text-muted">Credit Account</dt>
+                            <dd class="col-sm-7">{{ adj.credit_account }}</dd>
+                            <dt class="col-sm-5 text-muted">Amount</dt>
+                            <dd class="col-sm-7"><strong>{{ adj.amount|intcomma }}</strong></dd>
+                        </dl>
+                    </div>
+                </div>
+                {% if adj.description %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Description</h6>
+                <p class="mb-0">{{ adj.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Linked Journal Entry -->
+        {% if adj.journal_entry %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2">
+                        <i class="ri-book-2-line text-success"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Linked Journal Entry</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-muted">Entry Number</dt>
+                    <dd class="col-sm-9">
+                        <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=adj.journal_entry.pk %}">{{ adj.journal_entry.entry_number }}</a>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if adj.status == 'draft' or adj.status == 'reviewed' %}
+                <form method="post" action="{% url 'multi_entity:gaap_adjustment_post' tenant_slug=current_tenant.slug pk=adj.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100 mb-2" onclick="return confirm('Are you sure you want to post this adjustment?')">
+                        <i class="ri-check-double-line me-1"></i> Post Adjustment
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'multi_entity:gaap_adjustment_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Adjustments
+                </a>
+            </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="card mb-3">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small mb-3">Status</h6>
+                {% if adj.status == 'draft' %}
+                    <span class="badge bg-soft-warning text-warning fs-6 px-3 py-2">Draft</span>
+                {% elif adj.status == 'reviewed' %}
+                    <span class="badge bg-soft-info text-info fs-6 px-3 py-2">Reviewed</span>
+                {% elif adj.status == 'posted' %}
+                    <span class="badge bg-soft-success text-success fs-6 px-3 py-2">Posted</span>
+                {% else %}
+                    <span class="badge bg-soft-secondary text-secondary fs-6 px-3 py-2">{{ adj.get_status_display }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
