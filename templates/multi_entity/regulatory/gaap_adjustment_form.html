@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New GAAP Adjustment{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New GAAP Adjustment</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:gaap_adjustment_list' tenant_slug=current_tenant.slug %}">GAAP Adjustments</a></li>
+            <li class="breadcrumb-item active">New</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Adjustment Details</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Entity <span class="text-danger">*</span></label>
+                    {{ form.entity }}
+                    {% if form.entity.errors %}<div class="text-danger small">{{ form.entity.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="text-danger small">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Adjustment Type <span class="text-danger">*</span></label>
+                    {{ form.adjustment_type }}
+                    {% if form.adjustment_type.errors %}<div class="text-danger small">{{ form.adjustment_type.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">From Standard <span class="text-danger">*</span></label>
+                    {{ form.from_standard }}
+                    {% if form.from_standard.errors %}<div class="text-danger small">{{ form.from_standard.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">To Standard <span class="text-danger">*</span></label>
+                    {{ form.to_standard }}
+                    {% if form.to_standard.errors %}<div class="text-danger small">{{ form.to_standard.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Accounts & Amount</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Debit Account <span class="text-danger">*</span></label>
+                    {{ form.debit_account }}
+                    {% if form.debit_account.errors %}<div class="text-danger small">{{ form.debit_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Credit Account <span class="text-danger">*</span></label>
+                    {{ form.credit_account }}
+                    {% if form.credit_account.errors %}<div class="text-danger small">{{ form.credit_account.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Amount <span class="text-danger">*</span></label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}<div class="text-danger small">{{ form.amount.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-uppercase text-muted mb-3">Description</h6>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Create Adjustment</button>
+                <a href="{% url 'multi_entity:gaap_adjustment_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
