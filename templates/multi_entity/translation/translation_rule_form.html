@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Create{% endif %} Translation Rule{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{% if is_edit %}Edit{% else %}Create{% endif %} Translation Rule</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Multi-Entity</li>
+        <li class="breadcrumb-item"><a href="{% url 'multi_entity:translation_rule_list' tenant_slug=current_tenant.slug %}">Translation Rules</a></li>
+        <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}Create{% endif %}</li>
+    </ol>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-soft-primary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="ri-exchange-line text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="mb-1">{% if is_edit %}Edit{% else %}New{% endif %} Translation Rule</h5>
+                <p class="text-muted small mb-0">Define how accounts are translated from one currency to another during consolidation.</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Tips</h6>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0"><i class="ri-lightbulb-line text-warning me-2"></i></div>
+                    <div class="flex-grow-1"><p class="text-muted small mb-0">Use "Current" rate for balance sheet items and "Average" rate for income statement items.</p></div>
+                </div>
+                <div class="d-flex">
+                    <div class="flex-shrink-0"><i class="ri-lightbulb-line text-warning me-2"></i></div>
+                    <div class="flex-grow-1"><p class="text-muted small mb-0">A fixed rate overrides the system exchange rate for this rule.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <form method="post">
+            {% csrf_token %}
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-exchange-line text-primary"></i></div>
+                        <h5 class="card-title mb-0">Rule Details</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_account_scope" class="form-label">Account Scope <span class="text-danger">*</span></label>
+                            {{ form.account_scope }}
+                            {% if form.account_scope.errors %}<div class="invalid-feedback d-block">{{ form.account_scope.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_account_type" class="form-label">Account Type</label>
+                            {{ form.account_type }}
+                            {% if form.account_type.errors %}<div class="invalid-feedback d-block">{{ form.account_type.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_specific_account" class="form-label">Specific Account</label>
+                            {{ form.specific_account }}
+                            {% if form.specific_account.errors %}<div class="invalid-feedback d-block">{{ form.specific_account.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_rate_type" class="form-label">Rate Type <span class="text-danger">*</span></label>
+                            {{ form.rate_type }}
+                            {% if form.rate_type.errors %}<div class="invalid-feedback d-block">{{ form.rate_type.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_fixed_rate" class="form-label">Fixed Rate</label>
+                            {{ form.fixed_rate }}
+                            {% if form.fixed_rate.errors %}<div class="invalid-feedback d-block">{{ form.fixed_rate.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_notes" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="id_is_active">Active</label>
+                            </div>
+                            {% if form.is_active.errors %}<div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body d-flex justify-content-end gap-2">
+                    <a href="{% url 'multi_entity:translation_rule_list' tenant_slug=current_tenant.slug %}" class="btn btn-light"><i class="ri-arrow-left-line me-1"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> {% if is_edit %}Update{% else %}Create{% endif %} Rule</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
