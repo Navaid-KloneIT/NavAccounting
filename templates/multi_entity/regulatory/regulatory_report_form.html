@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New Regulatory Report{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">New Regulatory Report</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Multi-Entity</li>
+            <li class="breadcrumb-item"><a href="{% url 'multi_entity:regulatory_report_list' tenant_slug=current_tenant.slug %}">Regulatory Reports</a></li>
+            <li class="breadcrumb-item active">New</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <h6 class="text-uppercase text-muted mb-3">Report Details</h6>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Entity <span class="text-danger">*</span></label>
+                    {{ form.entity }}
+                    {% if form.entity.errors %}<div class="text-danger small">{{ form.entity.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="text-danger small">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Report Type <span class="text-danger">*</span></label>
+                    {{ form.report_type }}
+                    {% if form.report_type.errors %}<div class="text-danger small">{{ form.report_type.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">GAAP Standard <span class="text-danger">*</span></label>
+                    {{ form.gaap_standard }}
+                    {% if form.gaap_standard.errors %}<div class="text-danger small">{{ form.gaap_standard.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="ri-file-chart-line me-1"></i> Generate Report</button>
+                <a href="{% url 'multi_entity:regulatory_report_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
