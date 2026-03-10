@@ -26,10 +26,10 @@
                 <label class="form-label">Search</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="ri-search-line"></i></span>
-                    <input type="text" name="q" class="form-control" placeholder="Transaction #..." value="{{ request.GET.q }}">
+                    <input type="text" name="q" class="form-control" placeholder="Transaction #, SKU..." value="{{ request.GET.q }}">
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Type</label>
                 <select name="transaction_type" class="form-select">
                     <option value="">All Types</option>
@@ -43,23 +43,17 @@
                 <select name="item" class="form-select">
                     <option value="">All Items</option>
                     {% for it in items %}
-                    <option value="{{ it.pk }}" {% if request.GET.item == it.pk|slugify %}selected{% endif %}>{{ it.sku }} - {{ it.name }}</option>
+                    <option value="{{ it.pk }}" {% if request.GET.item == it.pk|stringformat:"d" %}selected{% endif %}>{{ it.sku }} - {{ it.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
                 <a href="{% url 'inventory:transaction_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'inventory:transaction_adjustment' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> Adjustment</a>
+                <a href="{% url 'inventory:transaction_scrap' tenant_slug=current_tenant.slug %}" class="btn btn-warning"><i class="ri-delete-bin-line me-1"></i> Scrap</a>
             </div>
         </form>
-    </div>
-</div>
-
-<!-- Actions -->
-<div class="row mb-3">
-    <div class="col-12 d-flex gap-2">
-        <a href="{% url 'inventory:transaction_adjustment' tenant_slug=current_tenant.slug %}" class="btn btn-success"><i class="ri-add-line me-1"></i> Adjustment</a>
-        <a href="{% url 'inventory:transaction_scrap' tenant_slug=current_tenant.slug %}" class="btn btn-warning"><i class="ri-delete-bin-line me-1"></i> Scrap / Write-Off</a>
     </div>
 </div>
 
@@ -87,18 +81,20 @@
                         <td>{{ txn.date|date:"M d, Y" }}</td>
                         <td>{{ txn.item.sku }}</td>
                         <td>
-                            {% if txn.transaction_type == 'purchase' %}
-                                <span class="badge bg-soft-primary text-primary">Purchase</span>
-                            {% elif txn.transaction_type == 'sale' %}
-                                <span class="badge bg-soft-success text-success">Sale</span>
+                            {% if txn.transaction_type == 'receipt' %}
+                                <span class="badge bg-soft-primary text-primary">Receipt</span>
+                            {% elif txn.transaction_type == 'issue' %}
+                                <span class="badge bg-soft-success text-success">Issue</span>
                             {% elif txn.transaction_type == 'adjustment' %}
                                 <span class="badge bg-soft-warning text-warning">Adjustment</span>
-                            {% elif txn.transaction_type == 'transfer' %}
-                                <span class="badge bg-soft-info text-info">Transfer</span>
                             {% elif txn.transaction_type == 'scrap' %}
                                 <span class="badge bg-soft-danger text-danger">Scrap</span>
-                            {% elif txn.transaction_type == 'return' %}
-                                <span class="badge bg-soft-secondary text-secondary">Return</span>
+                            {% elif txn.transaction_type == 'write_off' %}
+                                <span class="badge bg-soft-danger text-danger">Write Off</span>
+                            {% elif txn.transaction_type == 'transfer_in' %}
+                                <span class="badge bg-soft-info text-info">Transfer In</span>
+                            {% elif txn.transaction_type == 'transfer_out' %}
+                                <span class="badge bg-soft-secondary text-secondary">Transfer Out</span>
                             {% else %}
                                 <span class="badge bg-soft-secondary text-secondary">{{ txn.get_transaction_type_display }}</span>
                             {% endif %}
