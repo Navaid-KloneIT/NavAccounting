@@ -13,7 +13,7 @@ from ..forms import (
     InventoryAdjustmentForm, InventoryScrapForm, TransactionFilterForm,
     InventoryTransferForm, InventoryTransferLineFormSet,
 )
-from ..models import InventoryTransaction, InventoryTransfer
+from ..models import InventoryTransaction, InventoryTransfer, Item
 
 
 # =============================================================================
@@ -48,11 +48,15 @@ def transaction_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    items = Item.objects.filter(tenant=tenant, is_active=True)
+
     return render(request, 'inventory/transactions/transaction_list.html', {
         'transactions': page_obj,
         'page_obj': page_obj,
         'filter_form': filter_form,
         'total_count': qs.count(),
+        'transaction_type_choices': InventoryTransaction.TRANSACTION_TYPE_CHOICES,
+        'items': items,
     })
 
 
