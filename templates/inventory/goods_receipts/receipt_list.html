@@ -16,14 +16,32 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Search</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="ri-search-line"></i></span>
                     <input type="text" name="q" class="form-control" placeholder="Receipt #, PO #..." value="{{ request.GET.q }}">
                 </div>
             </div>
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Warehouse</label>
+                <select name="warehouse" class="form-select">
+                    <option value="">All Warehouses</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.pk }}" {% if request.GET.warehouse == wh.pk|stringformat:"d" %}selected{% endif %}>{{ wh.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
                 <a href="{% url 'inventory:receipt_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
             </div>
