@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ deadline.deadline_number }} - Tax Deadline{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ deadline.deadline_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Calendar</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:deadline_list' tenant_slug=current_tenant.slug %}">Deadlines</a></li>
+            <li class="breadcrumb-item active">{{ deadline.deadline_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Deadline Info -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Deadline Information</h5>
+                <div>
+                    {% if deadline.status == 'upcoming' %}
+                        <span class="badge bg-soft-primary text-primary fs-6">Upcoming</span>
+                    {% elif deadline.status == 'in_progress' %}
+                        <span class="badge bg-soft-info text-info fs-6">In Progress</span>
+                    {% elif deadline.status == 'filed' %}
+                        <span class="badge bg-soft-success text-success fs-6">Filed</span>
+                    {% elif deadline.status == 'overdue' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Overdue</span>
+                    {% elif deadline.status == 'extended' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Extended</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ deadline.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Deadline Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ deadline.deadline_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ deadline.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Tax Type</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ deadline.get_tax_type_display }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Due Date</div>
+                    <div class="col-sm-8 fw-semibold">{{ deadline.due_date }}</div>
+                </div>
+                {% if deadline.extended_date %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Extended Date</div>
+                    <div class="col-sm-8 fw-semibold text-warning">{{ deadline.extended_date }}</div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Jurisdiction</div>
+                    <div class="col-sm-8">{{ deadline.jurisdiction|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Assigned To</div>
+                    <div class="col-sm-8">{{ deadline.assigned_to.get_full_name|default:"-" }}</div>
+                </div>
+                {% if deadline.is_recurring %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Recurrence</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ deadline.get_recurrence_pattern_display|default:"Recurring" }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                {% if deadline.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ deadline.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reminders -->
+        {% if reminders %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Reminders</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Reminder Date</th>
+                                <th>Type</th>
+                                <th>Sent</th>
+                                <th>Sent At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in reminders %}
+                            <tr>
+                                <td>{{ r.reminder_date }}</td>
+                                <td>{{ r.get_reminder_type_display|default:"-" }}</td>
+                                <td>
+                                    {% if r.is_sent %}
+                                        <i class="ri-check-line text-success"></i>
+                                    {% else %}
+                                        <i class="ri-time-line text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                <td>{{ r.sent_at|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'tax:deadline_edit' tenant_slug=current_tenant.slug pk=deadline.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Deadline
+                </a>
+                <form method="post" action="{% url 'tax:deadline_mark_filed' tenant_slug=current_tenant.slug pk=deadline.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100">
+                        <i class="ri-check-double-line me-1"></i> Mark as Filed
+                    </button>
+                </form>
+                <a href="{% url 'tax:deadline_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Linked Tax Return -->
+        {% if deadline.tax_return %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Linked Tax Return</h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'tax:return_detail' tenant_slug=current_tenant.slug pk=deadline.tax_return.pk %}" class="btn btn-outline-info btn-sm w-100">
+                    <i class="ri-file-list-line me-1"></i> View Return #{{ deadline.tax_return.return_number }}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
