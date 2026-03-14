@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if form.instance.pk %}Edit Tax Group{% else %}New Tax Group{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if form.instance.pk %}Edit Tax Group{% else %}New Tax Group{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:tax_group_list' tenant_slug=current_tenant.slug %}">Tax Groups</a></li>
+            <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Group Details -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-group-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Group Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_code" class="form-label">Code <span class="text-danger">*</span></label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-12">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-12">
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" role="switch" id="id_is_active" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+                        <label class="form-check-label" for="id_is_active">
+                            <strong>Active</strong><br>
+                            <small class="text-muted">Inactive groups cannot be assigned to transactions.</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Members (Inline Formset) -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check-2 text-info"></i></div>
+                <h5 class="card-title mb-0">Group Members</h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {{ formset.management_form }}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tax Rate</th>
+                            <th>Priority</th>
+                            <th class="text-center">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="members-container">
+                        {% for member_form in formset %}
+                        <tr>
+                            <td>
+                                {{ member_form.id }}
+                                {{ member_form.tax_rate }}
+                                {% if member_form.tax_rate.errors %}<div class="text-danger small">{{ member_form.tax_rate.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ member_form.priority }}
+                                {% if member_form.priority.errors %}<div class="text-danger small">{{ member_form.priority.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if member_form.DELETE %}
+                                <div class="form-check d-flex justify-content-center">
+                                    {{ member_form.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'tax:tax_group_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if form.instance.pk %}Save Changes{% else %}Create Tax Group{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('members-container');
+    const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
+
+    // Add Member Row
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn btn-soft-primary btn-sm m-3';
+    addBtn.innerHTML = '<i class="ri-add-line me-1"></i> Add Member';
+    container.closest('.card').querySelector('.card-body').appendChild(addBtn);
+
+    addBtn.addEventListener('click', function() {
+        const totalForms = parseInt(totalFormsInput.value);
+        const lastRow = container.querySelector('tr:last-child');
+        if (!lastRow) return;
+
+        const newRow = lastRow.cloneNode(true);
+
+        // Update form indices
+        newRow.querySelectorAll('input, select, textarea').forEach(function(input) {
+            if (input.name) {
+                input.name = input.name.replace(/-\d+-/, '-' + totalForms + '-');
+                input.id = input.id.replace(/-\d+-/, '-' + totalForms + '-');
+            }
+            if (input.type === 'checkbox') {
+                input.checked = false;
+            } else if (input.type !== 'hidden') {
+                input.value = '';
+            }
+        });
+
+        // Clear hidden id field for new row
+        const idField = newRow.querySelector('[name$="-id"]');
+        if (idField) idField.value = '';
+
+        container.appendChild(newRow);
+        totalFormsInput.value = totalForms + 1;
+    });
+
+    // Visual feedback on DELETE toggle
+    container.addEventListener('change', function(e) {
+        if (e.target.name && e.target.name.endsWith('-DELETE')) {
+            const row = e.target.closest('tr');
+            if (e.target.checked) {
+                row.style.opacity = '0.4';
+            } else {
+                row.style.opacity = '1';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
