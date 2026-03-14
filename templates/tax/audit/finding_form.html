@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Finding #{{ finding.finding_number }}{% else %}Add Finding{% endif %} - {{ audit.audit_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Finding #{{ finding.finding_number }}{% else %}Add Finding{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Audit</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:audit_list' tenant_slug=current_tenant.slug %}">Audits</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:audit_detail' tenant_slug=current_tenant.slug pk=audit.pk %}">{{ audit.audit_number }}</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit Finding{% else %}Add Finding{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-search-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">{% if is_edit %}Edit Finding #{{ finding.finding_number }}{% else %}New Finding{% endif %}</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_finding_number" class="form-label">Finding Number <span class="text-danger">*</span></label>
+                            {{ form.finding_number }}
+                            {% if form.finding_number.errors %}<div class="text-danger small">{{ form.finding_number.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_status" class="form-label">Status <span class="text-danger">*</span></label>
+                            {{ form.status }}
+                            {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_description" class="form-label">Description <span class="text-danger">*</span></label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_proposed_amount" class="form-label">Proposed Amount <span class="text-danger">*</span></label>
+                            {{ form.proposed_amount }}
+                            {% if form.proposed_amount.errors %}<div class="text-danger small">{{ form.proposed_amount.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_agreed_amount" class="form-label">Agreed Amount</label>
+                            {{ form.agreed_amount }}
+                            {% if form.agreed_amount.errors %}<div class="text-danger small">{{ form.agreed_amount.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_response" class="form-label">Response</label>
+                            {{ form.response }}
+                            {% if form.response.errors %}<div class="text-danger small">{{ form.response.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_due_date" class="form-label">Due Date</label>
+                            {{ form.due_date }}
+                            {% if form.due_date.errors %}<div class="text-danger small">{{ form.due_date.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'tax:audit_detail' tenant_slug=current_tenant.slug pk=audit.pk %}" class="btn btn-light">
+                            <i class="ri-arrow-left-line me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-save-line me-1"></i> {% if is_edit %}Save Changes{% else %}Add Finding{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
