@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Nexus Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Nexus Dashboard</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Nexus</li>
+            <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Alerts Section -->
+{% if alerts %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3"><i class="ri-alarm-warning-line me-1"></i> Nexus Alerts</h5>
+    </div>
+    {% for alert in alerts %}
+    <div class="col-xl-4 col-md-6 mb-3">
+        <div class="card border-{% if alert.level == 'danger' %}danger{% else %}warning{% endif %} h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="fw-semibold mb-0">{{ alert.jurisdiction }}</h6>
+                    <span class="badge bg-soft-{% if alert.level == 'danger' %}danger text-danger{% else %}warning text-warning{% endif %}">
+                        {{ alert.nexus_type }}
+                    </span>
+                </div>
+                <p class="text-muted small mb-2">{{ alert.message }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">Threshold</span>
+                    <span class="fw-semibold">{{ alert.threshold_percentage }}%</span>
+                </div>
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar bg-{% if alert.level == 'danger' %}danger{% else %}warning{% endif %}" style="width: {{ alert.threshold_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card mb-4">
+    <div class="card-body text-center py-4">
+        <i class="ri-check-double-line text-success" style="font-size: 2rem;"></i>
+        <p class="text-muted mt-2 mb-0">No nexus alerts at this time.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- All Tracked Jurisdictions -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">All Tracked Jurisdictions</h5>
+        <a href="{% url 'tax:nexus_list' tenant_slug=current_tenant.slug %}" class="btn btn-sm btn-soft-primary">
+            <i class="ri-list-check me-1"></i> Full List
+        </a>
+    </div>
+    <div class="card-body p-0">
+        {% if all_records %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Jurisdiction</th>
+                        <th>Nexus Type</th>
+                        <th>Has Nexus</th>
+                        <th>Registration</th>
+                        <th>Sales Threshold</th>
+                        <th>Transaction Threshold</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in all_records %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'tax:nexus_detail' tenant_slug=current_tenant.slug pk=r.pk %}">{{ r.jurisdiction }}</a>
+                        </td>
+                        <td><span class="badge bg-soft-info text-info">{{ r.get_nexus_type_display }}</span></td>
+                        <td>
+                            {% if r.has_nexus %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.registration_status == 'registered' %}
+                                <span class="badge bg-soft-success text-success">Registered</span>
+                            {% elif r.registration_status == 'pending' %}
+                                <span class="badge bg-soft-warning text-warning">Pending</span>
+                            {% elif r.registration_status == 'not_registered' %}
+                                <span class="badge bg-soft-secondary text-secondary">Not Registered</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ r.get_registration_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar bg-{% if r.sales_threshold_pct >= 100 %}danger{% elif r.sales_threshold_pct >= 75 %}warning{% else %}info{% endif %}" style="width: {{ r.sales_threshold_pct }}%"></div>
+                                </div>
+                                <small class="text-muted" style="min-width: 35px;">{{ r.sales_threshold_pct }}%</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar bg-{% if r.transaction_threshold_pct >= 100 %}danger{% elif r.transaction_threshold_pct >= 75 %}warning{% else %}info{% endif %}" style="width: {{ r.transaction_threshold_pct }}%"></div>
+                                </div>
+                                <small class="text-muted" style="min-width: 35px;">{{ r.transaction_threshold_pct }}%</small>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-map-2-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No nexus records tracked yet.</p>
+            <a href="{% url 'tax:nexus_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Nexus Record</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
