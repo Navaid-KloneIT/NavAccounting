@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Edit Provision - {{ provision.provision_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Edit Provision - {{ provision.provision_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:provision_list' tenant_slug=current_tenant.slug %}">Provisions</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:provision_detail' tenant_slug=current_tenant.slug pk=provision.pk %}">{{ provision.provision_number }}</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Main Provision Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-calculator-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Provision Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_fiscal_year" class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                    {{ form.fiscal_year }}
+                    {% if form.fiscal_year.errors %}<div class="text-danger small">{{ form.fiscal_year.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_fiscal_period" class="form-label">Fiscal Period</label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="text-danger small">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_provision_type" class="form-label">Provision Type <span class="text-danger">*</span></label>
+                    {{ form.provision_type }}
+                    {% if form.provision_type.errors %}<div class="text-danger small">{{ form.provision_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_pretax_income" class="form-label">Pretax Income <span class="text-danger">*</span></label>
+                    {{ form.pretax_income }}
+                    {% if form.pretax_income.errors %}<div class="text-danger small">{{ form.pretax_income.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_statutory_rate" class="form-label">Statutory Rate <span class="text-danger">*</span></label>
+                    {{ form.statutory_rate }}
+                    {% if form.statutory_rate.errors %}<div class="text-danger small">{{ form.statutory_rate.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_permanent_differences" class="form-label">Permanent Differences</label>
+                    {{ form.permanent_differences }}
+                    {% if form.permanent_differences.errors %}<div class="text-danger small">{{ form.permanent_differences.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_tax_credits" class="form-label">Tax Credits</label>
+                    {{ form.tax_credits }}
+                    {% if form.tax_credits.errors %}<div class="text-danger small">{{ form.tax_credits.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deferred Tax Items Formset -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-time-line text-warning"></i></div>
+                <h5 class="card-title mb-0">Deferred Tax Items</h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {{ deferred_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th>Item Type</th>
+                            <th>Book Basis</th>
+                            <th>Tax Basis</th>
+                            <th>Tax Rate</th>
+                            <th>GL Account</th>
+                            <th class="text-center">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for df in deferred_formset %}
+                        <tr>
+                            {{ df.id }}
+                            <td>
+                                {{ df.description }}
+                                {% if df.description.errors %}<div class="text-danger small">{{ df.description.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ df.item_type }}
+                                {% if df.item_type.errors %}<div class="text-danger small">{{ df.item_type.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ df.book_basis }}
+                                {% if df.book_basis.errors %}<div class="text-danger small">{{ df.book_basis.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ df.tax_basis }}
+                                {% if df.tax_basis.errors %}<div class="text-danger small">{{ df.tax_basis.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ df.tax_rate }}
+                                {% if df.tax_rate.errors %}<div class="text-danger small">{{ df.tax_rate.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ df.gl_account }}
+                                {% if df.gl_account.errors %}<div class="text-danger small">{{ df.gl_account.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {{ df.DELETE }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if deferred_formset.non_form_errors %}
+            <div class="text-danger small px-3 py-2">
+                {% for error in deferred_formset.non_form_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ETR Reconciliation Formset -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-percent-line text-info"></i></div>
+                <h5 class="card-title mb-0">ETR Reconciliation</h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {{ etr_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th>Rate Impact</th>
+                            <th>Amount Impact</th>
+                            <th>Line Order</th>
+                            <th class="text-center">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ef in etr_formset %}
+                        <tr>
+                            {{ ef.id }}
+                            <td>
+                                {{ ef.description }}
+                                {% if ef.description.errors %}<div class="text-danger small">{{ ef.description.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ ef.rate_impact }}
+                                {% if ef.rate_impact.errors %}<div class="text-danger small">{{ ef.rate_impact.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ ef.amount_impact }}
+                                {% if ef.amount_impact.errors %}<div class="text-danger small">{{ ef.amount_impact.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ ef.line_order }}
+                                {% if ef.line_order.errors %}<div class="text-danger small">{{ ef.line_order.errors.0 }}</div>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {{ ef.DELETE }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if etr_formset.non_form_errors %}
+            <div class="text-danger small px-3 py-2">
+                {% for error in etr_formset.non_form_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'tax:provision_detail' tenant_slug=current_tenant.slug pk=provision.pk %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
