@@ -42,6 +42,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Payroll Integration** — Employee master with pay types (salary/hourly) and frequencies, payroll journal with calculate/approve/post workflow, tax withholding configuration (federal/state/local/FICA/FUTA/SUTA), tax remittance tracking, benefit plans (401k/health/dental/vision/HSA/FSA) with employee enrollment, court-ordered garnishment management with priority ordering, workers comp class assignments with rate tracking, gross-to-net payroll reconciliation with variance detection, GL journal entry posting
 - **Project/Job Costing** — Project master with WBS hierarchy, time & expense tracking, billing rules with markup, revenue recognition (percentage-of-completion/milestone/completed-contract), project invoicing with retention, profitability analysis with earned value metrics, resource planning & utilization reports, audit trail integration
 - **Multi-Entity & Consolidation** — Entity management (parent/subsidiary/branch/division/JV/associate) with hierarchical structure, intercompany transactions with paired journal entries, IC balance reconciliation, currency translation with CTA calculation, consolidation engine with elimination rules, minority interest computation, transfer pricing policies with arm's length analysis, local GAAP adjustments, regulatory report filing
+- **Tax Management** — Sales tax engine with hierarchical jurisdictions, effective-dated rates, compound rate calculation, product taxability rules & tax groups; tax return preparation (Sales Tax/VAT/GST/Income Tax) with Draft→Calculated→Reviewed→Filed workflow; use tax self-assessment tracking with GL accrual posting; income tax provision with current/deferred tax, temporary differences, and ETR reconciliation; tax calendar with filing deadline management, recurring deadline generation & overdue alerts; audit support with findings tracking, document repository & adjustment GL posting; economic nexus monitoring with threshold tracking, progress alerts & registration management
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -99,6 +100,7 @@ NavAccounting/
 │   ├── payroll/                    # Employees, Payroll Journals, Tax Withholding, Tax Remittance, Benefits, Garnishments, Workers Comp, Reconciliation
 │   ├── project_costing/            # Projects, WBS, Budgets, Billing Rules, Time Entries, Expenses, Revenue Recognition, Invoices, Profitability, Resources
 │   ├── multi_entity/               # Entities, IC Transactions, Currency Translation, Consolidation, Transfer Pricing, Regulatory Reporting
+│   ├── tax/                        # Jurisdictions, Tax Rates, Rules, Groups, Returns, Use Tax, Provisions, Calendar, Audits, Nexus Tracking
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -198,6 +200,14 @@ NavAccounting/
 │   │   ├── consolidation/          # Group list, form, detail, elimination rule list, form, run list, form, detail
 │   │   ├── transfer_pricing/       # TP policy list, form, detail, transaction list, form
 │   │   └── regulatory/             # GAAP adjustment list, form, detail, report list, form, detail
+│   ├── tax/                        # TX templates (40 files across 7 subdirectories)
+│   │   ├── sales_tax/              # Jurisdiction list, form, detail, tax rate list, form, tax rule list, form, tax group list, form, detail
+│   │   ├── tax_returns/            # Return list, form, detail, payment form, line form
+│   │   ├── use_tax/                # Assessment list, form, detail, accrual list, form, detail
+│   │   ├── provision/              # Provision list, form, detail, edit (with deferred items & ETR formsets)
+│   │   ├── calendar/               # Deadline list, form, detail, generate recurring form
+│   │   ├── audit/                  # Audit list, form, detail, finding form, finding edit, document upload
+│   │   └── nexus/                  # Nexus list, form, detail, activity form, dashboard
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -331,6 +341,7 @@ python manage.py seed_data --fa
 python manage.py seed_data --ic
 python manage.py seed_data --pj
 python manage.py seed_data --me
+python manage.py seed_data --tx
 ```
 
 ### What Gets Seeded
@@ -354,6 +365,7 @@ python manage.py seed_data --me
 | Inventory & Cost | 5 item categories (RAW, FG, COMP, PKG, MRO), 5 UoMs, 3 warehouses, 8 items with cost layers, 1 purchase requisition, 2 purchase orders with lines, 1 posted goods receipt, 2 inventory transactions (adjustment + scrap), 1 completed transfer, 1 COGS calculation with entries, 3 reorder suggestions, 1 cycle count plan + session with items, 1 landed cost voucher with cost lines and allocations |
 | Project/Job Costing | 5 projects (Corporate HQ Renovation, ERP Implementation, Highway Bridge Repair, Mobile App Development, Warehouse Automation), WBS elements with hierarchical structure, project budgets with GL accounts, billing rules, time entries, expense entries with markup, revenue recognition records, milestones, project invoices with lines, profitability snapshots, resource assignments |
 | Multi-Entity & Consolidation | 5 entities (HQ parent, EU subsidiary, UK branch, Asia JV, US division), 8 IC transactions with varied statuses, 5 IC balances, 5 currency translation rules, 3 CTA translation adjustments, 2 consolidation groups (Global + EU sub-group), 4 elimination rules, 3 consolidation runs (completed/draft/reversed), 2 elimination entries, 2 minority interest records, 4 transfer pricing policies, 5 TP transactions, 5 GAAP adjustments, 6 regulatory reports |
+| Tax Management | 7 jurisdictions (Federal, 3 states, 2 counties, 1 city) with hierarchy, 7 tax rates (CA/NY/TX/Federal), 8 tax rules (exemptions/reduced/zero-rated/surtax), 4 tax groups (CA+LA, CA+SF, NY+NYC, CA full combined), 5 tax returns with line items (filed/draft/calculated/reviewed), 5 use tax assessments (pending/accrued/paid/exempt), 2 use tax accruals (posted/draft), 3 income tax provisions with deferred items and ETR reconciliation (finalized/draft/calculated), 5 tax deadlines (recurring/one-time), 4 tax audits with findings (closed/in-progress/pending), 4 nexus jurisdictions with activity records |
 
 ---
 
@@ -443,6 +455,13 @@ These paths skip tenant resolution:
 | — | EliminationEntry, MinorityInterest |
 | — | TransferPricingPolicy, TransferPricingTransaction |
 | — | LocalGAAPAdjustment, RegulatoryReport |
+| — | TaxJurisdiction, TaxRate, TaxRule, TaxGroup |
+| — | TaxReturn, TaxReturnLine, TaxReturnPayment |
+| — | UseTaxAssessment, UseTaxAccrual |
+| — | IncomeTaxProvision, DeferredTaxItem, ETRReconciliation |
+| — | TaxDeadline, TaxDeadlineReminder |
+| — | TaxAudit, AuditFinding, AuditDocument |
+| — | NexusJurisdiction, NexusActivity |
 
 ---
 
@@ -489,7 +508,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ, ME) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ, ME, TX) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -946,6 +965,68 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/me/regulatory/reports/create/` | Create report | New regulatory report |
 | `/t/<slug>/me/regulatory/reports/<pk>/` | Report detail | Report info, data |
 | `/t/<slug>/me/regulatory/reports/<pk>/file/` | File report | Mark report as filed |
+| **Tax — Sales Tax Engine (Jurisdictions)** | | |
+| `/t/<slug>/tx/jurisdictions/` | Jurisdiction list | All tax jurisdictions with filters |
+| `/t/<slug>/tx/jurisdictions/create/` | Create jurisdiction | New jurisdiction form |
+| `/t/<slug>/tx/jurisdictions/<pk>/` | Jurisdiction detail | Jurisdiction info, child jurisdictions, rates, rules |
+| `/t/<slug>/tx/jurisdictions/<pk>/edit/` | Edit jurisdiction | Edit jurisdiction details |
+| **Tax — Sales Tax Engine (Rates, Rules, Groups)** | | |
+| `/t/<slug>/tx/tax-rates/` | Tax rate list | All tax rates with jurisdiction filter |
+| `/t/<slug>/tx/tax-rates/create/` | Create tax rate | New tax rate with GL accounts |
+| `/t/<slug>/tx/tax-rates/<pk>/edit/` | Edit tax rate | Edit tax rate details |
+| `/t/<slug>/tx/tax-rules/` | Tax rule list | All taxability rules with type filter |
+| `/t/<slug>/tx/tax-rules/create/` | Create tax rule | New taxability rule |
+| `/t/<slug>/tx/tax-rules/<pk>/edit/` | Edit tax rule | Edit taxability rule |
+| `/t/<slug>/tx/tax-groups/` | Tax group list | All tax groups with combined rates |
+| `/t/<slug>/tx/tax-groups/create/` | Create tax group | New tax group with member rates |
+| `/t/<slug>/tx/tax-groups/<pk>/` | Tax group detail | Group info, member rates, combined rate |
+| `/t/<slug>/tx/tax-groups/<pk>/edit/` | Edit tax group | Edit group and member rates |
+| **Tax — Tax Returns** | | |
+| `/t/<slug>/tx/returns/` | Return list | All tax returns with status filters |
+| `/t/<slug>/tx/returns/create/` | Create return | New tax return with line items |
+| `/t/<slug>/tx/returns/<pk>/` | Return detail | Return info, lines, payments, workflow actions |
+| `/t/<slug>/tx/returns/<pk>/edit/` | Edit return | Edit draft/calculated return |
+| `/t/<slug>/tx/returns/<pk>/calculate/` | Calculate return | Compute return totals from lines |
+| `/t/<slug>/tx/returns/<pk>/file/` | File return | Mark return as filed |
+| `/t/<slug>/tx/returns/<pk>/payment/` | Record payment | Add payment to return (posts GL) |
+| **Tax — Use Tax Tracking** | | |
+| `/t/<slug>/tx/use-tax/` | Assessment list | All use tax assessments with status filter |
+| `/t/<slug>/tx/use-tax/create/` | Create assessment | New use tax assessment linked to vendor |
+| `/t/<slug>/tx/use-tax/<pk>/` | Assessment detail | Assessment info, vendor, GL links |
+| `/t/<slug>/tx/use-tax/<pk>/accrue/` | Accrue assessment | Post use tax accrual to GL |
+| `/t/<slug>/tx/use-tax/accruals/` | Accrual list | All use tax accruals |
+| `/t/<slug>/tx/use-tax/accruals/create/` | Create accrual | New period accrual |
+| `/t/<slug>/tx/use-tax/accruals/<pk>/` | Accrual detail | Accrual info, totals, GL link |
+| `/t/<slug>/tx/use-tax/accruals/<pk>/post/` | Post accrual | Post accrual to GL |
+| **Tax — Income Tax Provision** | | |
+| `/t/<slug>/tx/provisions/` | Provision list | All provisions with ETR display |
+| `/t/<slug>/tx/provisions/create/` | Create provision | New income tax provision |
+| `/t/<slug>/tx/provisions/<pk>/` | Provision detail | Tax computation, deferred items, ETR reconciliation |
+| `/t/<slug>/tx/provisions/<pk>/edit/` | Edit provision | Edit with deferred items & ETR formsets |
+| `/t/<slug>/tx/provisions/<pk>/calculate/` | Calculate provision | Compute current/deferred tax and ETR |
+| `/t/<slug>/tx/provisions/<pk>/post/` | Post provision | Post provision to GL |
+| **Tax — Tax Calendar** | | |
+| `/t/<slug>/tx/calendar/` | Deadline list | All deadlines with overdue alerts |
+| `/t/<slug>/tx/calendar/create/` | Create deadline | New tax filing deadline |
+| `/t/<slug>/tx/calendar/<pk>/` | Deadline detail | Deadline info, reminders |
+| `/t/<slug>/tx/calendar/<pk>/edit/` | Edit deadline | Edit deadline details |
+| `/t/<slug>/tx/calendar/<pk>/complete/` | Complete deadline | Mark deadline as filed |
+| `/t/<slug>/tx/calendar/generate/` | Generate recurring | Generate recurring deadlines for date range |
+| **Tax — Audit Support** | | |
+| `/t/<slug>/tx/audits/` | Audit list | All tax audits with status filters |
+| `/t/<slug>/tx/audits/create/` | Create audit | New tax audit record |
+| `/t/<slug>/tx/audits/<pk>/` | Audit detail | Audit info, findings, documents |
+| `/t/<slug>/tx/audits/<pk>/edit/` | Edit audit | Edit audit details |
+| `/t/<slug>/tx/audits/<pk>/findings/create/` | Add finding | New audit finding |
+| `/t/<slug>/tx/audits/<pk>/findings/<finding_pk>/edit/` | Edit finding | Edit audit finding |
+| `/t/<slug>/tx/audits/<pk>/documents/upload/` | Upload document | Upload audit document |
+| **Tax — Nexus Tracking** | | |
+| `/t/<slug>/tx/nexus/` | Nexus list | All nexus jurisdictions with threshold progress |
+| `/t/<slug>/tx/nexus/create/` | Create nexus | New nexus jurisdiction tracking |
+| `/t/<slug>/tx/nexus/dashboard/` | Nexus dashboard | Threshold alerts and overview |
+| `/t/<slug>/tx/nexus/<pk>/` | Nexus detail | Nexus info, activity history, threshold progress |
+| `/t/<slug>/tx/nexus/<pk>/edit/` | Edit nexus | Edit nexus jurisdiction details |
+| `/t/<slug>/tx/nexus/<pk>/activity/create/` | Add activity | Record nexus activity period |
 
 ---
 
@@ -1473,7 +1554,63 @@ When a GAAP adjustment is posted:
 - **Debit**: Adjustment debit account
 - **Credit**: Adjustment credit account
 
-### 15. `dashboard` — Dashboard & Analytics
+### 15. `tax` — Tax Management Module
+
+Full tax compliance and planning with 7 submodules, 22 models, 48 views, and 40 templates.
+
+- **TaxJurisdiction** — Hierarchical tax jurisdictions with levels (Federal → State → County → City → Special District), self-referential parent-child structure, country/state code classification
+- **TaxRate** — Effective-dated tax rates per jurisdiction with compound rate support, priority-based calculation order, GL account mapping (tax collected/tax paid)
+- **TaxRule** — Product/service taxability rules per jurisdiction with types (exempt/reduced/zero-rated/standard/surtax), product category matching, optional rate overrides
+- **TaxGroup** — Combined tax rate groups aggregating multiple jurisdiction rates for single-calculation lookups (e.g., CA State + LA County + SF District)
+- **TaxGroupMember** — Junction table linking tax rates to groups with priority ordering
+- **TaxReturn** — Tax return headers with auto-generated numbers (`TR-YYYY-NNNN`), types (Sales Tax/VAT/GST/Income Tax/Payroll Tax/Use Tax), status workflow (Draft → Calculated → Reviewed → Filed → Amended), financial totals, GL journal entry link
+- **TaxReturnLine** — Individual return line items with GL account reference, taxable amount, tax amount, applied rate
+- **TaxReturnPayment** — Payment tracking on tax returns with method (EFT/Check/Wire), GL journal entry creation on posting
+- **UseTaxAssessment** — Purchase-level use tax tracking with auto-generated numbers (`UT-YYYY-NNNN`), vendor/bill cross-references to AP module, status workflow (Pending → Accrued → Paid → Exempt), GL accrual posting
+- **UseTaxAccrual** — Period-level use tax accrual summaries with auto-generated numbers (`UTA-YYYY-NNNN`), aggregate posting to GL
+- **IncomeTaxProvision** — Income tax provision with auto-generated numbers (`ITP-YYYY-NNNN`), provision types (current/deferred/total), statutory rate, computed tax, permanent/temporary differences, tax credits, current and deferred tax expense, effective tax rate calculation, status workflow (Draft → Calculated → Reviewed → Finalized)
+- **DeferredTaxItem** — Temporary difference line items with book vs tax basis, deferred tax asset/liability classification, GL account mapping
+- **ETRReconciliation** — Effective tax rate reconciliation lines showing rate impact and amount impact per reconciling item
+- **TaxDeadline** — Filing deadline management with auto-generated numbers (`TD-YYYY-NNNN`), tax type classification, jurisdiction link, reminder configuration, recurring pattern support (monthly/quarterly/annual), status workflow (Upcoming → In Progress → Filed → Overdue → Extended)
+- **TaxDeadlineReminder** — Reminder log entries per deadline with sent status tracking
+- **TaxAudit** — Tax audit tracking with auto-generated numbers (`TA-YYYY-NNNN`), auditing authority, audit period, status workflow (Pending → In Progress → Responded → Closed No Change → Closed Adjustment → Appealed), proposed vs agreed adjustment tracking, GL posting for adjustments
+- **AuditFinding** — Individual audit findings with proposed/agreed amounts, status (Open → Agreed → Disputed → Resolved), response documentation
+- **AuditDocument** — File attachments for audits with document type classification (notice/correspondence/workpaper/supporting/response/assessment)
+- **NexusJurisdiction** — Economic nexus monitoring per jurisdiction with nexus type (physical/economic/affiliate/click-through), registration tracking, sales and transaction threshold monitoring with auto-calculated percentage
+- **NexusActivity** — Period-level nexus activity records with sales amounts and transaction counts for threshold tracking
+
+#### Tax Return Workflow
+
+```
+Draft → Calculate → Calculated → Review → Reviewed → File → Filed
+                                                            → Amend → Amended
+```
+
+#### Income Tax Provision Workflow
+
+```
+Draft → Calculate → Calculated → Review → Reviewed → Post → Finalized (creates GL JE)
+```
+
+#### GL Integration
+
+When a tax return payment is recorded, `services.py` creates a posted journal entry:
+- **Debit**: Tax Payable (liability account)
+- **Credit**: Cash/Bank Account
+
+When use tax is accrued:
+- **Debit**: Use Tax Expense
+- **Credit**: Use Tax Payable
+
+When income tax provision is posted:
+- **Debit**: Income Tax Expense (current + deferred)
+- **Credit**: Current Tax Payable + Deferred Tax Liability
+
+When a tax audit adjustment is posted:
+- **Debit**: Tax Expense
+- **Credit**: Tax Payable
+
+### 16. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
@@ -1679,7 +1816,6 @@ The application is architected to support these additional accounting modules:
 
 | Module | Description |
 |--------|-------------|
-| Tax | Sales tax engine, tax returns, compliance |
 | Reporting | Financial statements, custom report builder, XBRL |
 | Budgeting | Budget creation, variance analysis, forecasting |
 
