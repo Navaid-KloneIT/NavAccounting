@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Tax Returns{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Tax Returns</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Tax Management</li>
+        <li class="breadcrumb-item active">Tax Returns</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-file-list-3-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Draft</p>
+                        <h3 class="mb-0">{{ draft_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-draft-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Filed</p>
+                        <h3 class="mb-0">{{ filed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Return #, jurisdiction..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Return Type</label>
+                <select name="return_type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for val, label in return_type_choices %}
+                    <option value="{{ val }}" {% if request.GET.return_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'tax:return_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+        <div class="mt-3 text-end">
+            <a href="{% url 'tax:return_create' tenant_slug=current_tenant.slug %}" class="btn btn-success">
+                <i class="ri-add-line me-1"></i> New Return
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Return #</th>
+                        <th>Type</th>
+                        <th>Jurisdiction</th>
+                        <th>Period</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Net Tax Due</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in returns %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="{% url 'tax:return_detail' tenant_slug=current_tenant.slug pk=r.pk %}">{{ r.return_number }}</a>
+                            </strong>
+                        </td>
+                        <td>
+                            {% if r.return_type == 'sales_tax' %}<span class="badge bg-soft-primary text-primary">Sales Tax</span>
+                            {% elif r.return_type == 'vat' %}<span class="badge bg-soft-info text-info">VAT</span>
+                            {% elif r.return_type == 'gst' %}<span class="badge bg-soft-info text-info">GST</span>
+                            {% elif r.return_type == 'income_tax' %}<span class="badge bg-soft-dark text-dark">Income Tax</span>
+                            {% elif r.return_type == 'payroll_tax' %}<span class="badge bg-soft-warning text-warning">Payroll Tax</span>
+                            {% elif r.return_type == 'use_tax' %}<span class="badge bg-soft-secondary text-secondary">Use Tax</span>
+                            {% else %}<span class="badge bg-soft-secondary text-secondary">{{ r.get_return_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.jurisdiction }}</td>
+                        <td>{{ r.period_start|date:"M d, Y" }} - {{ r.period_end|date:"M d, Y" }}</td>
+                        <td>{{ r.due_date|date:"M d, Y" }}</td>
+                        <td class="text-end">{{ r.net_tax_due|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if r.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                            {% elif r.status == 'calculated' %}<span class="badge badge-soft-info">Calculated</span>
+                            {% elif r.status == 'reviewed' %}<span class="badge badge-soft-primary">Reviewed</span>
+                            {% elif r.status == 'filed' %}<span class="badge badge-soft-success">Filed</span>
+                            {% elif r.status == 'amended' %}<span class="badge badge-soft-secondary">Amended</span>
+                            {% else %}<span class="badge badge-soft-secondary">{{ r.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'tax:return_detail' tenant_slug=current_tenant.slug pk=r.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                            {% if r.status == 'draft' or r.status == 'calculated' %}
+                            <a href="{% url 'tax:return_edit' tenant_slug=current_tenant.slug pk=r.pk %}" class="btn btn-sm btn-soft-primary" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <i class="ri-file-list-3-line" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No tax returns found.</p>
+                                <a href="{% url 'tax:return_create' tenant_slug=current_tenant.slug %}" class="btn btn-success btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Return
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
