@@ -5682,7 +5682,10 @@ class Command(BaseCommand):
         from apps.tax.models import (
             TaxJurisdiction, TaxRate, TaxRule, TaxGroup, TaxGroupMember,
             TaxReturn, TaxReturnLine,
+            UseTaxAssessment, UseTaxAccrual,
+            IncomeTaxProvision, DeferredTaxItem, ETRReconciliation,
             TaxDeadline,
+            TaxAudit, AuditFinding,
             NexusJurisdiction, NexusActivity,
         )
         from apps.tenants.managers import set_current_tenant
@@ -5693,14 +5696,31 @@ class Command(BaseCommand):
         for tenant in tenants:
             set_current_tenant(tenant)
 
-            # Get GL accounts for tax
+            # Get GL accounts
             liability_accounts = list(Account.unscoped.filter(
                 tenant=tenant, is_active=True, is_header=False,
                 account_type__code__in=['LI', 'LIABILITY', 'OL']
             )[:5])
-            if not liability_accounts:
+            expense_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['EXP', 'EXPENSE', 'OE']
+            )[:5])
+            asset_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['AS', 'ASSET', 'OA']
+            )[:5])
+
+            if not liability_accounts or not expense_accounts:
                 continue
+
             tax_payable_acct = liability_accounts[0]
+            tax_expense_acct = expense_accounts[0]
+            use_tax_liability_acct = liability_accounts[1] if len(liability_accounts) > 1 else liability_accounts[0]
+            deferred_tax_acct = liability_accounts[2] if len(liability_accounts) > 2 else liability_accounts[0]
+
+            user = tenant.owner
+            if not user:
+                continue
 
             # =================================================================
             # 1. Tax Jurisdictions
@@ -5764,6 +5784,7 @@ class Command(BaseCommand):
                 {'jurisdiction': 'US-NY', 'name': 'NY State Sales Tax', 'rate': Decimal('4.00000'), 'date': date(2025, 1, 1)},
                 {'jurisdiction': 'US-NY-NYC', 'name': 'NYC Local Sales Tax', 'rate': Decimal('4.50000'), 'date': date(2025, 1, 1)},
                 {'jurisdiction': 'US-TX', 'name': 'TX State Sales Tax', 'rate': Decimal('6.25000'), 'date': date(2025, 1, 1)},
+                {'jurisdiction': 'US-FED', 'name': 'Federal Income Tax Rate', 'rate': Decimal('21.00000'), 'date': date(2025, 1, 1)},
             ]
 
             created_rates = {}
@@ -5790,22 +5811,28 @@ class Command(BaseCommand):
                 {'code': 'CA-RX', 'name': 'CA Prescription Drug Exemption', 'jurisdiction': 'US-CA', 'rule_type': 'exempt', 'category': 'Prescription Drugs'},
                 {'code': 'NY-CLOTH', 'name': 'NY Clothing Exemption (<$110)', 'jurisdiction': 'US-NY', 'rule_type': 'exempt', 'category': 'Clothing Under $110'},
                 {'code': 'TX-FOOD', 'name': 'TX Grocery Exemption', 'jurisdiction': 'US-TX', 'rule_type': 'exempt', 'category': 'Groceries'},
+                {'code': 'CA-MFG', 'name': 'CA Manufacturing Equipment Reduced Rate', 'jurisdiction': 'US-CA', 'rule_type': 'reduced', 'category': 'Manufacturing Equipment'},
+                {'code': 'NY-SAAS', 'name': 'NY SaaS Taxability', 'jurisdiction': 'US-NY', 'rule_type': 'standard', 'category': 'Software as a Service'},
+                {'code': 'TX-DSERV', 'name': 'TX Digital Services Surtax', 'jurisdiction': 'US-TX', 'rule_type': 'surtax', 'category': 'Digital Services'},
+                {'code': 'CA-AG', 'name': 'CA Agricultural Supply Zero Rate', 'jurisdiction': 'US-CA', 'rule_type': 'zero_rated', 'category': 'Agricultural Supplies'},
             ]
 
             for rul in rules_data:
                 j = created_jurisdictions.get(rul['jurisdiction'])
                 if not j:
                     continue
+                defaults = {
+                    'name': rul['name'],
+                    'jurisdiction': j,
+                    'rule_type': rul['rule_type'],
+                    'product_category': rul['category'],
+                    'effective_date': date(2025, 1, 1),
+                    'is_active': True,
+                }
+                if rul['rule_type'] == 'reduced':
+                    defaults['rate_override'] = Decimal('3.50000')
                 TaxRule.unscoped.get_or_create(
-                    tenant=tenant, code=rul['code'],
-                    defaults={
-                        'name': rul['name'],
-                        'jurisdiction': j,
-                        'rule_type': rul['rule_type'],
-                        'product_category': rul['category'],
-                        'effective_date': date(2025, 1, 1),
-                        'is_active': True,
-                    }
+                    tenant=tenant, code=rul['code'], defaults=defaults
                 )
 
             # =================================================================
@@ -5816,31 +5843,53 @@ class Command(BaseCommand):
             sf_rate = created_rates.get('US-CA-SF')
             ny_rate = created_rates.get('US-NY')
             nyc_rate = created_rates.get('US-NY-NYC')
+            tx_rate = created_rates.get('US-TX')
 
+            groups_created = {}
             if ca_rate and la_rate:
                 grp, created = TaxGroup.unscoped.get_or_create(
                     tenant=tenant, code='CA-LA-COMBINED',
                     defaults={'name': 'California + LA County Combined', 'is_active': True}
                 )
+                groups_created['CA-LA'] = grp
                 if created:
                     TaxGroupMember.objects.create(tax_group=grp, tax_rate=ca_rate, priority=1)
                     TaxGroupMember.objects.create(tax_group=grp, tax_rate=la_rate, priority=2)
+
+            if ca_rate and sf_rate:
+                grp, created = TaxGroup.unscoped.get_or_create(
+                    tenant=tenant, code='CA-SF-COMBINED',
+                    defaults={'name': 'California + San Francisco Combined', 'is_active': True}
+                )
+                groups_created['CA-SF'] = grp
+                if created:
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=ca_rate, priority=1)
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=sf_rate, priority=2)
 
             if ny_rate and nyc_rate:
                 grp, created = TaxGroup.unscoped.get_or_create(
                     tenant=tenant, code='NY-NYC-COMBINED',
                     defaults={'name': 'New York + NYC Combined', 'is_active': True}
                 )
+                groups_created['NY-NYC'] = grp
                 if created:
                     TaxGroupMember.objects.create(tax_group=grp, tax_rate=ny_rate, priority=1)
                     TaxGroupMember.objects.create(tax_group=grp, tax_rate=nyc_rate, priority=2)
 
+            if ca_rate and la_rate and sf_rate:
+                grp, created = TaxGroup.unscoped.get_or_create(
+                    tenant=tenant, code='CA-LA-SF-FULL',
+                    defaults={'name': 'California + LA County + SF District Full', 'is_active': True}
+                )
+                groups_created['CA-FULL'] = grp
+                if created:
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=ca_rate, priority=1)
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=la_rate, priority=2)
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=sf_rate, priority=3)
+
             # =================================================================
             # 5. Tax Returns
             # =================================================================
-            today = date.today()
-            user = tenant.owner
-
             returns_data = [
                 {
                     'type': 'sales_tax', 'jurisdiction': 'US-CA',
@@ -5863,11 +5912,25 @@ class Command(BaseCommand):
                     'taxable': Decimal('500000.00'), 'tax_due': Decimal('105000.00'),
                     'net_due': Decimal('105000.00'), 'paid': Decimal('80000.00'),
                 },
+                {
+                    'type': 'sales_tax', 'jurisdiction': 'US-TX',
+                    'period_start': date(2025, 7, 1), 'period_end': date(2025, 9, 30),
+                    'due_date': date(2025, 10, 20), 'status': 'filed',
+                    'taxable': Decimal('95000.00'), 'tax_due': Decimal('5937.50'),
+                    'net_due': Decimal('5937.50'), 'paid': Decimal('5937.50'),
+                },
+                {
+                    'type': 'use_tax', 'jurisdiction': 'US-CA',
+                    'period_start': date(2025, 7, 1), 'period_end': date(2025, 12, 31),
+                    'due_date': date(2026, 1, 31), 'status': 'reviewed',
+                    'taxable': Decimal('42000.00'), 'tax_due': Decimal('3045.00'),
+                    'net_due': Decimal('3045.00'), 'paid': Decimal('0.00'),
+                },
             ]
 
             for rd in returns_data:
                 j = created_jurisdictions.get(rd['jurisdiction'])
-                if not j or not user:
+                if not j:
                     continue
                 tr, created = TaxReturn.unscoped.get_or_create(
                     tenant=tenant,
@@ -5892,14 +5955,236 @@ class Command(BaseCommand):
                 if created:
                     TaxReturnLine.objects.create(
                         tax_return=tr, line_number=1,
-                        description='Gross Sales',
+                        description='Gross Sales / Taxable Income',
                         taxable_amount=rd['taxable'],
                         tax_amount=rd['tax_due'],
                         rate_applied=Decimal('7.25000') if rd['type'] == 'sales_tax' else Decimal('21.00000'),
                     )
+                    if rd['taxable'] > Decimal('100000'):
+                        TaxReturnLine.objects.create(
+                            tax_return=tr, line_number=2,
+                            description='Deductions / Exemptions',
+                            taxable_amount=Decimal('0.00'),
+                            tax_amount=Decimal('0.00'),
+                            rate_applied=Decimal('0.00000'),
+                            notes='No deductions applied',
+                        )
 
             # =================================================================
-            # 6. Tax Deadlines
+            # 6. Use Tax Assessments & Accruals
+            # =================================================================
+            try:
+                from apps.accounts_payable.models import Vendor
+                vendors = list(Vendor.unscoped.filter(tenant=tenant, is_active=True)[:3])
+            except Exception:
+                vendors = []
+
+            ca_j = created_jurisdictions.get('US-CA')
+            ny_j_use = created_jurisdictions.get('US-NY')
+
+            if vendors and ca_j:
+                assessments_data = [
+                    {'vendor': vendors[0], 'jurisdiction': ca_j,
+                     'purchase_date': date(2026, 1, 15), 'amount': Decimal('12500.00'),
+                     'rate': Decimal('7.25000'), 'tax': Decimal('906.25'),
+                     'status': 'accrued', 'desc': 'Office furniture purchased from out-of-state vendor'},
+                    {'vendor': vendors[0], 'jurisdiction': ca_j,
+                     'purchase_date': date(2026, 2, 3), 'amount': Decimal('8750.00'),
+                     'rate': Decimal('7.25000'), 'tax': Decimal('634.38'),
+                     'status': 'pending', 'desc': 'Computer equipment from online retailer'},
+                    {'vendor': vendors[1] if len(vendors) > 1 else vendors[0], 'jurisdiction': ny_j_use or ca_j,
+                     'purchase_date': date(2026, 2, 20), 'amount': Decimal('3200.00'),
+                     'rate': Decimal('8.50000'), 'tax': Decimal('272.00'),
+                     'status': 'pending', 'desc': 'Software licenses from out-of-state provider'},
+                    {'vendor': vendors[2] if len(vendors) > 2 else vendors[0], 'jurisdiction': ca_j,
+                     'purchase_date': date(2025, 11, 10), 'amount': Decimal('45000.00'),
+                     'rate': Decimal('7.25000'), 'tax': Decimal('3262.50'),
+                     'status': 'paid', 'desc': 'Warehouse shelving from interstate supplier'},
+                    {'vendor': vendors[0], 'jurisdiction': ca_j,
+                     'purchase_date': date(2025, 12, 5), 'amount': Decimal('1500.00'),
+                     'rate': Decimal('7.25000'), 'tax': Decimal('108.75'),
+                     'status': 'exempt', 'desc': 'Resale items - exempt from use tax'},
+                ]
+
+                for ad in assessments_data:
+                    UseTaxAssessment.unscoped.get_or_create(
+                        tenant=tenant,
+                        assessment_number=UseTaxAssessment.generate_assessment_number(tenant),
+                        defaults={
+                            'vendor': ad['vendor'],
+                            'jurisdiction': ad['jurisdiction'],
+                            'purchase_date': ad['purchase_date'],
+                            'purchase_amount': ad['amount'],
+                            'tax_rate': ad['rate'],
+                            'tax_amount': ad['tax'],
+                            'status': ad['status'],
+                            'description': ad['desc'],
+                            'gl_use_tax_account': use_tax_liability_acct,
+                            'gl_expense_account': tax_expense_acct,
+                            'created_by': user,
+                        }
+                    )
+
+                # Use Tax Accruals
+                UseTaxAccrual.unscoped.get_or_create(
+                    tenant=tenant,
+                    accrual_number=UseTaxAccrual.generate_accrual_number(tenant),
+                    defaults={
+                        'period_start': date(2025, 10, 1),
+                        'period_end': date(2025, 12, 31),
+                        'total_purchases': Decimal('46500.00'),
+                        'total_tax_accrued': Decimal('3371.25'),
+                        'status': 'posted',
+                        'created_by': user,
+                        'notes': 'Q4 2025 use tax accrual - posted to GL',
+                    }
+                )
+                UseTaxAccrual.unscoped.get_or_create(
+                    tenant=tenant,
+                    accrual_number=UseTaxAccrual.generate_accrual_number(tenant),
+                    defaults={
+                        'period_start': date(2026, 1, 1),
+                        'period_end': date(2026, 3, 31),
+                        'total_purchases': Decimal('24450.00'),
+                        'total_tax_accrued': Decimal('1812.63'),
+                        'status': 'draft',
+                        'created_by': user,
+                        'notes': 'Q1 2026 use tax accrual - pending review',
+                    }
+                )
+
+            # =================================================================
+            # 7. Income Tax Provisions
+            # =================================================================
+            try:
+                from apps.company.models import FiscalYear
+                fy = FiscalYear.unscoped.filter(tenant=tenant).first()
+            except Exception:
+                fy = None
+
+            if fy:
+                # Provision 1: Finalized prior year
+                prov1, created1 = IncomeTaxProvision.unscoped.get_or_create(
+                    tenant=tenant,
+                    provision_number=IncomeTaxProvision.generate_provision_number(tenant),
+                    defaults={
+                        'fiscal_year': fy,
+                        'provision_type': 'total',
+                        'pretax_income': Decimal('850000.00'),
+                        'statutory_rate': Decimal('21.00000'),
+                        'computed_tax': Decimal('178500.00'),
+                        'permanent_differences': Decimal('5250.00'),
+                        'temporary_differences': Decimal('32000.00'),
+                        'tax_credits': Decimal('12000.00'),
+                        'current_tax_expense': Decimal('171750.00'),
+                        'deferred_tax_expense': Decimal('6720.00'),
+                        'total_tax_expense': Decimal('178470.00'),
+                        'effective_tax_rate': Decimal('20.99600'),
+                        'status': 'finalized',
+                        'created_by': user,
+                        'notes': 'FY2025 annual income tax provision - finalized',
+                    }
+                )
+                if created1:
+                    DeferredTaxItem.objects.create(
+                        provision=prov1,
+                        description='Depreciation timing difference',
+                        item_type='liability',
+                        book_basis=Decimal('120000.00'),
+                        tax_basis=Decimal('95000.00'),
+                        temporary_difference=Decimal('25000.00'),
+                        tax_rate=Decimal('21.00000'),
+                        deferred_tax_amount=Decimal('5250.00'),
+                    )
+                    DeferredTaxItem.objects.create(
+                        provision=prov1,
+                        description='Allowance for doubtful accounts',
+                        item_type='asset',
+                        book_basis=Decimal('15000.00'),
+                        tax_basis=Decimal('0.00'),
+                        temporary_difference=Decimal('15000.00'),
+                        tax_rate=Decimal('21.00000'),
+                        deferred_tax_amount=Decimal('3150.00'),
+                    )
+                    DeferredTaxItem.objects.create(
+                        provision=prov1,
+                        description='Accrued vacation liability',
+                        item_type='asset',
+                        book_basis=Decimal('22000.00'),
+                        tax_basis=Decimal('0.00'),
+                        temporary_difference=Decimal('22000.00'),
+                        tax_rate=Decimal('21.00000'),
+                        deferred_tax_amount=Decimal('4620.00'),
+                    )
+                    ETRReconciliation.objects.create(
+                        provision=prov1, description='Statutory rate', line_order=1,
+                        rate_impact=Decimal('21.00000'), amount_impact=Decimal('178500.00'),
+                    )
+                    ETRReconciliation.objects.create(
+                        provision=prov1, description='State income taxes', line_order=2,
+                        rate_impact=Decimal('2.50000'), amount_impact=Decimal('21250.00'),
+                    )
+                    ETRReconciliation.objects.create(
+                        provision=prov1, description='R&D tax credits', line_order=3,
+                        rate_impact=Decimal('-1.41200'), amount_impact=Decimal('-12000.00'),
+                    )
+                    ETRReconciliation.objects.create(
+                        provision=prov1, description='Non-deductible meals & entertainment', line_order=4,
+                        rate_impact=Decimal('0.61800'), amount_impact=Decimal('5250.00'),
+                    )
+                    ETRReconciliation.objects.create(
+                        provision=prov1, description='Other permanent differences', line_order=5,
+                        rate_impact=Decimal('-1.71000'), amount_impact=Decimal('-14530.00'),
+                    )
+
+                # Provision 2: Current year draft
+                prov2, created2 = IncomeTaxProvision.unscoped.get_or_create(
+                    tenant=tenant,
+                    provision_number=IncomeTaxProvision.generate_provision_number(tenant),
+                    defaults={
+                        'fiscal_year': fy,
+                        'provision_type': 'current',
+                        'pretax_income': Decimal('220000.00'),
+                        'statutory_rate': Decimal('21.00000'),
+                        'computed_tax': Decimal('46200.00'),
+                        'permanent_differences': Decimal('1800.00'),
+                        'temporary_differences': Decimal('0.00'),
+                        'tax_credits': Decimal('3000.00'),
+                        'current_tax_expense': Decimal('45000.00'),
+                        'deferred_tax_expense': Decimal('0.00'),
+                        'total_tax_expense': Decimal('45000.00'),
+                        'effective_tax_rate': Decimal('20.45500'),
+                        'status': 'draft',
+                        'created_by': user,
+                        'notes': 'Q1 2026 estimated provision - pending calculation',
+                    }
+                )
+
+                # Provision 3: Calculated
+                prov3, _ = IncomeTaxProvision.unscoped.get_or_create(
+                    tenant=tenant,
+                    provision_number=IncomeTaxProvision.generate_provision_number(tenant),
+                    defaults={
+                        'fiscal_year': fy,
+                        'provision_type': 'deferred',
+                        'pretax_income': Decimal('850000.00'),
+                        'statutory_rate': Decimal('21.00000'),
+                        'computed_tax': Decimal('178500.00'),
+                        'permanent_differences': Decimal('0.00'),
+                        'temporary_differences': Decimal('62000.00'),
+                        'tax_credits': Decimal('0.00'),
+                        'current_tax_expense': Decimal('0.00'),
+                        'deferred_tax_expense': Decimal('13020.00'),
+                        'total_tax_expense': Decimal('13020.00'),
+                        'effective_tax_rate': Decimal('1.53200'),
+                        'status': 'calculated',
+                        'created_by': user,
+                        'notes': 'FY2025 deferred tax provision component',
+                    }
+                )
+
+            # =================================================================
+            # 8. Tax Deadlines
             # =================================================================
             deadlines_data = [
                 {'name': 'CA Sales Tax Q1 2026', 'type': 'sales_tax', 'jurisdiction': 'US-CA',
@@ -5934,7 +6219,88 @@ class Command(BaseCommand):
                 )
 
             # =================================================================
-            # 7. Nexus Tracking
+            # 9. Tax Audits
+            # =================================================================
+            audits_data = [
+                {
+                    'name': 'CA Sales Tax Audit 2024',
+                    'type': 'sales_tax', 'jurisdiction': 'US-CA',
+                    'authority': 'California Department of Tax and Fee Administration (CDTFA)',
+                    'start': date(2024, 1, 1), 'end': date(2024, 12, 31),
+                    'notification': date(2025, 6, 15),
+                    'status': 'closed_adjustment',
+                    'proposed': Decimal('18500.00'), 'agreed': Decimal('12750.00'),
+                },
+                {
+                    'name': 'NY State Income Tax Audit 2023-2024',
+                    'type': 'income_tax', 'jurisdiction': 'US-NY',
+                    'authority': 'New York State Department of Taxation and Finance',
+                    'start': date(2023, 1, 1), 'end': date(2024, 12, 31),
+                    'notification': date(2025, 9, 1),
+                    'status': 'in_progress',
+                    'proposed': Decimal('45000.00'), 'agreed': Decimal('0.00'),
+                },
+                {
+                    'name': 'Federal Payroll Tax Review 2025',
+                    'type': 'payroll_tax', 'jurisdiction': 'US-FED',
+                    'authority': 'Internal Revenue Service (IRS)',
+                    'start': date(2025, 1, 1), 'end': date(2025, 6, 30),
+                    'notification': date(2025, 11, 20),
+                    'status': 'pending',
+                    'proposed': Decimal('0.00'), 'agreed': Decimal('0.00'),
+                },
+                {
+                    'name': 'TX Use Tax Audit 2024',
+                    'type': 'use_tax', 'jurisdiction': 'US-TX',
+                    'authority': 'Texas Comptroller of Public Accounts',
+                    'start': date(2024, 1, 1), 'end': date(2024, 12, 31),
+                    'notification': date(2025, 8, 10),
+                    'status': 'closed_no_change',
+                    'proposed': Decimal('8200.00'), 'agreed': Decimal('0.00'),
+                },
+            ]
+
+            for ad in audits_data:
+                j = created_jurisdictions.get(ad['jurisdiction'])
+                if not j:
+                    continue
+                audit_obj, created = TaxAudit.unscoped.get_or_create(
+                    tenant=tenant,
+                    audit_number=TaxAudit.generate_audit_number(tenant),
+                    defaults={
+                        'name': ad['name'],
+                        'tax_type': ad['type'],
+                        'jurisdiction': j,
+                        'auditing_authority': ad['authority'],
+                        'audit_period_start': ad['start'],
+                        'audit_period_end': ad['end'],
+                        'notification_date': ad['notification'],
+                        'status': ad['status'],
+                        'total_proposed_adjustment': ad['proposed'],
+                        'total_agreed_adjustment': ad['agreed'],
+                        'created_by': user,
+                    }
+                )
+                if created and ad['proposed'] > 0:
+                    AuditFinding.unscoped.create(
+                        tenant=tenant, audit=audit_obj, finding_number=1,
+                        description='Understated taxable sales - incorrect exemption certificates',
+                        proposed_amount=ad['proposed'] * Decimal('0.6'),
+                        agreed_amount=ad['agreed'] * Decimal('0.6') if ad['agreed'] > 0 else Decimal('0.00'),
+                        status='agreed' if ad['status'].startswith('closed') else 'open',
+                        response='Reviewed exemption certificates and concurred with partial adjustment.' if ad['agreed'] > 0 else '',
+                    )
+                    AuditFinding.unscoped.create(
+                        tenant=tenant, audit=audit_obj, finding_number=2,
+                        description='Timing difference on reported vs collected tax',
+                        proposed_amount=ad['proposed'] * Decimal('0.4'),
+                        agreed_amount=ad['agreed'] * Decimal('0.4') if ad['agreed'] > 0 else Decimal('0.00'),
+                        status='disputed' if ad['status'] == 'in_progress' else ('agreed' if ad['agreed'] > 0 else 'resolved'),
+                        response='Disputing timing characterization - provided supporting documentation.' if ad['status'] == 'in_progress' else '',
+                    )
+
+            # =================================================================
+            # 10. Nexus Tracking
             # =================================================================
             nexus_data = [
                 {'jurisdiction': 'US-CA', 'type': 'economic', 'has_nexus': True,
@@ -5949,12 +6315,23 @@ class Command(BaseCommand):
                  'reg_status': 'not_required', 'reg_number': '',
                  'threshold_amt': Decimal('500000.00'), 'threshold_txn': 200,
                  'sales': Decimal('85000.00'), 'txns': 45},
+                {'jurisdiction': 'US-CA', 'type': 'physical', 'has_nexus': True,
+                 'reg_status': 'registered', 'reg_number': 'CA-ST-1234567',
+                 'threshold_amt': Decimal('0.00'), 'threshold_txn': 0,
+                 'sales': Decimal('0.00'), 'txns': 0},
             ]
 
             for nd in nexus_data:
                 j = created_jurisdictions.get(nd['jurisdiction'])
                 if not j:
                     continue
+                sales_pct = Decimal('0.00')
+                txn_pct = Decimal('0.00')
+                if nd['threshold_amt'] > 0:
+                    sales_pct = (nd['sales'] / nd['threshold_amt'] * 100).quantize(Decimal('0.01'))
+                if nd['threshold_txn'] > 0:
+                    txn_pct = Decimal(nd['txns'] / nd['threshold_txn'] * 100).quantize(Decimal('0.01'))
+
                 nj, created = NexusJurisdiction.unscoped.get_or_create(
                     tenant=tenant, jurisdiction=j, nexus_type=nd['type'],
                     defaults={
@@ -5966,14 +6343,11 @@ class Command(BaseCommand):
                         'economic_threshold_transactions': nd['threshold_txn'],
                         'current_period_sales': nd['sales'],
                         'current_period_transactions': nd['txns'],
-                        'threshold_percentage': max(
-                            (nd['sales'] / nd['threshold_amt'] * 100).quantize(Decimal('0.01')) if nd['threshold_amt'] else Decimal('0'),
-                            Decimal(nd['txns'] / nd['threshold_txn'] * 100).quantize(Decimal('0.01')) if nd['threshold_txn'] else Decimal('0'),
-                        ),
+                        'threshold_percentage': max(sales_pct, txn_pct),
                         'is_active': True,
                     }
                 )
-                if created:
+                if created and nd['sales'] > 0:
                     NexusActivity.unscoped.create(
                         tenant=tenant,
                         nexus_jurisdiction=nj,
@@ -5985,5 +6359,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             f'  Created TX data (jurisdictions, tax rates, tax rules, '
-            f'tax groups, tax returns, deadlines, nexus tracking)'
+            f'tax groups, tax returns, use tax assessments, use tax accruals, '
+            f'income tax provisions, tax deadlines, tax audits, nexus tracking)'
         )
