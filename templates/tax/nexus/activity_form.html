@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Add Activity - {{ nexus.jurisdiction }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Add Activity - {{ nexus.jurisdiction }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Nexus</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:nexus_list' tenant_slug=current_tenant.slug %}">Nexus Tracking</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:nexus_detail' tenant_slug=current_tenant.slug pk=nexus.pk %}">{{ nexus.jurisdiction }}</a></li>
+            <li class="breadcrumb-item active">Add Activity</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-line-chart-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Add Activity Record</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_period_start" class="form-label">Period Start <span class="text-danger">*</span></label>
+                            {{ form.period_start }}
+                            {% if form.period_start.errors %}<div class="text-danger small">{{ form.period_start.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_period_end" class="form-label">Period End <span class="text-danger">*</span></label>
+                            {{ form.period_end }}
+                            {% if form.period_end.errors %}<div class="text-danger small">{{ form.period_end.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_sales_amount" class="form-label">Sales Amount <span class="text-danger">*</span></label>
+                            {{ form.sales_amount }}
+                            {% if form.sales_amount.errors %}<div class="text-danger small">{{ form.sales_amount.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_transaction_count" class="form-label">Transaction Count <span class="text-danger">*</span></label>
+                            {{ form.transaction_count }}
+                            {% if form.transaction_count.errors %}<div class="text-danger small">{{ form.transaction_count.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-4">
+                                <input type="checkbox" class="form-check-input" role="switch" id="id_has_physical_presence" name="has_physical_presence" {% if form.has_physical_presence.value %}checked{% endif %}>
+                                <label class="form-check-label" for="id_has_physical_presence">
+                                    <strong>Physical Presence</strong><br>
+                                    <small class="text-muted">Entity had physical presence in this jurisdiction during this period.</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_physical_presence_details" class="form-label">Physical Presence Details</label>
+                            {{ form.physical_presence_details }}
+                            {% if form.physical_presence_details.errors %}<div class="text-danger small">{{ form.physical_presence_details.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_notes" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'tax:nexus_detail' tenant_slug=current_tenant.slug pk=nexus.pk %}" class="btn btn-light">
+                            <i class="ri-arrow-left-line me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-save-line me-1"></i> Add Activity
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
