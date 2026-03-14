@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Upload Document - {{ audit.audit_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Upload Document - {{ audit.audit_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Audit</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:audit_list' tenant_slug=current_tenant.slug %}">Audits</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:audit_detail' tenant_slug=current_tenant.slug pk=audit.pk %}">{{ audit.audit_number }}</a></li>
+            <li class="breadcrumb-item active">Upload Document</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-upload-cloud-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Upload Document</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="id_name" class="form-label">Document Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_document_type" class="form-label">Document Type <span class="text-danger">*</span></label>
+                            {{ form.document_type }}
+                            {% if form.document_type.errors %}<div class="text-danger small">{{ form.document_type.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_file" class="form-label">File <span class="text-danger">*</span></label>
+                            {{ form.file }}
+                            {% if form.file.errors %}<div class="text-danger small">{{ form.file.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="id_description" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'tax:audit_detail' tenant_slug=current_tenant.slug pk=audit.pk %}" class="btn btn-light">
+                            <i class="ri-arrow-left-line me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-upload-line me-1"></i> Upload Document
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
