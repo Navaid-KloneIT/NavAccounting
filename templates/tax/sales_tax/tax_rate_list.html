@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Tax Rates{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Tax Rates</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Sales Tax</li>
+            <li class="breadcrumb-item active">Tax Rates</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Rates</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-percent-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Rate name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Jurisdiction</label>
+                <select name="jurisdiction" class="form-select">
+                    <option value="">All Jurisdictions</option>
+                    {% for j in jurisdictions %}
+                    <option value="{{ j.pk }}" {% if request.GET.jurisdiction == j.pk|stringformat:"d" %}selected{% endif %}>{{ j.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'tax:tax_rate_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'tax:tax_rate_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New Tax Rate</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if tax_rates %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Jurisdiction</th>
+                        <th>Rate Name</th>
+                        <th class="text-end">Rate %</th>
+                        <th>Effective Date</th>
+                        <th>End Date</th>
+                        <th>Compound</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in tax_rates %}
+                    <tr>
+                        <td>{{ rate.jurisdiction.name }}</td>
+                        <td>{{ rate.rate_name }}</td>
+                        <td class="text-end">{{ rate.rate|floatformat:4 }}%</td>
+                        <td>{{ rate.effective_date|date:"M d, Y" }}</td>
+                        <td>{{ rate.end_date|date:"M d, Y"|default:"-" }}</td>
+                        <td>
+                            {% if rate.is_compound %}
+                                <span class="badge bg-soft-info text-info">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if rate.is_active %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-soft-warning text-warning">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'tax:tax_rate_edit' tenant_slug=current_tenant.slug pk=rate.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-percent-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No tax rates found.</p>
+            <a href="{% url 'tax:tax_rate_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Tax Rate</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
