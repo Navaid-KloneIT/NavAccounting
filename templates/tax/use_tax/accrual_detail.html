@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ accrual.accrual_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ accrual.accrual_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Tax Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'tax:accrual_list' tenant_slug=current_tenant.slug %}">Use Tax Accruals</a></li>
+        <li class="breadcrumb-item active">Accrual Detail</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column (8) -->
+    <div class="col-lg-8">
+        <!-- Accrual Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-text-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Accrual Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Accrual #</dt>
+                    <dd class="col-sm-7"><strong>{{ accrual.accrual_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Period</dt>
+                    <dd class="col-sm-7">{{ accrual.period_start|date:"M d, Y" }} - {{ accrual.period_end|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if accrual.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                        {% elif accrual.status == 'posted' %}<span class="badge badge-soft-success">Posted</span>
+                        {% else %}<span class="badge badge-soft-secondary">{{ accrual.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-money-dollar-circle-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Financial Summary</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Total Purchases</dt>
+                    <dd class="col-sm-7 text-end">{{ accrual.total_purchases|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Total Tax Accrued</dt>
+                    <dd class="col-sm-7 text-end"><strong>{{ accrual.total_tax_accrued|floatformat:2|intcomma }}</strong></dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        {% if accrual.notes %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-sticky-note-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Notes</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ accrual.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column (4) -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-flashlight-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if accrual.status == 'draft' %}
+                <form method="post" action="{% url 'tax:accrual_post' tenant_slug=current_tenant.slug pk=accrual.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success w-100" onclick="return confirm('Are you sure you want to post this accrual to the General Ledger?');">
+                        <i class="ri-check-double-line me-1"></i> Post to GL
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'tax:accrual_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- GL Journal Entry -->
+        {% if accrual.gl_journal_entry %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-dark p-2 me-2"><i class="ri-book-2-line text-dark"></i></div>
+                    <h5 class="card-title mb-0">GL Journal Entry</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=accrual.gl_journal_entry.pk %}" class="btn btn-soft-primary w-100">
+                    <i class="ri-external-link-line me-1"></i> View Journal Entry
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
