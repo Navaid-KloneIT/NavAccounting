@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ assessment.assessment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ assessment.assessment_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Tax Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'tax:assessment_list' tenant_slug=current_tenant.slug %}">Use Tax Assessments</a></li>
+        <li class="breadcrumb-item active">Assessment Detail</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column (8) -->
+    <div class="col-lg-8">
+        <!-- Assessment Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-text-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Assessment Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Assessment #</dt>
+                    <dd class="col-sm-7"><strong>{{ assessment.assessment_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Vendor</dt>
+                    <dd class="col-sm-7">
+                        <a href="{% url 'accounts_payable:vendor_detail' tenant_slug=current_tenant.slug pk=assessment.vendor.pk %}">{{ assessment.vendor }}</a>
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Bill</dt>
+                    <dd class="col-sm-7">
+                        {% if assessment.bill %}
+                        <a href="{% url 'accounts_payable:bill_detail' tenant_slug=current_tenant.slug pk=assessment.bill.pk %}">{{ assessment.bill.bill_number }}</a>
+                        {% else %}-{% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Jurisdiction</dt>
+                    <dd class="col-sm-7">{{ assessment.jurisdiction }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Purchase Date</dt>
+                    <dd class="col-sm-7">{{ assessment.purchase_date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if assessment.status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                        {% elif assessment.status == 'accrued' %}<span class="badge badge-soft-info">Accrued</span>
+                        {% elif assessment.status == 'paid' %}<span class="badge badge-soft-success">Paid</span>
+                        {% elif assessment.status == 'exempt' %}<span class="badge badge-soft-secondary">Exempt</span>
+                        {% else %}<span class="badge badge-soft-secondary">{{ assessment.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Purchase Details -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-money-dollar-circle-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Purchase Details</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Purchase Amount</dt>
+                    <dd class="col-sm-7 text-end">{{ assessment.purchase_amount|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Tax Rate</dt>
+                    <dd class="col-sm-7 text-end">{{ assessment.tax_rate|floatformat:5 }}%</dd>
+
+                    <dt class="col-sm-5 text-muted">Tax Amount</dt>
+                    <dd class="col-sm-7 text-end"><strong>{{ assessment.tax_amount|floatformat:2|intcomma }}</strong></dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- GL Accounts -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-book-2-line text-info"></i></div>
+                    <h5 class="card-title mb-0">GL Accounts</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Use Tax Payable</dt>
+                    <dd class="col-sm-7">{{ assessment.gl_use_tax_account }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Expense Account</dt>
+                    <dd class="col-sm-7">{{ assessment.gl_expense_account }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Description / Notes -->
+        {% if assessment.description or assessment.notes %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-sticky-note-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Notes</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if assessment.description %}
+                <p class="mb-1"><strong>Description:</strong></p>
+                <p>{{ assessment.description }}</p>
+                {% endif %}
+                {% if assessment.notes %}
+                <p class="mb-1"><strong>Notes:</strong></p>
+                <p class="mb-0">{{ assessment.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column (4) -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-flashlight-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if assessment.status == 'pending' %}
+                <form method="post" action="{% url 'tax:assessment_accrue' tenant_slug=current_tenant.slug pk=assessment.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info w-100" onclick="return confirm('Are you sure you want to accrue this use tax assessment?');">
+                        <i class="ri-check-double-line me-1"></i> Accrue Tax
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'tax:assessment_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- GL Journal Entry -->
+        {% if assessment.gl_journal_entry %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-dark p-2 me-2"><i class="ri-book-2-line text-dark"></i></div>
+                    <h5 class="card-title mb-0">GL Journal Entry</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=assessment.gl_journal_entry.pk %}" class="btn btn-soft-primary w-100">
+                    <i class="ri-external-link-line me-1"></i> View Journal Entry
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
