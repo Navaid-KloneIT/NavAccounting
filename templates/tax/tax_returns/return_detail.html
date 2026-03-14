@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ tax_return.return_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ tax_return.return_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Tax Management</li>
+        <li class="breadcrumb-item"><a href="{% url 'tax:return_list' tenant_slug=current_tenant.slug %}">Tax Returns</a></li>
+        <li class="breadcrumb-item active">Return Detail</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column (8) -->
+    <div class="col-lg-8">
+        <!-- Return Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-text-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Return Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Return #</dt>
+                    <dd class="col-sm-7"><strong>{{ tax_return.return_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Type</dt>
+                    <dd class="col-sm-7">
+                        {% if tax_return.return_type == 'sales_tax' %}<span class="badge bg-soft-primary text-primary">Sales Tax</span>
+                        {% elif tax_return.return_type == 'vat' %}<span class="badge bg-soft-info text-info">VAT</span>
+                        {% elif tax_return.return_type == 'gst' %}<span class="badge bg-soft-info text-info">GST</span>
+                        {% elif tax_return.return_type == 'income_tax' %}<span class="badge bg-soft-dark text-dark">Income Tax</span>
+                        {% elif tax_return.return_type == 'payroll_tax' %}<span class="badge bg-soft-warning text-warning">Payroll Tax</span>
+                        {% elif tax_return.return_type == 'use_tax' %}<span class="badge bg-soft-secondary text-secondary">Use Tax</span>
+                        {% else %}<span class="badge bg-soft-secondary text-secondary">{{ tax_return.get_return_type_display }}</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Jurisdiction</dt>
+                    <dd class="col-sm-7">{{ tax_return.jurisdiction }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Period</dt>
+                    <dd class="col-sm-7">{{ tax_return.period_start|date:"M d, Y" }} - {{ tax_return.period_end|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Due Date</dt>
+                    <dd class="col-sm-7">{{ tax_return.due_date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if tax_return.status == 'draft' %}<span class="badge badge-soft-warning">Draft</span>
+                        {% elif tax_return.status == 'calculated' %}<span class="badge badge-soft-info">Calculated</span>
+                        {% elif tax_return.status == 'reviewed' %}<span class="badge badge-soft-primary">Reviewed</span>
+                        {% elif tax_return.status == 'filed' %}<span class="badge badge-soft-success">Filed</span>
+                        {% elif tax_return.status == 'amended' %}<span class="badge badge-soft-secondary">Amended</span>
+                        {% else %}<span class="badge badge-soft-secondary">{{ tax_return.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Filed Date</dt>
+                    <dd class="col-sm-7">{{ tax_return.filed_date|date:"M d, Y"|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Confirmation #</dt>
+                    <dd class="col-sm-7">{{ tax_return.confirmation_number|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-money-dollar-circle-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Financial Summary</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Total Taxable Amount</dt>
+                    <dd class="col-sm-7 text-end">{{ tax_return.total_taxable_amount|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Total Tax Due</dt>
+                    <dd class="col-sm-7 text-end">{{ tax_return.total_tax_due|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Total Credits</dt>
+                    <dd class="col-sm-7 text-end">{{ tax_return.total_credits|floatformat:2|intcomma }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Net Tax Due</dt>
+                    <dd class="col-sm-7 text-end"><strong>{{ tax_return.net_tax_due|floatformat:2|intcomma }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Amount Paid</dt>
+                    <dd class="col-sm-7 text-end">{{ tax_return.amount_paid|floatformat:2|intcomma }}</dd>
+                </dl>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-muted">Balance Due</span>
+                    <span class="fs-4 fw-bold {% if tax_return.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ tax_return.balance_due|floatformat:2|intcomma }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Return Lines -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check text-info"></i></div>
+                    <h5 class="card-title mb-0">Return Lines</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Line #</th>
+                                <th>Description</th>
+                                <th>GL Account</th>
+                                <th class="text-end">Taxable Amount</th>
+                                <th class="text-end">Tax Amount</th>
+                                <th class="text-end">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in lines %}
+                            <tr>
+                                <td>{{ line.line_number }}</td>
+                                <td>{{ line.description }}</td>
+                                <td>{{ line.gl_account|default:"-" }}</td>
+                                <td class="text-end">{{ line.taxable_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ line.tax_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ line.rate_applied|floatformat:5 }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No lines recorded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments -->
+        {% if payments %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-bank-card-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Payments</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in payments %}
+                            <tr>
+                                <td>{{ p.payment_date|date:"M d, Y" }}</td>
+                                <td>{{ p.get_payment_method_display }}</td>
+                                <td>{{ p.reference|default:"-" }}</td>
+                                <td class="text-end">{{ p.amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column (4) -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-flashlight-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if tax_return.status == 'draft' or tax_return.status == 'calculated' %}
+                <a href="{% url 'tax:return_edit' tenant_slug=current_tenant.slug pk=tax_return.pk %}" class="btn btn-soft-primary">
+                    <i class="ri-pencil-line me-1"></i> Edit Return
+                </a>
+                {% endif %}
+
+                {% if tax_return.status == 'draft' %}
+                <form method="post" action="{% url 'tax:return_calculate' tenant_slug=current_tenant.slug pk=tax_return.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info w-100">
+                        <i class="ri-calculator-line me-1"></i> Calculate
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if tax_return.status == 'calculated' or tax_return.status == 'reviewed' %}
+                <form method="post" action="{% url 'tax:return_file' tenant_slug=current_tenant.slug pk=tax_return.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <input type="text" name="confirmation_number" class="form-control form-control-sm" placeholder="Confirmation #">
+                    </div>
+                    <button type="submit" class="btn btn-soft-success w-100" onclick="return confirm('Are you sure you want to mark this return as filed?');">
+                        <i class="ri-check-double-line me-1"></i> Mark as Filed
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'tax:return_payment' tenant_slug=current_tenant.slug pk=tax_return.pk %}" class="btn btn-soft-success">
+                    <i class="ri-bank-card-line me-1"></i> Add Payment
+                </a>
+
+                <a href="{% url 'tax:return_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- GL Journal Entry -->
+        {% if tax_return.gl_journal_entry %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-dark p-2 me-2"><i class="ri-book-2-line text-dark"></i></div>
+                    <h5 class="card-title mb-0">GL Journal Entry</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'general_ledger:journal_detail' tenant_slug=current_tenant.slug pk=tax_return.gl_journal_entry.pk %}" class="btn btn-soft-primary w-100">
+                    <i class="ri-external-link-line me-1"></i> View Journal Entry
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
