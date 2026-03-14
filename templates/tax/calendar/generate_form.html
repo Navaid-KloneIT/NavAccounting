@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Generate Tax Deadlines{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Generate Tax Deadlines</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Calendar</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:deadline_list' tenant_slug=current_tenant.slug %}">Deadlines</a></li>
+            <li class="breadcrumb-item active">Generate</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-calendar-event-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Generate Deadlines</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Generate recurring tax deadlines for the specified date range. This will create deadline entries based on configured recurrence patterns.</p>
+                <form method="post" action="{% url 'tax:deadline_generate' tenant_slug=current_tenant.slug %}">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_from_date" class="form-label">From Date <span class="text-danger">*</span></label>
+                            <input type="date" name="from_date" id="id_from_date" class="form-control" required value="{{ request.POST.from_date }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_to_date" class="form-label">To Date <span class="text-danger">*</span></label>
+                            <input type="date" name="to_date" id="id_to_date" class="form-control" required value="{{ request.POST.to_date }}">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'tax:deadline_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                            <i class="ri-arrow-left-line me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-calendar-check-line me-1"></i> Generate Deadlines
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
