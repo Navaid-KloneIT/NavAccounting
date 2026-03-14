@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Nexus Tracking{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Nexus Tracking</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Nexus</li>
+            <li class="breadcrumb-item active">Nexus Tracking</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total Tracked</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-map-2-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Has Nexus</p>
+                        <h3 class="mb-0">{{ has_nexus_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-alert-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Registered</p>
+                        <h3 class="mb-0">{{ registered_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-check-double-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Jurisdiction..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Nexus Type</label>
+                <select name="nexus_type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for val, label in nexus_type_choices %}
+                    <option value="{{ val }}" {% if request.GET.nexus_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="has_nexus" {% if request.GET.status == 'has_nexus' %}selected{% endif %}>Has Nexus</option>
+                    <option value="no_nexus" {% if request.GET.status == 'no_nexus' %}selected{% endif %}>No Nexus</option>
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'tax:nexus_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'tax:nexus_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New Nexus</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if nexus_records %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Jurisdiction</th>
+                        <th>Nexus Type</th>
+                        <th>Has Nexus</th>
+                        <th>Registration Status</th>
+                        <th>Sales Threshold %</th>
+                        <th>Transaction Threshold %</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in nexus_records %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'tax:nexus_detail' tenant_slug=current_tenant.slug pk=n.pk %}">{{ n.jurisdiction }}</a>
+                        </td>
+                        <td><span class="badge bg-soft-info text-info">{{ n.get_nexus_type_display }}</span></td>
+                        <td>
+                            {% if n.has_nexus %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if n.registration_status == 'registered' %}
+                                <span class="badge bg-soft-success text-success">Registered</span>
+                            {% elif n.registration_status == 'pending' %}
+                                <span class="badge bg-soft-warning text-warning">Pending</span>
+                            {% elif n.registration_status == 'not_registered' %}
+                                <span class="badge bg-soft-secondary text-secondary">Not Registered</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ n.get_registration_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar bg-{% if n.sales_threshold_pct >= 100 %}danger{% elif n.sales_threshold_pct >= 75 %}warning{% else %}info{% endif %}" style="width: {{ n.sales_threshold_pct }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ n.sales_threshold_pct }}%</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar bg-{% if n.transaction_threshold_pct >= 100 %}danger{% elif n.transaction_threshold_pct >= 75 %}warning{% else %}info{% endif %}" style="width: {{ n.transaction_threshold_pct }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ n.transaction_threshold_pct }}%</small>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'tax:nexus_detail' tenant_slug=current_tenant.slug pk=n.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'tax:nexus_edit' tenant_slug=current_tenant.slug pk=n.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-map-2-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No nexus records found.</p>
+            <a href="{% url 'tax:nexus_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Nexus Record</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
