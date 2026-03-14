@@ -285,6 +285,32 @@ class Command(BaseCommand):
         except Exception:
             pass
 
+        # Clean FA (Fixed Assets) data first
+        try:
+            from apps.fixed_assets.models import (
+                TaxDepreciationEntry, TaxDepreciationBook,
+                PhysicalInventoryItem, PhysicalInventory,
+                ImpairmentTest, AssetDisposal, AssetTransfer,
+                DepreciationEntry, DepreciationSchedule, DepreciationProfile,
+                AssetAcquisition, Asset, AssetLocation, AssetCategory,
+            )
+            TaxDepreciationEntry.unscoped.all().delete()
+            TaxDepreciationBook.unscoped.all().delete()
+            PhysicalInventoryItem.objects.all().delete()
+            PhysicalInventory.unscoped.all().delete()
+            ImpairmentTest.unscoped.all().delete()
+            AssetDisposal.unscoped.all().delete()
+            AssetTransfer.unscoped.all().delete()
+            DepreciationEntry.unscoped.all().delete()
+            DepreciationSchedule.unscoped.all().delete()
+            DepreciationProfile.unscoped.all().delete()
+            AssetAcquisition.unscoped.all().delete()
+            Asset.unscoped.all().delete()
+            AssetLocation.unscoped.all().delete()
+            AssetCategory.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean CM data first
         try:
             from apps.cash_management.models import (
