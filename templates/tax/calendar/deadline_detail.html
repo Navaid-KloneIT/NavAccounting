@@ -144,7 +144,7 @@
                 <a href="{% url 'tax:deadline_edit' tenant_slug=current_tenant.slug pk=deadline.pk %}" class="btn btn-outline-primary btn-sm">
                     <i class="ri-pencil-line me-1"></i> Edit Deadline
                 </a>
-                <form method="post" action="{% url 'tax:deadline_mark_filed' tenant_slug=current_tenant.slug pk=deadline.pk %}" class="d-inline">
+                <form method="post" action="{% url 'tax:deadline_complete' tenant_slug=current_tenant.slug pk=deadline.pk %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-soft-success btn-sm w-100">
                         <i class="ri-check-double-line me-1"></i> Mark as Filed
