@@ -58,6 +58,7 @@ class Command(BaseCommand):
         parser.add_argument('--pr', action='store_true', help='Seed payroll integration data only')
         parser.add_argument('--pj', action='store_true', help='Seed project/job costing data only')
         parser.add_argument('--me', action='store_true', help='Seed multi-entity & consolidation data only')
+        parser.add_argument('--tx', action='store_true', help='Seed tax management data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -68,7 +69,7 @@ class Command(BaseCommand):
             options['tenants'], options['users'], options['company'],
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
-            options['pr'], options['pj'], options['me'],
+            options['pr'], options['pj'], options['me'], options['tx'],
         ])
 
         # Always seed system-level data
@@ -133,9 +134,47 @@ class Command(BaseCommand):
             self.stdout.write('Seeding multi-entity & consolidation data...')
             self._seed_me_data()
 
+        if seed_all or options['tx']:
+            self.stdout.write('Seeding tax management data...')
+            self._seed_tx_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean TX (Tax Management) data first
+        try:
+            from apps.tax.models import (
+                NexusActivity, NexusJurisdiction,
+                AuditDocument, AuditFinding, TaxAudit,
+                TaxDeadlineReminder, TaxDeadline,
+                ETRReconciliation, DeferredTaxItem, IncomeTaxProvision,
+                UseTaxAccrual, UseTaxAssessment,
+                TaxReturnPayment, TaxReturnLine, TaxReturn,
+                TaxGroupMember, TaxGroup, TaxRule, TaxRate, TaxJurisdiction,
+            )
+            NexusActivity.unscoped.all().delete()
+            NexusJurisdiction.unscoped.all().delete()
+            AuditDocument.unscoped.all().delete()
+            AuditFinding.unscoped.all().delete()
+            TaxAudit.unscoped.all().delete()
+            TaxDeadlineReminder.objects.all().delete()
+            TaxDeadline.unscoped.all().delete()
+            ETRReconciliation.objects.all().delete()
+            DeferredTaxItem.objects.all().delete()
+            IncomeTaxProvision.unscoped.all().delete()
+            UseTaxAccrual.unscoped.all().delete()
+            UseTaxAssessment.unscoped.all().delete()
+            TaxReturnPayment.unscoped.all().delete()
+            TaxReturnLine.objects.all().delete()
+            TaxReturn.unscoped.all().delete()
+            TaxGroupMember.objects.all().delete()
+            TaxGroup.unscoped.all().delete()
+            TaxRule.unscoped.all().delete()
+            TaxRate.unscoped.all().delete()
+            TaxJurisdiction.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean ME (Multi-Entity & Consolidation) data first
         try:
             from apps.multi_entity.models import (
@@ -469,6 +508,11 @@ class Command(BaseCommand):
             ('manage_assets', 'Manage Fixed Assets', 'fixed_assets'),
             ('view_inventory', 'View Inventory & Cost Management', 'inventory'),
             ('manage_inventory', 'Manage Inventory & Cost Management', 'inventory'),
+            ('view_tax', 'View Tax Management', 'tax'),
+            ('manage_tax', 'Manage Tax Management', 'tax'),
+            ('file_tax_returns', 'File Tax Returns', 'tax'),
+            ('manage_tax_calendar', 'Manage Tax Calendar', 'tax'),
+            ('manage_tax_audits', 'Manage Tax Audits', 'tax'),
             ('admin_full', 'Full Administration Access', 'system'),
         ]
         for codename, name, module in perms:
@@ -5628,4 +5672,318 @@ class Command(BaseCommand):
             f'elimination rules, consolidation runs, elimination entries, '
             f'minority interest, TP policies, TP transactions, '
             f'GAAP adjustments, regulatory reports)'
+        )
+
+    def _seed_tx_data(self):
+        """Seed tax management data for all tenants."""
+        from datetime import date, timedelta
+        from decimal import Decimal
+
+        from apps.tax.models import (
+            TaxJurisdiction, TaxRate, TaxRule, TaxGroup, TaxGroupMember,
+            TaxReturn, TaxReturnLine,
+            TaxDeadline,
+            NexusJurisdiction, NexusActivity,
+        )
+        from apps.tenants.managers import set_current_tenant
+        from apps.tenants.models import Tenant
+        from apps.general_ledger.models import Account
+
+        tenants = Tenant.objects.all()
+        for tenant in tenants:
+            set_current_tenant(tenant)
+
+            # Get GL accounts for tax
+            liability_accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False,
+                account_type__code__in=['LI', 'LIABILITY', 'OL']
+            )[:5])
+            if not liability_accounts:
+                continue
+            tax_payable_acct = liability_accounts[0]
+
+            # =================================================================
+            # 1. Tax Jurisdictions
+            # =================================================================
+            jurisdictions_data = [
+                {'code': 'US-FED', 'name': 'United States Federal', 'level': 'federal', 'country': 'US', 'state_code': ''},
+                {'code': 'US-CA', 'name': 'California', 'level': 'state', 'country': 'US', 'state_code': 'CA'},
+                {'code': 'US-NY', 'name': 'New York', 'level': 'state', 'country': 'US', 'state_code': 'NY'},
+                {'code': 'US-TX', 'name': 'Texas', 'level': 'state', 'country': 'US', 'state_code': 'TX'},
+                {'code': 'US-CA-LA', 'name': 'Los Angeles County', 'level': 'county', 'country': 'US', 'state_code': 'CA'},
+                {'code': 'US-NY-NYC', 'name': 'New York City', 'level': 'city', 'country': 'US', 'state_code': 'NY'},
+                {'code': 'US-CA-SF', 'name': 'San Francisco', 'level': 'city', 'country': 'US', 'state_code': 'CA'},
+            ]
+
+            created_jurisdictions = {}
+            fed_jurisdiction = None
+            ca_jurisdiction = None
+
+            for jd in jurisdictions_data:
+                j, _ = TaxJurisdiction.unscoped.get_or_create(
+                    tenant=tenant, code=jd['code'],
+                    defaults={
+                        'name': jd['name'],
+                        'jurisdiction_level': jd['level'],
+                        'country': jd['country'],
+                        'state_code': jd['state_code'],
+                        'is_active': True,
+                    }
+                )
+                created_jurisdictions[jd['code']] = j
+                if jd['code'] == 'US-FED':
+                    fed_jurisdiction = j
+                if jd['code'] == 'US-CA':
+                    ca_jurisdiction = j
+
+            # Set parent relationships
+            for code in ['US-CA', 'US-NY', 'US-TX']:
+                j = created_jurisdictions[code]
+                if not j.parent and fed_jurisdiction:
+                    j.parent = fed_jurisdiction
+                    j.save()
+            if ca_jurisdiction:
+                for code in ['US-CA-LA', 'US-CA-SF']:
+                    j = created_jurisdictions[code]
+                    if not j.parent:
+                        j.parent = ca_jurisdiction
+                        j.save()
+            ny_j = created_jurisdictions.get('US-NY')
+            nyc_j = created_jurisdictions.get('US-NY-NYC')
+            if ny_j and nyc_j and not nyc_j.parent:
+                nyc_j.parent = ny_j
+                nyc_j.save()
+
+            # =================================================================
+            # 2. Tax Rates
+            # =================================================================
+            rates_data = [
+                {'jurisdiction': 'US-CA', 'name': 'CA State Sales Tax', 'rate': Decimal('7.25000'), 'date': date(2025, 1, 1)},
+                {'jurisdiction': 'US-CA-LA', 'name': 'LA County Sales Tax', 'rate': Decimal('2.25000'), 'date': date(2025, 1, 1)},
+                {'jurisdiction': 'US-CA-SF', 'name': 'SF District Tax', 'rate': Decimal('1.25000'), 'date': date(2025, 1, 1)},
+                {'jurisdiction': 'US-NY', 'name': 'NY State Sales Tax', 'rate': Decimal('4.00000'), 'date': date(2025, 1, 1)},
+                {'jurisdiction': 'US-NY-NYC', 'name': 'NYC Local Sales Tax', 'rate': Decimal('4.50000'), 'date': date(2025, 1, 1)},
+                {'jurisdiction': 'US-TX', 'name': 'TX State Sales Tax', 'rate': Decimal('6.25000'), 'date': date(2025, 1, 1)},
+            ]
+
+            created_rates = {}
+            for rd in rates_data:
+                j = created_jurisdictions.get(rd['jurisdiction'])
+                if not j:
+                    continue
+                r, _ = TaxRate.unscoped.get_or_create(
+                    tenant=tenant, jurisdiction=j, rate_name=rd['name'],
+                    defaults={
+                        'rate': rd['rate'],
+                        'effective_date': rd['date'],
+                        'gl_tax_collected_account': tax_payable_acct,
+                        'is_active': True,
+                    }
+                )
+                created_rates[rd['jurisdiction']] = r
+
+            # =================================================================
+            # 3. Tax Rules
+            # =================================================================
+            rules_data = [
+                {'code': 'CA-FOOD', 'name': 'CA Food Exemption', 'jurisdiction': 'US-CA', 'rule_type': 'exempt', 'category': 'Food - Unprepared'},
+                {'code': 'CA-RX', 'name': 'CA Prescription Drug Exemption', 'jurisdiction': 'US-CA', 'rule_type': 'exempt', 'category': 'Prescription Drugs'},
+                {'code': 'NY-CLOTH', 'name': 'NY Clothing Exemption (<$110)', 'jurisdiction': 'US-NY', 'rule_type': 'exempt', 'category': 'Clothing Under $110'},
+                {'code': 'TX-FOOD', 'name': 'TX Grocery Exemption', 'jurisdiction': 'US-TX', 'rule_type': 'exempt', 'category': 'Groceries'},
+            ]
+
+            for rul in rules_data:
+                j = created_jurisdictions.get(rul['jurisdiction'])
+                if not j:
+                    continue
+                TaxRule.unscoped.get_or_create(
+                    tenant=tenant, code=rul['code'],
+                    defaults={
+                        'name': rul['name'],
+                        'jurisdiction': j,
+                        'rule_type': rul['rule_type'],
+                        'product_category': rul['category'],
+                        'effective_date': date(2025, 1, 1),
+                        'is_active': True,
+                    }
+                )
+
+            # =================================================================
+            # 4. Tax Groups
+            # =================================================================
+            ca_rate = created_rates.get('US-CA')
+            la_rate = created_rates.get('US-CA-LA')
+            sf_rate = created_rates.get('US-CA-SF')
+            ny_rate = created_rates.get('US-NY')
+            nyc_rate = created_rates.get('US-NY-NYC')
+
+            if ca_rate and la_rate:
+                grp, created = TaxGroup.unscoped.get_or_create(
+                    tenant=tenant, code='CA-LA-COMBINED',
+                    defaults={'name': 'California + LA County Combined', 'is_active': True}
+                )
+                if created:
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=ca_rate, priority=1)
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=la_rate, priority=2)
+
+            if ny_rate and nyc_rate:
+                grp, created = TaxGroup.unscoped.get_or_create(
+                    tenant=tenant, code='NY-NYC-COMBINED',
+                    defaults={'name': 'New York + NYC Combined', 'is_active': True}
+                )
+                if created:
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=ny_rate, priority=1)
+                    TaxGroupMember.objects.create(tax_group=grp, tax_rate=nyc_rate, priority=2)
+
+            # =================================================================
+            # 5. Tax Returns
+            # =================================================================
+            today = date.today()
+            user = tenant.owner
+
+            returns_data = [
+                {
+                    'type': 'sales_tax', 'jurisdiction': 'US-CA',
+                    'period_start': date(2025, 10, 1), 'period_end': date(2025, 12, 31),
+                    'due_date': date(2026, 1, 31), 'status': 'filed',
+                    'taxable': Decimal('250000.00'), 'tax_due': Decimal('18125.00'),
+                    'net_due': Decimal('18125.00'), 'paid': Decimal('18125.00'),
+                },
+                {
+                    'type': 'sales_tax', 'jurisdiction': 'US-NY',
+                    'period_start': date(2026, 1, 1), 'period_end': date(2026, 3, 31),
+                    'due_date': date(2026, 4, 20), 'status': 'draft',
+                    'taxable': Decimal('180000.00'), 'tax_due': Decimal('15300.00'),
+                    'net_due': Decimal('15300.00'), 'paid': Decimal('0.00'),
+                },
+                {
+                    'type': 'income_tax', 'jurisdiction': 'US-FED',
+                    'period_start': date(2025, 1, 1), 'period_end': date(2025, 12, 31),
+                    'due_date': date(2026, 4, 15), 'status': 'calculated',
+                    'taxable': Decimal('500000.00'), 'tax_due': Decimal('105000.00'),
+                    'net_due': Decimal('105000.00'), 'paid': Decimal('80000.00'),
+                },
+            ]
+
+            for rd in returns_data:
+                j = created_jurisdictions.get(rd['jurisdiction'])
+                if not j or not user:
+                    continue
+                tr, created = TaxReturn.unscoped.get_or_create(
+                    tenant=tenant,
+                    return_number=TaxReturn.generate_return_number(tenant),
+                    defaults={
+                        'return_type': rd['type'],
+                        'jurisdiction': j,
+                        'period_type': 'quarterly' if rd['type'] == 'sales_tax' else 'annual',
+                        'period_start': rd['period_start'],
+                        'period_end': rd['period_end'],
+                        'due_date': rd['due_date'],
+                        'status': rd['status'],
+                        'total_taxable_amount': rd['taxable'],
+                        'total_tax_due': rd['tax_due'],
+                        'net_tax_due': rd['net_due'],
+                        'amount_paid': rd['paid'],
+                        'created_by': user,
+                        'filed_date': rd['due_date'] if rd['status'] == 'filed' else None,
+                        'filed_by': user if rd['status'] == 'filed' else None,
+                    }
+                )
+                if created:
+                    TaxReturnLine.objects.create(
+                        tax_return=tr, line_number=1,
+                        description='Gross Sales',
+                        taxable_amount=rd['taxable'],
+                        tax_amount=rd['tax_due'],
+                        rate_applied=Decimal('7.25000') if rd['type'] == 'sales_tax' else Decimal('21.00000'),
+                    )
+
+            # =================================================================
+            # 6. Tax Deadlines
+            # =================================================================
+            deadlines_data = [
+                {'name': 'CA Sales Tax Q1 2026', 'type': 'sales_tax', 'jurisdiction': 'US-CA',
+                 'due': date(2026, 4, 30), 'status': 'upcoming', 'recurring': True, 'pattern': 'quarterly'},
+                {'name': 'NY Sales Tax Q1 2026', 'type': 'sales_tax', 'jurisdiction': 'US-NY',
+                 'due': date(2026, 4, 20), 'status': 'in_progress', 'recurring': True, 'pattern': 'quarterly'},
+                {'name': 'Federal Income Tax 2025', 'type': 'income_tax', 'jurisdiction': 'US-FED',
+                 'due': date(2026, 4, 15), 'status': 'upcoming', 'recurring': True, 'pattern': 'annual'},
+                {'name': 'TX Sales Tax Monthly Mar 2026', 'type': 'sales_tax', 'jurisdiction': 'US-TX',
+                 'due': date(2026, 4, 20), 'status': 'upcoming', 'recurring': True, 'pattern': 'monthly'},
+                {'name': 'CA Property Tax 2025-2026', 'type': 'property_tax', 'jurisdiction': 'US-CA',
+                 'due': date(2026, 4, 10), 'status': 'upcoming', 'recurring': False, 'pattern': ''},
+            ]
+
+            for dd in deadlines_data:
+                j = created_jurisdictions.get(dd['jurisdiction'])
+                if not j:
+                    continue
+                TaxDeadline.unscoped.get_or_create(
+                    tenant=tenant,
+                    deadline_number=TaxDeadline.generate_deadline_number(tenant),
+                    defaults={
+                        'name': dd['name'],
+                        'tax_type': dd['type'],
+                        'jurisdiction': j,
+                        'due_date': dd['due'],
+                        'status': dd['status'],
+                        'reminder_days': 7,
+                        'is_recurring': dd['recurring'],
+                        'recurrence_pattern': dd['pattern'],
+                    }
+                )
+
+            # =================================================================
+            # 7. Nexus Tracking
+            # =================================================================
+            nexus_data = [
+                {'jurisdiction': 'US-CA', 'type': 'economic', 'has_nexus': True,
+                 'reg_status': 'registered', 'reg_number': 'CA-ST-1234567',
+                 'threshold_amt': Decimal('500000.00'), 'threshold_txn': 200,
+                 'sales': Decimal('620000.00'), 'txns': 450},
+                {'jurisdiction': 'US-NY', 'type': 'economic', 'has_nexus': True,
+                 'reg_status': 'registered', 'reg_number': 'NY-ST-9876543',
+                 'threshold_amt': Decimal('500000.00'), 'threshold_txn': 100,
+                 'sales': Decimal('380000.00'), 'txns': 120},
+                {'jurisdiction': 'US-TX', 'type': 'economic', 'has_nexus': False,
+                 'reg_status': 'not_required', 'reg_number': '',
+                 'threshold_amt': Decimal('500000.00'), 'threshold_txn': 200,
+                 'sales': Decimal('85000.00'), 'txns': 45},
+            ]
+
+            for nd in nexus_data:
+                j = created_jurisdictions.get(nd['jurisdiction'])
+                if not j:
+                    continue
+                nj, created = NexusJurisdiction.unscoped.get_or_create(
+                    tenant=tenant, jurisdiction=j, nexus_type=nd['type'],
+                    defaults={
+                        'has_nexus': nd['has_nexus'],
+                        'registration_status': nd['reg_status'],
+                        'registration_number': nd['reg_number'],
+                        'registration_date': date(2025, 1, 1) if nd['reg_status'] == 'registered' else None,
+                        'economic_threshold_amount': nd['threshold_amt'],
+                        'economic_threshold_transactions': nd['threshold_txn'],
+                        'current_period_sales': nd['sales'],
+                        'current_period_transactions': nd['txns'],
+                        'threshold_percentage': max(
+                            (nd['sales'] / nd['threshold_amt'] * 100).quantize(Decimal('0.01')) if nd['threshold_amt'] else Decimal('0'),
+                            Decimal(nd['txns'] / nd['threshold_txn'] * 100).quantize(Decimal('0.01')) if nd['threshold_txn'] else Decimal('0'),
+                        ),
+                        'is_active': True,
+                    }
+                )
+                if created:
+                    NexusActivity.unscoped.create(
+                        tenant=tenant,
+                        nexus_jurisdiction=nj,
+                        period_start=date(2026, 1, 1),
+                        period_end=date(2026, 3, 31),
+                        sales_amount=nd['sales'],
+                        transaction_count=nd['txns'],
+                    )
+
+        self.stdout.write(
+            f'  Created TX data (jurisdictions, tax rates, tax rules, '
+            f'tax groups, tax returns, deadlines, nexus tracking)'
         )
