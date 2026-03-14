@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Use Tax Assessments{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Use Tax Assessments</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">Tax Management</li>
+        <li class="breadcrumb-item active">Use Tax Assessments</li>
+    </ol>
+</div>
+
+<!-- Stat Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-file-list-3-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Pending</p>
+                        <h3 class="mb-0">{{ pending_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-time-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Accrued</p>
+                        <h3 class="mb-0">{{ accrued_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-checkbox-circle-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Assessment #, vendor..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'tax:assessment_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+        <div class="mt-3 text-end">
+            <a href="{% url 'tax:assessment_create' tenant_slug=current_tenant.slug %}" class="btn btn-success">
+                <i class="ri-add-line me-1"></i> New Assessment
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Assessment #</th>
+                        <th>Vendor</th>
+                        <th>Jurisdiction</th>
+                        <th>Purchase Date</th>
+                        <th class="text-end">Purchase Amount</th>
+                        <th class="text-end">Tax Amount</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assessments %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="{% url 'tax:assessment_detail' tenant_slug=current_tenant.slug pk=a.pk %}">{{ a.assessment_number }}</a>
+                            </strong>
+                        </td>
+                        <td>{{ a.vendor }}</td>
+                        <td>{{ a.jurisdiction }}</td>
+                        <td>{{ a.purchase_date|date:"M d, Y" }}</td>
+                        <td class="text-end">{{ a.purchase_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-end">{{ a.tax_amount|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if a.status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                            {% elif a.status == 'accrued' %}<span class="badge badge-soft-info">Accrued</span>
+                            {% elif a.status == 'paid' %}<span class="badge badge-soft-success">Paid</span>
+                            {% elif a.status == 'exempt' %}<span class="badge badge-soft-secondary">Exempt</span>
+                            {% else %}<span class="badge badge-soft-secondary">{{ a.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'tax:assessment_detail' tenant_slug=current_tenant.slug pk=a.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <i class="ri-file-list-3-line" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-2">No use tax assessments found.</p>
+                                <a href="{% url 'tax:assessment_create' tenant_slug=current_tenant.slug %}" class="btn btn-success btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Assessment
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
