@@ -1191,6 +1191,164 @@
                 {% endif %}
             </li>
 
+            <li class="menu-title" data-toggle="menu-section">Tax Management <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Sales Tax -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'jurisdiction' in request.resolver_match.url_name or 'tax_rate' in request.resolver_match.url_name or 'tax_rule' in request.resolver_match.url_name or 'tax_group' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-map-pin-line"></i>
+                    <span class="menu-text">Sales Tax</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'jurisdiction' in request.resolver_match.url_name or 'tax_rate' in request.resolver_match.url_name or 'tax_rule' in request.resolver_match.url_name or 'tax_group' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:jurisdiction_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'jurisdiction_list' %}active{% endif %}">
+                            <span class="menu-text">Jurisdictions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:tax_rate_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'tax_rate_list' %}active{% endif %}">
+                            <span class="menu-text">Tax Rates</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:tax_rule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'tax_rule_list' %}active{% endif %}">
+                            <span class="menu-text">Tax Rules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:tax_group_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'tax_group_list' %}active{% endif %}">
+                            <span class="menu-text">Tax Groups</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Tax Returns -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'return' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-file-text-line"></i>
+                    <span class="menu-text">Tax Returns</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'return' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:return_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'return_list' %}active{% endif %}">
+                            <span class="menu-text">All Returns</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Use Tax -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'assessment' in request.resolver_match.url_name or 'accrual' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-exchange-dollar-line"></i>
+                    <span class="menu-text">Use Tax</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'assessment' in request.resolver_match.url_name or 'accrual' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:assessment_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'assessment_list' %}active{% endif %}">
+                            <span class="menu-text">Assessments</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:accrual_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'accrual_list' %}active{% endif %}">
+                            <span class="menu-text">Accruals</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Tax Provision -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'provision' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-calculator-line"></i>
+                    <span class="menu-text">Tax Provision</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'provision' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:provision_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'provision_list' %}active{% endif %}">
+                            <span class="menu-text">Provisions</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Tax Calendar -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'deadline' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-calendar-event-line"></i>
+                    <span class="menu-text">Tax Calendar</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'deadline' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:deadline_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'deadline_list' %}active{% endif %}">
+                            <span class="menu-text">Deadlines</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:deadline_generate' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'deadline_generate' %}active{% endif %}">
+                            <span class="menu-text">Generate Recurring</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Audit Support -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'audit' in request.resolver_match.url_name or 'finding' in request.resolver_match.url_name or 'document' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-search-eye-line"></i>
+                    <span class="menu-text">Audit Support</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'audit' in request.resolver_match.url_name or 'finding' in request.resolver_match.url_name or 'document' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:audit_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'audit_list' %}active{% endif %}">
+                            <span class="menu-text">Audits</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Nexus Tracking -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'tax' and 'nexus' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-radar-line"></i>
+                    <span class="menu-text">Nexus Tracking</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'tax' and 'nexus' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:nexus_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'nexus_list' %}active{% endif %}">
+                            <span class="menu-text">Nexus Status</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'tax:nexus_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'nexus_dashboard' %}active{% endif %}">
+                            <span class="menu-text">Dashboard</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Reports -->
