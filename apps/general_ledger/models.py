@@ -123,6 +123,10 @@ class JournalEntry(TenantAwareModel):
         ('me_elimination', 'ME Elimination'),
         ('me_translation', 'ME Currency Translation'),
         ('me_gaap_adjust', 'ME GAAP Adjustment'),
+        ('tx_return_payment', 'Tax Return Payment'),
+        ('tx_use_tax', 'Use Tax Accrual'),
+        ('tx_provision', 'Income Tax Provision'),
+        ('tx_audit_adjust', 'Tax Audit Adjustment'),
     ]
 
     entry_number = models.CharField(max_length=20, db_index=True)
@@ -135,7 +139,7 @@ class JournalEntry(TenantAwareModel):
         related_name='journal_entries'
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
-    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual')
+    source = models.CharField(max_length=25, choices=SOURCE_CHOICES, default='manual')
     currency = models.ForeignKey(
         'company.Currency',
         on_delete=models.PROTECT,
