@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if form.instance.pk %}Edit Audit - {{ audit.audit_number }}{% else %}New Tax Audit{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if form.instance.pk %}Edit Audit - {{ audit.audit_number }}{% else %}New Tax Audit{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item">Audit</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:audit_list' tenant_slug=current_tenant.slug %}">Audits</a></li>
+            <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Audit Info -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-search-eye-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Audit Information</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_name" class="form-label">Audit Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_tax_type" class="form-label">Tax Type <span class="text-danger">*</span></label>
+                    {{ form.tax_type }}
+                    {% if form.tax_type.errors %}<div class="text-danger small">{{ form.tax_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_jurisdiction" class="form-label">Jurisdiction <span class="text-danger">*</span></label>
+                    {{ form.jurisdiction }}
+                    {% if form.jurisdiction.errors %}<div class="text-danger small">{{ form.jurisdiction.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_auditing_authority" class="form-label">Auditing Authority</label>
+                    {{ form.auditing_authority }}
+                    {% if form.auditing_authority.errors %}<div class="text-danger small">{{ form.auditing_authority.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-calendar-line text-info"></i></div>
+                <h5 class="card-title mb-0">Audit Period</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_audit_period_start" class="form-label">Period Start <span class="text-danger">*</span></label>
+                    {{ form.audit_period_start }}
+                    {% if form.audit_period_start.errors %}<div class="text-danger small">{{ form.audit_period_start.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_audit_period_end" class="form-label">Period End <span class="text-danger">*</span></label>
+                    {{ form.audit_period_end }}
+                    {% if form.audit_period_end.errors %}<div class="text-danger small">{{ form.audit_period_end.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_notification_date" class="form-label">Notification Date</label>
+                    {{ form.notification_date }}
+                    {% if form.notification_date.errors %}<div class="text-danger small">{{ form.notification_date.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-user-line text-warning"></i></div>
+                <h5 class="card-title mb-0">Assignment</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_assigned_to" class="form-label">Assigned To</label>
+                    {{ form.assigned_to }}
+                    {% if form.assigned_to.errors %}<div class="text-danger small">{{ form.assigned_to.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-secondary p-2 me-2"><i class="ri-file-text-line text-secondary"></i></div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'tax:audit_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if form.instance.pk %}Save Changes{% else %}Create Audit{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
