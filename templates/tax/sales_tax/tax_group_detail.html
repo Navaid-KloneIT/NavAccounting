@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ tax_group.code }} - {{ tax_group.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ tax_group.code }} - {{ tax_group.name }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Tax Management</li>
+            <li class="breadcrumb-item"><a href="{% url 'tax:tax_group_list' tenant_slug=current_tenant.slug %}">Tax Groups</a></li>
+            <li class="breadcrumb-item active">{{ tax_group.code }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Column -->
+    <div class="col-lg-8">
+        <!-- Group Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-group-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Group Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Code</dt>
+                    <dd class="col-sm-8">{{ tax_group.code }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Name</dt>
+                    <dd class="col-sm-8">{{ tax_group.name }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Description</dt>
+                    <dd class="col-sm-8">{{ tax_group.description|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Combined Rate</dt>
+                    <dd class="col-sm-8">{{ tax_group.combined_rate|floatformat:4|default:"-" }}%</dd>
+
+                    <dt class="col-sm-4 text-muted">Status</dt>
+                    <dd class="col-sm-8">
+                        {% if tax_group.is_active %}
+                            <span class="badge bg-soft-success text-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-soft-warning text-warning">Inactive</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Members -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check-2 text-info"></i></div>
+                    <h5 class="card-title mb-0">Members</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tax Rate</th>
+                                <th>Jurisdiction</th>
+                                <th class="text-end">Rate %</th>
+                                <th class="text-end">Priority</th>
+                                <th>Compound</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr>
+                                <td>{{ member.tax_rate.rate_name }}</td>
+                                <td>{{ member.tax_rate.jurisdiction.name }}</td>
+                                <td class="text-end">{{ member.tax_rate.rate|floatformat:4 }}%</td>
+                                <td class="text-end">{{ member.priority }}</td>
+                                <td>
+                                    {% if member.tax_rate.is_compound %}
+                                        <span class="badge bg-soft-info text-info">Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if member.tax_rate.is_active %}
+                                        <span class="badge bg-soft-success text-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-warning text-warning">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No members in this group.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                <a href="{% url 'tax:tax_group_edit' tenant_slug=current_tenant.slug pk=tax_group.pk %}" class="btn btn-soft-primary btn-sm w-100 mb-2">
+                    <i class="ri-pencil-line me-1"></i> Edit Tax Group
+                </a>
+                <a href="{% url 'tax:tax_group_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Tax Groups
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-secondary p-2 me-2"><i class="ri-information-line text-secondary"></i></div>
+                    <h5 class="card-title mb-0">Metadata</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Created</dt>
+                    <dd class="col-sm-7">{{ tax_group.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Updated</dt>
+                    <dd class="col-sm-7">{{ tax_group.updated_at|date:"M d, Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
