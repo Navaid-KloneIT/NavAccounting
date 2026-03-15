@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Statutory Report - {{ report.report_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ report.report_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:statutory_list' tenant_slug=current_tenant.slug %}">Statutory Reports</a></li>
+            <li class="breadcrumb-item active">Report Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Report Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-paper-2-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Report Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Report Number</dt>
+                    <dd class="col-sm-7"><strong>{{ report.report_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Name</dt>
+                    <dd class="col-sm-7">{{ report.name }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Template</dt>
+                    <dd class="col-sm-7">{{ report.template|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Fiscal Year</dt>
+                    <dd class="col-sm-7">{{ report.fiscal_year }}</dd>
+
+                    <dt class="col-sm-5 text-muted">As Of Date</dt>
+                    <dd class="col-sm-7">{{ report.as_of_date|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Filing Deadline</dt>
+                    <dd class="col-sm-7">{{ report.filing_deadline|date:"M d, Y"|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Filing Reference</dt>
+                    <dd class="col-sm-7">{{ report.filing_reference|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if report.status == 'draft' %}<span class="badge bg-soft-secondary text-secondary">Draft</span>
+                        {% elif report.status == 'generated' %}<span class="badge bg-soft-info text-info">Generated</span>
+                        {% elif report.status == 'reviewed' %}<span class="badge bg-soft-primary text-primary">Reviewed</span>
+                        {% elif report.status == 'filed' %}<span class="badge bg-soft-success text-success">Filed</span>
+                        {% else %}<span class="badge bg-soft-secondary text-secondary">{{ report.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+
+                    {% if report.notes %}
+                    <dt class="col-sm-5 text-muted">Notes</dt>
+                    <dd class="col-sm-7">{{ report.notes }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- Report Lines -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-check text-info"></i></div>
+                    <h5 class="card-title mb-0">Report Lines</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order</th>
+                                <th>Label</th>
+                                <th>Account</th>
+                                <th class="text-end">Local Amount</th>
+                                <th class="text-end">Reporting Amount</th>
+                                <th class="text-end">Adjustment</th>
+                                <th>Note Ref</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in lines %}
+                            <tr>
+                                <td>{{ line.line_order }}</td>
+                                <td>{{ line.label }}</td>
+                                <td>{{ line.account|default:"-" }}</td>
+                                <td class="text-end">{{ line.local_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ line.reporting_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ line.adjustment_amount|floatformat:2|intcomma }}</td>
+                                <td>{{ line.note_reference|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">No report lines recorded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-flashlight-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'reporting:statutory_edit' tenant_slug=current_tenant.slug pk=report.pk %}" class="btn btn-soft-primary">
+                    <i class="ri-pencil-line me-1"></i> Edit Report
+                </a>
+
+                {% if report.status == 'draft' %}
+                <form method="post" action="{% url 'reporting:statutory_generate' tenant_slug=current_tenant.slug pk=report.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info w-100">
+                        <i class="ri-refresh-line me-1"></i> Generate
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'reporting:statutory_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-dark p-2 me-2"><i class="ri-information-line text-dark"></i></div>
+                    <h5 class="card-title mb-0">Metadata</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Created</dt>
+                    <dd class="col-sm-7">{{ report.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Updated</dt>
+                    <dd class="col-sm-7">{{ report.updated_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Created By</dt>
+                    <dd class="col-sm-7">{{ report.created_by|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
