@@ -17,38 +17,38 @@ def generate_balance_sheet(statement):
     from .models import FinancialStatementLine
 
     accounts = Account.unscoped.filter(
-        tenant=statement.tenant, is_active=True
-    ).order_by('account_type', 'account_number')
+        tenant=statement.tenant, is_active=True,
+        account_type__name__in=['Asset', 'Liability', 'Equity']
+    ).select_related('account_type').order_by('account_type__name', 'account_number')
 
     line_order = 0
-    current_type = None
+    current_type_id = None
 
     for account in accounts:
-        if account.account_type in ('asset', 'liability', 'equity'):
-            # Section header
-            if account.account_type != current_type:
-                current_type = account.account_type
-                line_order += 1
-                FinancialStatementLine.objects.create(
-                    tenant=statement.tenant,
-                    statement=statement,
-                    line_order=line_order,
-                    line_type='header',
-                    label=account.get_account_type_display(),
-                    is_bold=True,
-                )
-
+        # Section header when account type changes
+        if account.account_type_id != current_type_id:
+            current_type_id = account.account_type_id
             line_order += 1
             FinancialStatementLine.objects.create(
                 tenant=statement.tenant,
                 statement=statement,
                 line_order=line_order,
-                line_type='account',
-                label=f"{account.account_number} - {account.account_name}",
-                account=account,
-                indent_level=1,
-                current_amount=account.current_balance or Decimal('0.00'),
+                line_type='header',
+                label=account.account_type.name,
+                is_bold=True,
             )
+
+        line_order += 1
+        FinancialStatementLine.objects.create(
+            tenant=statement.tenant,
+            statement=statement,
+            line_order=line_order,
+            line_type='account',
+            label=f"{account.account_number} - {account.name}",
+            account=account,
+            indent_level=1,
+            current_amount=account.balance or Decimal('0.00'),
+        )
 
     statement.status = 'generated'
     statement.generated_at = timezone.now()
@@ -64,22 +64,22 @@ def generate_income_statement(statement):
 
     accounts = Account.unscoped.filter(
         tenant=statement.tenant, is_active=True,
-        account_type__in=['revenue', 'expense']
-    ).order_by('account_type', 'account_number')
+        account_type__name__in=['Revenue', 'Expense']
+    ).select_related('account_type').order_by('account_type__name', 'account_number')
 
     line_order = 0
-    current_type = None
+    current_type_id = None
 
     for account in accounts:
-        if account.account_type != current_type:
-            current_type = account.account_type
+        if account.account_type_id != current_type_id:
+            current_type_id = account.account_type_id
             line_order += 1
             FinancialStatementLine.objects.create(
                 tenant=statement.tenant,
                 statement=statement,
                 line_order=line_order,
                 line_type='header',
-                label=account.get_account_type_display(),
+                label=account.account_type.name,
                 is_bold=True,
             )
 
@@ -89,10 +89,10 @@ def generate_income_statement(statement):
             statement=statement,
             line_order=line_order,
             line_type='account',
-            label=f"{account.account_number} - {account.account_name}",
+            label=f"{account.account_number} - {account.name}",
             account=account,
             indent_level=1,
-            current_amount=account.current_balance or Decimal('0.00'),
+            current_amount=account.balance or Decimal('0.00'),
         )
 
     statement.status = 'generated'
