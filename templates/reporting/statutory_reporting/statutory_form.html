@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_create %}New Statutory Report{% else %}Edit Report - {{ report.report_number }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_create %}New Statutory Report{% else %}Edit Report - {{ report.report_number }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:statutory_list' tenant_slug=current_tenant.slug %}">Statutory Reports</a></li>
+            <li class="breadcrumb-item active">{% if is_create %}New{% else %}Edit{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Report Info -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-paper-2-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Report Information</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_report_number" class="form-label">Report Number <span class="text-danger">*</span></label>
+                    {{ form.report_number }}
+                    {% if form.report_number.errors %}<div class="invalid-feedback d-block">{{ form.report_number.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_template" class="form-label">Template <span class="text-danger">*</span></label>
+                    {{ form.template }}
+                    {% if form.template.errors %}<div class="invalid-feedback d-block">{{ form.template.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_fiscal_year" class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                    {{ form.fiscal_year }}
+                    {% if form.fiscal_year.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_year.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_as_of_date" class="form-label">As Of Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.as_of_date }}
+                    </div>
+                    {% if form.as_of_date.errors %}<div class="invalid-feedback d-block">{{ form.as_of_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_filing_deadline" class="form-label">Filing Deadline</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.filing_deadline }}
+                    </div>
+                    {% if form.filing_deadline.errors %}<div class="invalid-feedback d-block">{{ form.filing_deadline.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_filing_reference" class="form-label">Filing Reference</label>
+                    {{ form.filing_reference }}
+                    {% if form.filing_reference.errors %}<div class="invalid-feedback d-block">{{ form.filing_reference.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_status" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-sticky-note-line text-warning"></i></div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_create %}
+    <!-- Report Lines -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-list-check text-success"></i></div>
+                <h5 class="card-title mb-0">Report Lines</h5>
+            </div>
+            <button type="button" id="add-line" class="btn btn-sm btn-outline-primary">
+                <i class="ri-add-line me-1"></i> Add Line
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {{ line_formset.management_form }}
+            {% if line_formset.non_form_errors %}
+            <div class="alert alert-danger m-3">
+                {% for error in line_formset.non_form_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 80px;">Order</th>
+                            <th style="min-width: 160px;">Label</th>
+                            <th style="min-width: 160px;">Account</th>
+                            <th style="min-width: 120px;">Local Amount</th>
+                            <th style="min-width: 120px;">Reporting Amount</th>
+                            <th style="min-width: 120px;">Adjustment</th>
+                            <th style="min-width: 100px;">Note Ref</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lines-container">
+                        {% for lf in line_formset %}
+                        <tr class="line-row">
+                            <td>{{ lf.line_order }}{{ lf.id }}{% if lf.line_order.errors %}<div class="invalid-feedback d-block">{{ lf.line_order.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.label }}{% if lf.label.errors %}<div class="invalid-feedback d-block">{{ lf.label.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.account }}{% if lf.account.errors %}<div class="invalid-feedback d-block">{{ lf.account.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.local_amount }}{% if lf.local_amount.errors %}<div class="invalid-feedback d-block">{{ lf.local_amount.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.reporting_amount }}{% if lf.reporting_amount.errors %}<div class="invalid-feedback d-block">{{ lf.reporting_amount.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.adjustment_amount }}{% if lf.adjustment_amount.errors %}<div class="invalid-feedback d-block">{{ lf.adjustment_amount.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.note_reference }}{% if lf.note_reference.errors %}<div class="invalid-feedback d-block">{{ lf.note_reference.errors.0 }}</div>{% endif %}</td>
+                            <td>
+                                {% if lf.DELETE %}
+                                <div class="form-check">
+                                    {{ lf.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty form template for JS cloning -->
+    <div id="empty-form" class="d-none">
+        <tr class="line-row">
+            <td>{{ line_formset.empty_form.line_order }}{{ line_formset.empty_form.id }}</td>
+            <td>{{ line_formset.empty_form.label }}</td>
+            <td>{{ line_formset.empty_form.account }}</td>
+            <td>{{ line_formset.empty_form.local_amount }}</td>
+            <td>{{ line_formset.empty_form.reporting_amount }}</td>
+            <td>{{ line_formset.empty_form.adjustment_amount }}</td>
+            <td>{{ line_formset.empty_form.note_reference }}</td>
+            <td>
+                {% if line_formset.empty_form.DELETE %}
+                <div class="form-check">
+                    {{ line_formset.empty_form.DELETE }}
+                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'reporting:statutory_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_create %}Save Report{% else %}Update Report{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% if not is_create %}
+{% block extra_js %}
+<script>
+    const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+    let formCount = {{ line_formset.total_form_count }};
+
+    document.getElementById('add-line').addEventListener('click', function() {
+        const container = document.getElementById('lines-container');
+        const newForm = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        formCount++;
+        document.getElementById('id_lines-TOTAL_FORMS').value = formCount;
+    });
+</script>
+{% endblock %}
+{% endif %}
