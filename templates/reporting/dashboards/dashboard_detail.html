@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard - {{ dashboard.name }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ dashboard.name }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:dashboard_list' tenant_slug=current_tenant.slug %}">Dashboards</a></li>
+            <li class="breadcrumb-item active">Dashboard Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Config -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-dashboard-3-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Dashboard Configuration</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Name</dt>
+                    <dd class="col-sm-7"><strong>{{ dashboard.name }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Description</dt>
+                    <dd class="col-sm-7">{{ dashboard.description|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Layout</dt>
+                    <dd class="col-sm-7"><span class="badge bg-soft-info text-info">{{ dashboard.get_layout_display }}</span></dd>
+
+                    <dt class="col-sm-5 text-muted">Visibility</dt>
+                    <dd class="col-sm-7"><span class="badge bg-soft-primary text-primary">{{ dashboard.get_visibility_display }}</span></dd>
+
+                    <dt class="col-sm-5 text-muted">Default</dt>
+                    <dd class="col-sm-7">
+                        {% if dashboard.is_default %}
+                        <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                        <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if dashboard.is_active %}
+                        <span class="badge bg-soft-success text-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-soft-warning text-warning">Inactive</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Widgets -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-layout-grid-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Widgets</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Data Source</th>
+                                <th>Position</th>
+                                <th>Size</th>
+                                <th>Visible</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for w in widgets %}
+                            <tr>
+                                <td>{{ w.title }}</td>
+                                <td><span class="badge bg-soft-info text-info">{{ w.get_widget_type_display }}</span></td>
+                                <td>{{ w.data_source|default:"-" }}</td>
+                                <td>Row {{ w.position_row }}, Col {{ w.position_col }}</td>
+                                <td>{{ w.width }} x {{ w.height }}</td>
+                                <td>
+                                    {% if w.is_visible %}
+                                    <span class="badge bg-soft-success text-success">Visible</span>
+                                    {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">Hidden</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No widgets configured.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Snapshots -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-camera-line text-success"></i></div>
+                    <h5 class="card-title mb-0">Snapshots</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Date</th>
+                                <th>Created By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in snapshots %}
+                            <tr>
+                                <td>{{ s.snapshot_name }}</td>
+                                <td>{{ s.created_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ s.created_by|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">No snapshots taken.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-flashlight-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'reporting:dashboard_edit' tenant_slug=current_tenant.slug pk=dashboard.pk %}" class="btn btn-soft-primary">
+                    <i class="ri-pencil-line me-1"></i> Edit Dashboard
+                </a>
+
+                <a href="{% url 'reporting:dashboard_snapshot' tenant_slug=current_tenant.slug pk=dashboard.pk %}" class="btn btn-soft-success">
+                    <i class="ri-camera-line me-1"></i> Take Snapshot
+                </a>
+
+                <a href="{% url 'reporting:dashboard_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-dark p-2 me-2"><i class="ri-information-line text-dark"></i></div>
+                    <h5 class="card-title mb-0">Metadata</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Created</dt>
+                    <dd class="col-sm-7">{{ dashboard.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Updated</dt>
+                    <dd class="col-sm-7">{{ dashboard.updated_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Created By</dt>
+                    <dd class="col-sm-7">{{ dashboard.created_by|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
