@@ -60,7 +60,7 @@
 <!-- Table -->
 <div class="card">
     <div class="card-body p-0">
-        {% if tax_rules %}
+        {% if rules %}
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -75,7 +75,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for rule in tax_rules %}
+                    {% for rule in rules %}
                     <tr>
                         <td class="fw-semibold">
                             <a href="{% url 'tax:tax_rule_edit' tenant_slug=current_tenant.slug pk=rule.pk %}">{{ rule.code }}</a>
