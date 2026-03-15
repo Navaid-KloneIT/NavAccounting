@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_create %}New Statutory Template{% else %}Edit Template - {{ template.template_code }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_create %}New Statutory Template{% else %}Edit Template - {{ template.template_code }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:statutory_template_list' tenant_slug=current_tenant.slug %}">Statutory Templates</a></li>
+            <li class="breadcrumb-item active">{% if is_create %}New{% else %}Edit{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Template Info -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-text-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Template Information</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_template_code" class="form-label">Template Code <span class="text-danger">*</span></label>
+                    {{ form.template_code }}
+                    {% if form.template_code.errors %}<div class="invalid-feedback d-block">{{ form.template_code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_country" class="form-label">Country</label>
+                    {{ form.country }}
+                    {% if form.country.errors %}<div class="invalid-feedback d-block">{{ form.country.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_framework" class="form-label">Framework <span class="text-danger">*</span></label>
+                    {{ form.framework }}
+                    {% if form.framework.errors %}<div class="invalid-feedback d-block">{{ form.framework.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_version" class="form-label">Version</label>
+                    {{ form.version }}
+                    {% if form.version.errors %}<div class="invalid-feedback d-block">{{ form.version.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_effective_date" class="form-label">Effective Date</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.effective_date }}
+                    </div>
+                    {% if form.effective_date.errors %}<div class="invalid-feedback d-block">{{ form.effective_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_is_active" class="form-label">Active</label>
+                    <div class="form-check form-switch mt-2">
+                        {{ form.is_active }}
+                    </div>
+                    {% if form.is_active.errors %}<div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'reporting:statutory_template_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_create %}Save Template{% else %}Update Template{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
