@@ -47,7 +47,7 @@ def builder_list(request, tenant_slug):
     page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'reporting/report_builder/builder_list.html', {
-        'reports': page_obj,
+        'builders': page_obj,
         'page_obj': page_obj,
         'total_count': total_count,
         'active_count': active_count,
