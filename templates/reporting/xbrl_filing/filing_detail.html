@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Filing - {{ filing.filing_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ filing.filing_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:filing_list' tenant_slug=current_tenant.slug %}">XBRL/EDGAR Filings</a></li>
+            <li class="breadcrumb-item active">Filing Detail</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Filing Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-code-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Filing Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Filing Number</dt>
+                    <dd class="col-sm-7"><strong>{{ filing.filing_number }}</strong></dd>
+
+                    <dt class="col-sm-5 text-muted">Name</dt>
+                    <dd class="col-sm-7">{{ filing.name }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Filing Type</dt>
+                    <dd class="col-sm-7"><span class="badge bg-soft-info text-info">{{ filing.get_filing_type_display }}</span></dd>
+
+                    <dt class="col-sm-5 text-muted">CIK Number</dt>
+                    <dd class="col-sm-7">{{ filing.cik_number|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Fiscal Year</dt>
+                    <dd class="col-sm-7">{{ filing.fiscal_year }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Taxonomy Version</dt>
+                    <dd class="col-sm-7">{{ filing.taxonomy_version|default:"-" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Period</dt>
+                    <dd class="col-sm-7">{{ filing.period_start|date:"M d, Y" }} - {{ filing.period_end|date:"M d, Y" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7">
+                        {% if filing.status == 'draft' %}<span class="badge bg-soft-secondary text-secondary">Draft</span>
+                        {% elif filing.status == 'tagging' %}<span class="badge bg-soft-info text-info">Tagging</span>
+                        {% elif filing.status == 'validated' %}<span class="badge bg-soft-primary text-primary">Validated</span>
+                        {% elif filing.status == 'submitted' %}<span class="badge bg-soft-warning text-warning">Submitted</span>
+                        {% elif filing.status == 'accepted' %}<span class="badge bg-soft-success text-success">Accepted</span>
+                        {% elif filing.status == 'rejected' %}<span class="badge bg-soft-danger text-danger">Rejected</span>
+                        {% else %}<span class="badge bg-soft-secondary text-secondary">{{ filing.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Submission Reference</dt>
+                    <dd class="col-sm-7">{{ filing.submission_reference|default:"-" }}</dd>
+
+                    {% if filing.notes %}
+                    <dt class="col-sm-5 text-muted">Notes</dt>
+                    <dd class="col-sm-7">{{ filing.notes }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- XBRL Tags -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-code-s-slash-line text-info"></i></div>
+                    <h5 class="card-title mb-0">XBRL Tags</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Account</th>
+                                <th>Element</th>
+                                <th>Context</th>
+                                <th class="text-end">Value</th>
+                                <th>Unit</th>
+                                <th>Extension</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tag in tags %}
+                            <tr>
+                                <td>{{ tag.account }}</td>
+                                <td>{{ tag.xbrl_element }}</td>
+                                <td>{{ tag.xbrl_context|default:"-" }}</td>
+                                <td class="text-end">{{ tag.value|floatformat:2|intcomma }}</td>
+                                <td>{{ tag.unit|default:"-" }}</td>
+                                <td>
+                                    {% if tag.is_extension %}
+                                    <span class="badge bg-soft-warning text-warning">Extension</span>
+                                    {% else %}
+                                    <span class="badge bg-soft-success text-success">Standard</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No XBRL tags recorded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-success p-2 me-2"><i class="ri-attachment-2 text-success"></i></div>
+                    <h5 class="card-title mb-0">Documents</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>{{ doc.name }}</td>
+                                <td><span class="badge bg-soft-info text-info">{{ doc.get_document_type_display }}</span></td>
+                                <td>{{ doc.file.size|filesizeformat }}</td>
+                                <td>{{ doc.created_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">No documents uploaded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-flashlight-line text-warning"></i></div>
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'reporting:filing_edit' tenant_slug=current_tenant.slug pk=filing.pk %}" class="btn btn-soft-primary">
+                    <i class="ri-pencil-line me-1"></i> Edit Filing
+                </a>
+
+                {% if filing.status == 'draft' or filing.status == 'tagging' %}
+                <form method="post" action="{% url 'reporting:filing_validate' tenant_slug=current_tenant.slug pk=filing.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info w-100">
+                        <i class="ri-check-line me-1"></i> Validate
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if filing.status == 'validated' %}
+                <form method="post" action="{% url 'reporting:filing_submit' tenant_slug=current_tenant.slug pk=filing.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success w-100" onclick="return confirm('Are you sure you want to submit this filing?');">
+                        <i class="ri-send-plane-line me-1"></i> Submit Filing
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'reporting:filing_upload_document' tenant_slug=current_tenant.slug pk=filing.pk %}" class="btn btn-soft-success">
+                    <i class="ri-upload-2-line me-1"></i> Upload Document
+                </a>
+
+                <a href="{% url 'reporting:filing_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-dark p-2 me-2"><i class="ri-information-line text-dark"></i></div>
+                    <h5 class="card-title mb-0">Metadata</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Created</dt>
+                    <dd class="col-sm-7">{{ filing.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Updated</dt>
+                    <dd class="col-sm-7">{{ filing.updated_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Created By</dt>
+                    <dd class="col-sm-7">{{ filing.created_by|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
