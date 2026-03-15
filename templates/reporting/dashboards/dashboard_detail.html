@@ -165,7 +165,7 @@
                     <i class="ri-pencil-line me-1"></i> Edit Dashboard
                 </a>
 
-                <a href="{% url 'reporting:dashboard_snapshot' tenant_slug=current_tenant.slug pk=dashboard.pk %}" class="btn btn-soft-success">
+                <a href="{% url 'reporting:dashboard_snapshot_create' tenant_slug=current_tenant.slug pk=dashboard.pk %}" class="btn btn-soft-success">
                     <i class="ri-camera-line me-1"></i> Take Snapshot
                 </a>
 
