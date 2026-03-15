@@ -78,7 +78,7 @@
 <!-- Table -->
 <div class="card">
     <div class="card-body p-0">
-        {% if tax_rates %}
+        {% if rates %}
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -94,7 +94,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for rate in tax_rates %}
+                    {% for rate in rates %}
                     <tr>
                         <td>{{ rate.jurisdiction.name }}</td>
                         <td>{{ rate.rate_name }}</td>
