@@ -109,14 +109,23 @@ def generate_depreciation_schedule(asset):
     accumulated = asset.accumulated_depreciation
     current_date = asset.acquisition_date
 
+    import calendar
+    from datetime import timedelta
+
+    def _advance_month(dt):
+        """Advance date by one month, clamping day to last day of target month."""
+        if dt.month == 12:
+            y, m = dt.year + 1, 1
+        else:
+            y, m = dt.year, dt.month + 1
+        day = min(dt.day, calendar.monthrange(y, m)[1])
+        return dt.replace(year=y, month=m, day=day)
+
     for period_num in range(1, asset.useful_life_months + 1):
         period_start = current_date
         # Move to next month
-        if current_date.month == 12:
-            next_date = current_date.replace(year=current_date.year + 1, month=1)
-        else:
-            next_date = current_date.replace(month=current_date.month + 1)
-        period_end = next_date - __import__('datetime').timedelta(days=1)
+        next_date = _advance_month(current_date)
+        period_end = next_date - timedelta(days=1)
 
         # Last period gets remainder to avoid rounding errors
         if period_num == asset.useful_life_months:
