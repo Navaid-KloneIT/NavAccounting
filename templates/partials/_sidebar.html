@@ -1349,21 +1349,145 @@
                 {% endif %}
             </li>
 
-            <li class="menu-title" data-toggle="menu-section">Analytics <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+            <li class="menu-title" data-toggle="menu-section">Reporting & Compliance <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
-            <!-- Reports -->
+            <!-- Financial Statements -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'reporting' and 'statement' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-file-list-3-line"></i>
+                    <span class="menu-text">Financial Statements</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'reporting' and 'statement' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:statement_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'statement_list' %}active{% endif %}">
+                            <span class="menu-text">All Statements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:statement_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'statement_create' %}active{% endif %}">
+                            <span class="menu-text">New Statement</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Management Reports -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'reporting' and 'mgmt_report' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-bar-chart-line"></i>
+                    <span class="menu-text">Management Reports</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'reporting' and 'mgmt_report' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:mgmt_report_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'mgmt_report_list' %}active{% endif %}">
+                            <span class="menu-text">All Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:mgmt_report_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'mgmt_report_create' %}active{% endif %}">
+                            <span class="menu-text">New Report</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Custom Report Builder -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'reporting' and 'builder' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-tools-line"></i>
+                    <span class="menu-text">Report Builder</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'reporting' and 'builder' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:builder_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'builder_list' %}active{% endif %}">
+                            <span class="menu-text">All Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:builder_create' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'builder_create' %}active{% endif %}">
+                            <span class="menu-text">New Report</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Scheduled Reports -->
             <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'reporting:schedule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'reporting' and 'schedule' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
                 <a href="#" class="menu-link">
-                    <i class="ri-bar-chart-2-line"></i>
-                    <span class="menu-text">Reports</span>
+                {% endif %}
+                    <i class="ri-calendar-schedule-line"></i>
+                    <span class="menu-text">Scheduled Reports</span>
                 </a>
             </li>
 
-            <!-- Forecasting -->
+            <!-- XBRL/EDGAR Filing -->
             <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'reporting:filing_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'reporting' and 'filing' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
                 <a href="#" class="menu-link">
-                    <i class="ri-line-chart-line"></i>
-                    <span class="menu-text">Forecasting</span>
+                {% endif %}
+                    <i class="ri-file-code-line"></i>
+                    <span class="menu-text">XBRL/EDGAR Filing</span>
+                </a>
+            </li>
+
+            <!-- Statutory Reporting -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'reporting' and 'statutory' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-file-paper-2-line"></i>
+                    <span class="menu-text">Statutory Reporting</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'reporting' and 'statutory' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:statutory_template_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'statutory_template_list' %}active{% endif %}">
+                            <span class="menu-text">Templates</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'reporting:statutory_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'statutory_list' %}active{% endif %}">
+                            <span class="menu-text">Reports</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Consolidation Reports -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'reporting:package_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'reporting' and 'package' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-stack-line"></i>
+                    <span class="menu-text">Consolidation Reports</span>
+                </a>
+            </li>
+
+            <!-- Dashboards -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'reporting:dashboard_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'reporting' and 'dashboard' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-dashboard-3-line"></i>
+                    <span class="menu-text">Dashboards</span>
                 </a>
             </li>
 
