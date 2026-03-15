@@ -59,6 +59,7 @@ class Command(BaseCommand):
         parser.add_argument('--pj', action='store_true', help='Seed project/job costing data only')
         parser.add_argument('--me', action='store_true', help='Seed multi-entity & consolidation data only')
         parser.add_argument('--tx', action='store_true', help='Seed tax management data only')
+        parser.add_argument('--rc', action='store_true', help='Seed reporting & compliance data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -70,6 +71,7 @@ class Command(BaseCommand):
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
             options['pr'], options['pj'], options['me'], options['tx'],
+            options['rc'],
         ])
 
         # Always seed system-level data
@@ -138,9 +140,50 @@ class Command(BaseCommand):
             self.stdout.write('Seeding tax management data...')
             self._seed_tx_data()
 
+        if seed_all or options['rc']:
+            self.stdout.write('Seeding reporting & compliance data...')
+            self._seed_rc_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean RC (Reporting & Compliance) data first
+        try:
+            from apps.reporting.models import (
+                DashboardSnapshot, DashboardWidget, ReportDashboard,
+                ConsolidationPackageLine, ConsolidationPackageEntity, ConsolidationPackage,
+                StatutoryReportLine, StatutoryReport, StatutoryTemplate,
+                FilingDocument, XBRLTag, XBRLFiling,
+                ScheduleExecution, ScheduleRecipient, ReportSchedule,
+                ReportFilter, ReportColumn, CustomReport,
+                ManagementReportLine, ManagementReport,
+                FinancialStatementLine, FinancialStatement,
+            )
+            DashboardSnapshot.unscoped.all().delete()
+            DashboardWidget.unscoped.all().delete()
+            ReportDashboard.unscoped.all().delete()
+            ConsolidationPackageLine.unscoped.all().delete()
+            ConsolidationPackageEntity.unscoped.all().delete()
+            ConsolidationPackage.unscoped.all().delete()
+            StatutoryReportLine.unscoped.all().delete()
+            StatutoryReport.unscoped.all().delete()
+            StatutoryTemplate.unscoped.all().delete()
+            FilingDocument.unscoped.all().delete()
+            XBRLTag.unscoped.all().delete()
+            XBRLFiling.unscoped.all().delete()
+            ScheduleExecution.unscoped.all().delete()
+            ScheduleRecipient.unscoped.all().delete()
+            ReportSchedule.unscoped.all().delete()
+            ReportFilter.unscoped.all().delete()
+            ReportColumn.unscoped.all().delete()
+            CustomReport.unscoped.all().delete()
+            ManagementReportLine.unscoped.all().delete()
+            ManagementReport.unscoped.all().delete()
+            FinancialStatementLine.unscoped.all().delete()
+            FinancialStatement.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean TX (Tax Management) data first
         try:
             from apps.tax.models import (
@@ -6387,4 +6430,302 @@ class Command(BaseCommand):
             f'  Created TX data (jurisdictions, tax rates, tax rules, '
             f'tax groups, tax returns, use tax assessments, use tax accruals, '
             f'income tax provisions, tax deadlines, tax audits, nexus tracking)'
+        )
+
+    def _seed_rc_data(self):
+        """Seed Reporting & Compliance data for all tenants."""
+        from apps.reporting.models import (
+            FinancialStatement, FinancialStatementLine,
+            ManagementReport, ManagementReportLine,
+            CustomReport, ReportColumn, ReportFilter,
+            ReportSchedule, ScheduleRecipient,
+            XBRLFiling, XBRLTag,
+            StatutoryTemplate, StatutoryReport, StatutoryReportLine,
+            ConsolidationPackage, ConsolidationPackageEntity,
+            ReportDashboard, DashboardWidget,
+        )
+        from apps.company.models import FiscalYear, Currency
+        from apps.general_ledger.models import Account
+
+        tenants = Tenant.objects.all()
+        for tenant in tenants:
+            fy = FiscalYear.unscoped.filter(tenant=tenant).first()
+            if not fy:
+                continue
+            accounts = list(Account.unscoped.filter(tenant=tenant)[:10])
+            currency = Currency.objects.first()
+
+            # --- Financial Statements ---
+            stmt_data = [
+                ('FS-001', 'Q4 2025 Balance Sheet', 'balance_sheet', 'published'),
+                ('FS-002', 'Q4 2025 Income Statement', 'income_statement', 'approved'),
+                ('FS-003', 'FY 2025 Cash Flow Statement', 'cash_flow', 'reviewed'),
+                ('FS-004', 'FY 2025 Equity Statement', 'equity_statement', 'generated'),
+                ('FS-005', 'Q1 2026 Balance Sheet', 'balance_sheet', 'draft'),
+            ]
+            for num, name, stype, status in stmt_data:
+                stmt, created = FinancialStatement.unscoped.get_or_create(
+                    tenant=tenant, statement_number=num,
+                    defaults={
+                        'name': name,
+                        'statement_type': stype,
+                        'fiscal_year': fy,
+                        'as_of_date': date(2025, 12, 31) if '2025' in name else date(2026, 3, 31),
+                        'comparative_date': date(2024, 12, 31) if '2025' in name else date(2025, 3, 31),
+                        'currency': currency,
+                        'status': status,
+                    }
+                )
+                if created and accounts:
+                    for i, acct in enumerate(accounts[:5]):
+                        FinancialStatementLine.unscoped.create(
+                            tenant=tenant, statement=stmt,
+                            line_order=i + 1,
+                            line_type='account',
+                            label=f"{acct.account_number} - {acct.account_name}",
+                            account=acct,
+                            current_amount=Decimal(str(random.randint(10000, 500000))),
+                            prior_amount=Decimal(str(random.randint(10000, 500000))),
+                        )
+
+            # --- Management Reports ---
+            mgmt_data = [
+                ('MR-001', 'Q4 2025 Departmental P&L - Sales', 'departmental_pl', 'distributed'),
+                ('MR-002', 'FY 2025 Budget vs Actual', 'budget_vs_actual', 'reviewed'),
+                ('MR-003', 'Q4 2025 Variance Analysis', 'variance_analysis', 'generated'),
+                ('MR-004', 'Q1 2026 Trend Analysis', 'trend_analysis', 'draft'),
+            ]
+            for num, name, rtype, status in mgmt_data:
+                rpt, created = ManagementReport.unscoped.get_or_create(
+                    tenant=tenant, report_number=num,
+                    defaults={
+                        'name': name,
+                        'report_type': rtype,
+                        'department': random.choice(['Sales', 'Marketing', 'Engineering', 'Operations']),
+                        'cost_center': f"CC-{random.randint(100, 999)}",
+                        'fiscal_year': fy,
+                        'period_start': date(2025, 10, 1),
+                        'period_end': date(2025, 12, 31),
+                        'status': status,
+                    }
+                )
+                if created and accounts:
+                    for i, acct in enumerate(accounts[:4]):
+                        budget = Decimal(str(random.randint(50000, 200000)))
+                        actual = Decimal(str(random.randint(40000, 220000)))
+                        variance = actual - budget
+                        ManagementReportLine.unscoped.create(
+                            tenant=tenant, report=rpt,
+                            line_order=i + 1,
+                            label=acct.account_name,
+                            account=acct,
+                            budget_amount=budget,
+                            actual_amount=actual,
+                            variance_amount=variance,
+                            variance_percent=(variance / budget * 100) if budget else Decimal('0'),
+                            is_favorable=variance >= 0,
+                        )
+
+            # --- Custom Report Builder ---
+            custom_data = [
+                ('CR-001', 'Revenue by Department', 'gl_account', 'tabular', True),
+                ('CR-002', 'Vendor Spend Analysis', 'vendor', 'summary', True),
+                ('CR-003', 'Outstanding Invoices', 'invoice', 'tabular', False),
+            ]
+            for code, name, entity, layout, public in custom_data:
+                cr, created = CustomReport.unscoped.get_or_create(
+                    tenant=tenant, report_code=code,
+                    defaults={
+                        'name': name,
+                        'base_entity': entity,
+                        'layout_type': layout,
+                        'is_public': public,
+                        'is_active': True,
+                    }
+                )
+                if created:
+                    ReportColumn.unscoped.create(
+                        tenant=tenant, report=cr,
+                        column_order=1, field_name='name',
+                        display_name='Name', aggregation='none',
+                    )
+                    ReportColumn.unscoped.create(
+                        tenant=tenant, report=cr,
+                        column_order=2, field_name='amount',
+                        display_name='Amount', aggregation='sum',
+                        format_string=',.2f',
+                    )
+                    ReportFilter.unscoped.create(
+                        tenant=tenant, report=cr,
+                        field_name='date_range', operator='between',
+                        is_parameter=True, filter_order=1,
+                    )
+
+            # --- Scheduled Reports ---
+            if CustomReport.unscoped.filter(tenant=tenant).exists():
+                first_cr = CustomReport.unscoped.filter(tenant=tenant).first()
+                sched, created = ReportSchedule.unscoped.get_or_create(
+                    tenant=tenant, schedule_name='Monthly Revenue Report',
+                    defaults={
+                        'report': first_cr,
+                        'frequency': 'monthly',
+                        'day_of_month': 1,
+                        'output_format': 'pdf',
+                        'status': 'active',
+                        'is_active': True,
+                    }
+                )
+                if created:
+                    ScheduleRecipient.unscoped.create(
+                        tenant=tenant, schedule=sched,
+                        email='cfo@example.com', name='CFO',
+                    )
+                    ScheduleRecipient.unscoped.create(
+                        tenant=tenant, schedule=sched,
+                        email='controller@example.com', name='Controller', is_cc=True,
+                    )
+
+            # --- XBRL/EDGAR Filing ---
+            xbrl_data = [
+                ('XF-001', 'FY 2025 10-K Filing', '10-K', 'validated'),
+                ('XF-002', 'Q1 2026 10-Q Filing', '10-Q', 'draft'),
+            ]
+            for num, name, ftype, status in xbrl_data:
+                xf, created = XBRLFiling.unscoped.get_or_create(
+                    tenant=tenant, filing_number=num,
+                    defaults={
+                        'name': name,
+                        'filing_type': ftype,
+                        'cik_number': f"{random.randint(1000000, 9999999):07d}",
+                        'fiscal_year': fy,
+                        'period_start': date(2025, 1, 1),
+                        'period_end': date(2025, 12, 31),
+                        'taxonomy_version': 'us-gaap-2024',
+                        'status': status,
+                    }
+                )
+                if created and accounts:
+                    xbrl_elements = [
+                        'us-gaap:Assets', 'us-gaap:Liabilities',
+                        'us-gaap:StockholdersEquity', 'us-gaap:Revenues',
+                    ]
+                    for i, (acct, elem) in enumerate(zip(accounts[:4], xbrl_elements)):
+                        XBRLTag.unscoped.create(
+                            tenant=tenant, filing=xf,
+                            account=acct, xbrl_element=elem,
+                            xbrl_context='FY2025',
+                            value=Decimal(str(random.randint(100000, 5000000))),
+                            unit='USD',
+                        )
+
+            # --- Statutory Reporting ---
+            tmpl_data = [
+                ('ST-US-GAAP', 'US GAAP Annual Report', 'United States', 'us_gaap'),
+                ('ST-IFRS', 'IFRS Annual Report', 'International', 'ifrs'),
+            ]
+            for code, name, country, framework in tmpl_data:
+                tmpl, _ = StatutoryTemplate.unscoped.get_or_create(
+                    tenant=tenant, template_code=code,
+                    defaults={
+                        'name': name,
+                        'country': country,
+                        'framework': framework,
+                        'version': '1.0',
+                        'is_active': True,
+                    }
+                )
+
+            first_tmpl = StatutoryTemplate.unscoped.filter(tenant=tenant).first()
+            if first_tmpl:
+                sr, created = StatutoryReport.unscoped.get_or_create(
+                    tenant=tenant, report_number='SR-001',
+                    defaults={
+                        'name': 'FY 2025 US GAAP Annual Filing',
+                        'template': first_tmpl,
+                        'fiscal_year': fy,
+                        'as_of_date': date(2025, 12, 31),
+                        'status': 'generated',
+                        'filing_deadline': date(2026, 3, 31),
+                    }
+                )
+                if created and accounts:
+                    for i, acct in enumerate(accounts[:5]):
+                        StatutoryReportLine.unscoped.create(
+                            tenant=tenant, report=sr,
+                            line_order=i + 1,
+                            label=acct.account_name,
+                            account=acct,
+                            local_amount=Decimal(str(random.randint(10000, 500000))),
+                            reporting_amount=Decimal(str(random.randint(10000, 500000))),
+                        )
+
+            # --- Consolidation Packages ---
+            try:
+                from apps.multi_entity.models import ConsolidationGroup, Entity
+                cg = ConsolidationGroup.unscoped.filter(tenant=tenant).first()
+                entities = list(Entity.unscoped.filter(tenant=tenant)[:3])
+                if cg:
+                    pkg, created = ConsolidationPackage.unscoped.get_or_create(
+                        tenant=tenant, package_number='CP-001',
+                        defaults={
+                            'name': 'FY 2025 Global Consolidation',
+                            'consolidation_group': cg,
+                            'fiscal_year': fy,
+                            'period_start': date(2025, 1, 1),
+                            'period_end': date(2025, 12, 31),
+                            'reporting_currency': currency,
+                            'status': 'consolidated',
+                        }
+                    )
+                    if created:
+                        for ent in entities:
+                            ConsolidationPackageEntity.unscoped.create(
+                                tenant=tenant, package=pkg,
+                                entity=ent, status='approved',
+                                total_assets=Decimal(str(random.randint(500000, 5000000))),
+                                total_liabilities=Decimal(str(random.randint(200000, 3000000))),
+                                total_equity=Decimal(str(random.randint(100000, 2000000))),
+                                total_revenue=Decimal(str(random.randint(300000, 4000000))),
+                                net_income=Decimal(str(random.randint(50000, 500000))),
+                            )
+            except Exception:
+                pass
+
+            # --- Dashboards ---
+            dash_data = [
+                ('Executive Dashboard', 'grid_3', 'organization', True),
+                ('Finance Operations', 'grid_2', 'team', False),
+            ]
+            for name, layout, vis, is_default in dash_data:
+                dash, created = ReportDashboard.unscoped.get_or_create(
+                    tenant=tenant, name=name,
+                    defaults={
+                        'layout': layout,
+                        'visibility': vis,
+                        'is_default': is_default,
+                        'is_active': True,
+                    }
+                )
+                if created:
+                    widgets = [
+                        ('Total Revenue', 'kpi_card', 'revenue', 0, 0),
+                        ('Total Expenses', 'kpi_card', 'expenses', 0, 1),
+                        ('Net Income', 'kpi_card', 'net_income', 0, 2),
+                        ('Cash Flow Trend', 'line_chart', 'cash_flow', 1, 0),
+                        ('AR Aging', 'bar_chart', 'ar_aging', 1, 1),
+                        ('Budget Variance', 'donut_chart', 'budget_variance', 1, 2),
+                    ]
+                    for title, wtype, source, row, col in widgets:
+                        DashboardWidget.unscoped.create(
+                            tenant=tenant, dashboard=dash,
+                            title=title, widget_type=wtype,
+                            data_source=source,
+                            position_row=row, position_col=col,
+                            width=1, height=1, is_visible=True,
+                        )
+
+        self.stdout.write(
+            f'  Created RC data (financial statements, management reports, '
+            f'custom reports, schedules, XBRL filings, statutory reports, '
+            f'consolidation packages, dashboards)'
         )
