@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'apps.project_costing',
     'apps.multi_entity',
     'apps.tax',
+    'apps.reporting',
 ]
 
 MIDDLEWARE = [
