@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_create %}New Consolidation Package{% else %}Edit Package - {{ package.package_number }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_create %}New Consolidation Package{% else %}Edit Package - {{ package.package_number }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:package_list' tenant_slug=current_tenant.slug %}">Consolidation Packages</a></li>
+            <li class="breadcrumb-item active">{% if is_create %}New{% else %}Edit{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Package Info -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-stack-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Package Information</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_package_number" class="form-label">Package Number <span class="text-danger">*</span></label>
+                    {{ form.package_number }}
+                    {% if form.package_number.errors %}<div class="invalid-feedback d-block">{{ form.package_number.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_consolidation_group" class="form-label">Consolidation Group <span class="text-danger">*</span></label>
+                    {{ form.consolidation_group }}
+                    {% if form.consolidation_group.errors %}<div class="invalid-feedback d-block">{{ form.consolidation_group.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_fiscal_year" class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                    {{ form.fiscal_year }}
+                    {% if form.fiscal_year.errors %}<div class="invalid-feedback d-block">{{ form.fiscal_year.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_reporting_currency" class="form-label">Reporting Currency <span class="text-danger">*</span></label>
+                    {{ form.reporting_currency }}
+                    {% if form.reporting_currency.errors %}<div class="invalid-feedback d-block">{{ form.reporting_currency.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period & Options -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-calendar-line text-info"></i></div>
+                <h5 class="card-title mb-0">Period & Options</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="id_period_start" class="form-label">Period Start <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.period_start }}
+                    </div>
+                    {% if form.period_start.errors %}<div class="invalid-feedback d-block">{{ form.period_start.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_period_end" class="form-label">Period End <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                        {{ form.period_end }}
+                    </div>
+                    {% if form.period_end.errors %}<div class="invalid-feedback d-block">{{ form.period_end.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-2">
+                    <label for="id_status" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-2">
+                    <label for="id_include_eliminations" class="form-label">Include Eliminations</label>
+                    <div class="form-check form-switch mt-2">
+                        {{ form.include_eliminations }}
+                    </div>
+                    {% if form.include_eliminations.errors %}<div class="invalid-feedback d-block">{{ form.include_eliminations.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-2">
+                    <label for="id_include_minority_interest" class="form-label">Minority Interest</label>
+                    <div class="form-check form-switch mt-2">
+                        {{ form.include_minority_interest }}
+                    </div>
+                    {% if form.include_minority_interest.errors %}<div class="invalid-feedback d-block">{{ form.include_minority_interest.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-sticky-note-line text-warning"></i></div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_create %}
+    <!-- Entities -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-building-line text-success"></i></div>
+                <h5 class="card-title mb-0">Entities</h5>
+            </div>
+            <button type="button" id="add-entity" class="btn btn-sm btn-outline-primary">
+                <i class="ri-add-line me-1"></i> Add Entity
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {{ entity_formset.management_form }}
+            {% if entity_formset.non_form_errors %}
+            <div class="alert alert-danger m-3">
+                {% for error in entity_formset.non_form_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 160px;">Entity</th>
+                            <th style="min-width: 100px;">Status</th>
+                            <th style="min-width: 120px;">Total Assets</th>
+                            <th style="min-width: 120px;">Total Liabilities</th>
+                            <th style="min-width: 120px;">Total Equity</th>
+                            <th style="min-width: 120px;">Total Revenue</th>
+                            <th style="min-width: 120px;">Net Income</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="entities-container">
+                        {% for ef in entity_formset %}
+                        <tr class="entity-row">
+                            <td>{{ ef.entity }}{{ ef.id }}{% if ef.entity.errors %}<div class="invalid-feedback d-block">{{ ef.entity.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ ef.status }}{% if ef.status.errors %}<div class="invalid-feedback d-block">{{ ef.status.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ ef.total_assets }}{% if ef.total_assets.errors %}<div class="invalid-feedback d-block">{{ ef.total_assets.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ ef.total_liabilities }}{% if ef.total_liabilities.errors %}<div class="invalid-feedback d-block">{{ ef.total_liabilities.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ ef.total_equity }}{% if ef.total_equity.errors %}<div class="invalid-feedback d-block">{{ ef.total_equity.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ ef.total_revenue }}{% if ef.total_revenue.errors %}<div class="invalid-feedback d-block">{{ ef.total_revenue.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ ef.net_income }}{% if ef.net_income.errors %}<div class="invalid-feedback d-block">{{ ef.net_income.errors.0 }}</div>{% endif %}</td>
+                            <td>
+                                {% if ef.DELETE %}
+                                <div class="form-check">
+                                    {{ ef.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty form template for JS cloning -->
+    <div id="empty-form" class="d-none">
+        <tr class="entity-row">
+            <td>{{ entity_formset.empty_form.entity }}{{ entity_formset.empty_form.id }}</td>
+            <td>{{ entity_formset.empty_form.status }}</td>
+            <td>{{ entity_formset.empty_form.total_assets }}</td>
+            <td>{{ entity_formset.empty_form.total_liabilities }}</td>
+            <td>{{ entity_formset.empty_form.total_equity }}</td>
+            <td>{{ entity_formset.empty_form.total_revenue }}</td>
+            <td>{{ entity_formset.empty_form.net_income }}</td>
+            <td>
+                {% if entity_formset.empty_form.DELETE %}
+                <div class="form-check">
+                    {{ entity_formset.empty_form.DELETE }}
+                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'reporting:package_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_create %}Save Package{% else %}Update Package{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% if not is_create %}
+{% block extra_js %}
+<script>
+    const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+    let formCount = {{ entity_formset.total_form_count }};
+
+    document.getElementById('add-entity').addEventListener('click', function() {
+        const container = document.getElementById('entities-container');
+        const newForm = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        formCount++;
+        document.getElementById('id_entities-TOTAL_FORMS').value = formCount;
+    });
+</script>
+{% endblock %}
+{% endif %}
