@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ statement.statement_number }} - Financial Statement{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ statement.statement_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:statement_list' tenant_slug=current_tenant.slug %}">Financial Statements</a></li>
+            <li class="breadcrumb-item active">{{ statement.statement_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Statement Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Statement Information</h5>
+                <div>
+                    {% if statement.status == 'draft' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Draft</span>
+                    {% elif statement.status == 'generated' %}
+                        <span class="badge bg-soft-info text-info fs-6">Generated</span>
+                    {% elif statement.status == 'reviewed' %}
+                        <span class="badge bg-soft-primary text-primary fs-6">Reviewed</span>
+                    {% elif statement.status == 'approved' %}
+                        <span class="badge bg-soft-success text-success fs-6">Approved</span>
+                    {% elif statement.status == 'published' %}
+                        <span class="badge bg-soft-success text-success fs-6">Published</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ statement.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Statement Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ statement.statement_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ statement.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Statement Type</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ statement.get_statement_type_display }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Fiscal Year</div>
+                    <div class="col-sm-8">{{ statement.fiscal_year }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Fiscal Period</div>
+                    <div class="col-sm-8">{{ statement.fiscal_period|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">As Of Date</div>
+                    <div class="col-sm-8">{{ statement.as_of_date }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Comparative Date</div>
+                    <div class="col-sm-8">{{ statement.comparative_date|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Currency</div>
+                    <div class="col-sm-8">{{ statement.currency|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Status</div>
+                    <div class="col-sm-8">{{ statement.get_status_display }}</div>
+                </div>
+                {% if statement.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ statement.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Statement Lines -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Statement Lines</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if lines %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order</th>
+                                <th>Label</th>
+                                <th>Type</th>
+                                <th class="text-end">Current Amount</th>
+                                <th class="text-end">Prior Amount</th>
+                                <th class="text-end">Variance</th>
+                                <th class="text-end">Variance %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in lines %}
+                            <tr>
+                                <td>{{ line.line_order }}</td>
+                                <td class="fw-semibold">{{ line.label }}</td>
+                                <td>
+                                    <span class="badge bg-soft-info text-info">{{ line.get_line_type_display }}</span>
+                                </td>
+                                <td class="text-end">${{ line.current_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">${{ line.prior_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">${{ line.variance_amount|floatformat:2|intcomma }}</td>
+                                <td class="text-end">{{ line.variance_percent|floatformat:2 }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No statement lines.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'reporting:statement_edit' tenant_slug=current_tenant.slug pk=statement.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Statement
+                </a>
+                {% if statement.status == 'draft' %}
+                <form method="post" action="{% url 'reporting:statement_generate' tenant_slug=current_tenant.slug pk=statement.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info btn-sm w-100">
+                        <i class="ri-play-line me-1"></i> Generate Statement
+                    </button>
+                </form>
+                {% endif %}
+                {% if statement.status == 'reviewed' %}
+                <form method="post" action="{% url 'reporting:statement_approve' tenant_slug=current_tenant.slug pk=statement.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100">
+                        <i class="ri-check-line me-1"></i> Approve Statement
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'reporting:statement_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ statement.created_at }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ statement.updated_at }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Generated By</div>
+                    <div class="col-sm-7">{{ statement.generated_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Approved By</div>
+                    <div class="col-sm-7">{{ statement.approved_by|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
