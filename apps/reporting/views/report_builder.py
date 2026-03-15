@@ -93,7 +93,7 @@ def builder_detail(request, tenant_slug, pk):
     filters = report.filters.all()
 
     return render(request, 'reporting/report_builder/builder_detail.html', {
-        'report': report,
+        'builder': report,
         'columns': columns,
         'filters': filters,
     })
@@ -137,6 +137,6 @@ def builder_edit(request, tenant_slug, pk):
         'form': form,
         'column_formset': column_formset,
         'filter_formset': filter_formset,
-        'report': report,
+        'builder': report,
         'is_create': False,
     })
