@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_create %}New Financial Statement{% else %}Edit Statement - {{ statement.statement_number }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_create %}New Financial Statement{% else %}Edit Statement - {{ statement.statement_number }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:statement_list' tenant_slug=current_tenant.slug %}">Financial Statements</a></li>
+            <li class="breadcrumb-item active">{% if is_create %}New{% else %}Edit{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Basic Information -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-file-list-3-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Basic Information</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_statement_number" class="form-label">Statement Number <span class="text-danger">*</span></label>
+                    {{ form.statement_number }}
+                    {% if form.statement_number.errors %}<div class="text-danger small">{{ form.statement_number.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_statement_type" class="form-label">Statement Type <span class="text-danger">*</span></label>
+                    {{ form.statement_type }}
+                    {% if form.statement_type.errors %}<div class="text-danger small">{{ form.statement_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_fiscal_year" class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                    {{ form.fiscal_year }}
+                    {% if form.fiscal_year.errors %}<div class="text-danger small">{{ form.fiscal_year.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_fiscal_period" class="form-label">Fiscal Period</label>
+                    {{ form.fiscal_period }}
+                    {% if form.fiscal_period.errors %}<div class="text-danger small">{{ form.fiscal_period.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-calendar-line text-success"></i></div>
+                <h5 class="card-title mb-0">Period</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="id_as_of_date" class="form-label">As Of Date <span class="text-danger">*</span></label>
+                    {{ form.as_of_date }}
+                    {% if form.as_of_date.errors %}<div class="text-danger small">{{ form.as_of_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_comparative_date" class="form-label">Comparative Date</label>
+                    {{ form.comparative_date }}
+                    {% if form.comparative_date.errors %}<div class="text-danger small">{{ form.comparative_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_currency" class="form-label">Currency</label>
+                    {{ form.currency }}
+                    {% if form.currency.errors %}<div class="text-danger small">{{ form.currency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_status" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-file-text-line text-info"></i></div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_create %}
+    <!-- Statement Lines -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-list-ordered text-warning"></i></div>
+                <h5 class="card-title mb-0">Statement Lines</h5>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {{ line_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order</th>
+                            <th>Label</th>
+                            <th>Type</th>
+                            <th>Account</th>
+                            <th class="text-end">Current Amount</th>
+                            <th class="text-end">Prior Amount</th>
+                            <th class="text-center">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lf in line_formset %}
+                        <tr>
+                            <td>{{ lf.line_order }}{% if lf.line_order.errors %}<div class="text-danger small">{{ lf.line_order.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.label }}{% if lf.label.errors %}<div class="text-danger small">{{ lf.label.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.line_type }}{% if lf.line_type.errors %}<div class="text-danger small">{{ lf.line_type.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.account }}{% if lf.account.errors %}<div class="text-danger small">{{ lf.account.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.current_amount }}{% if lf.current_amount.errors %}<div class="text-danger small">{{ lf.current_amount.errors.0 }}</div>{% endif %}</td>
+                            <td>{{ lf.prior_amount }}{% if lf.prior_amount.errors %}<div class="text-danger small">{{ lf.prior_amount.errors.0 }}</div>{% endif %}</td>
+                            <td class="text-center">{{ lf.DELETE }}{{ lf.id }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'reporting:statement_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_create %}Create Statement{% else %}Save Changes{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
