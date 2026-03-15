@@ -43,6 +43,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Project/Job Costing** — Project master with WBS hierarchy, time & expense tracking, billing rules with markup, revenue recognition (percentage-of-completion/milestone/completed-contract), project invoicing with retention, profitability analysis with earned value metrics, resource planning & utilization reports, audit trail integration
 - **Multi-Entity & Consolidation** — Entity management (parent/subsidiary/branch/division/JV/associate) with hierarchical structure, intercompany transactions with paired journal entries, IC balance reconciliation, currency translation with CTA calculation, consolidation engine with elimination rules, minority interest computation, transfer pricing policies with arm's length analysis, local GAAP adjustments, regulatory report filing
 - **Tax Management** — Sales tax engine with hierarchical jurisdictions, effective-dated rates, compound rate calculation, product taxability rules & tax groups; tax return preparation (Sales Tax/VAT/GST/Income Tax) with Draft→Calculated→Reviewed→Filed workflow; use tax self-assessment tracking with GL accrual posting; income tax provision with current/deferred tax, temporary differences, and ETR reconciliation; tax calendar with filing deadline management, recurring deadline generation & overdue alerts; audit support with findings tracking, document repository & adjustment GL posting; economic nexus monitoring with threshold tracking, progress alerts & registration management
+- **Reporting & Compliance** — Financial statements (Balance Sheet, P&L, Cash Flow, Equity) with Draft→Generated→Reviewed→Approved→Published workflow; departmental P&Ls with budget vs actual variance analysis; custom report builder with configurable columns, filters, and layout types; scheduled report distribution with email recipients and execution logging; XBRL/EDGAR filing support with taxonomy tagging and SEC submission workflow; statutory reporting with jurisdiction-specific templates (US GAAP/IFRS/local); consolidation reporting packages with entity-level data collection and eliminations; executive and operational dashboards with configurable widgets and snapshots
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -101,6 +102,7 @@ NavAccounting/
 │   ├── project_costing/            # Projects, WBS, Budgets, Billing Rules, Time Entries, Expenses, Revenue Recognition, Invoices, Profitability, Resources
 │   ├── multi_entity/               # Entities, IC Transactions, Currency Translation, Consolidation, Transfer Pricing, Regulatory Reporting
 │   ├── tax/                        # Jurisdictions, Tax Rates, Rules, Groups, Returns, Use Tax, Provisions, Calendar, Audits, Nexus Tracking
+│   ├── reporting/                  # Financial Statements, Management Reports, Report Builder, Scheduled Reports, XBRL/EDGAR, Statutory, Consolidation, Dashboards
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -200,6 +202,15 @@ NavAccounting/
 │   │   ├── consolidation/          # Group list, form, detail, elimination rule list, form, run list, form, detail
 │   │   ├── transfer_pricing/       # TP policy list, form, detail, transaction list, form
 │   │   └── regulatory/             # GAAP adjustment list, form, detail, report list, form, detail
+│   ├── reporting/                  # RC templates (26 files across 8 subdirectories)
+│   │   ├── financial_statements/   # Statement list, form, detail
+│   │   ├── management_reports/     # Report list, form, detail
+│   │   ├── report_builder/         # Builder list, form, detail
+│   │   ├── scheduled_reports/      # Schedule list, form, detail
+│   │   ├── xbrl_filing/            # Filing list, form, detail, document upload
+│   │   ├── statutory_reporting/    # Template list, form, report list, form, detail
+│   │   ├── consolidation_reports/  # Package list, form, detail
+│   │   └── dashboards/             # Dashboard list, form, detail, snapshot form
 │   ├── tax/                        # TX templates (40 files across 7 subdirectories)
 │   │   ├── sales_tax/              # Jurisdiction list, form, detail, tax rate list, form, tax rule list, form, tax group list, form, detail
 │   │   ├── tax_returns/            # Return list, form, detail, payment form, line form
@@ -342,6 +353,7 @@ python manage.py seed_data --ic
 python manage.py seed_data --pj
 python manage.py seed_data --me
 python manage.py seed_data --tx
+python manage.py seed_data --rc
 ```
 
 ### What Gets Seeded
@@ -365,6 +377,7 @@ python manage.py seed_data --tx
 | Inventory & Cost | 5 item categories (RAW, FG, COMP, PKG, MRO), 5 UoMs, 3 warehouses, 8 items with cost layers, 1 purchase requisition, 2 purchase orders with lines, 1 posted goods receipt, 2 inventory transactions (adjustment + scrap), 1 completed transfer, 1 COGS calculation with entries, 3 reorder suggestions, 1 cycle count plan + session with items, 1 landed cost voucher with cost lines and allocations |
 | Project/Job Costing | 5 projects (Corporate HQ Renovation, ERP Implementation, Highway Bridge Repair, Mobile App Development, Warehouse Automation), WBS elements with hierarchical structure, project budgets with GL accounts, billing rules, time entries, expense entries with markup, revenue recognition records, milestones, project invoices with lines, profitability snapshots, resource assignments |
 | Multi-Entity & Consolidation | 5 entities (HQ parent, EU subsidiary, UK branch, Asia JV, US division), 8 IC transactions with varied statuses, 5 IC balances, 5 currency translation rules, 3 CTA translation adjustments, 2 consolidation groups (Global + EU sub-group), 4 elimination rules, 3 consolidation runs (completed/draft/reversed), 2 elimination entries, 2 minority interest records, 4 transfer pricing policies, 5 TP transactions, 5 GAAP adjustments, 6 regulatory reports |
+| Reporting & Compliance | 5 financial statements (balance sheet/income statement/cash flow/equity with line items), 4 management reports (departmental P&L/budget vs actual/variance/trend with line items), 3 custom reports with columns and filters, 1 scheduled report with recipients, 2 XBRL filings with taxonomy tags, 2 statutory templates (US GAAP/IFRS), 1 statutory report with line items, 1 consolidation package with entity data, 2 dashboards with 6 widgets each |
 | Tax Management | 7 jurisdictions (Federal, 3 states, 2 counties, 1 city) with hierarchy, 7 tax rates (CA/NY/TX/Federal), 8 tax rules (exemptions/reduced/zero-rated/surtax), 4 tax groups (CA+LA, CA+SF, NY+NYC, CA full combined), 5 tax returns with line items (filed/draft/calculated/reviewed), 5 use tax assessments (pending/accrued/paid/exempt), 2 use tax accruals (posted/draft), 3 income tax provisions with deferred items and ETR reconciliation (finalized/draft/calculated), 5 tax deadlines (recurring/one-time), 4 tax audits with findings (closed/in-progress/pending), 4 nexus jurisdictions with activity records |
 
 ---
@@ -1028,6 +1041,55 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/tx/nexus/<pk>/edit/` | Edit nexus | Edit nexus jurisdiction details |
 | `/t/<slug>/tx/nexus/<pk>/activity/create/` | Add activity | Record nexus activity period |
 
+### Reporting & Compliance (`/t/<slug>/rc/...`)
+
+| URL | View | Description |
+|-----|------|-------------|
+| `/t/<slug>/rc/statements/` | Statement list | All financial statements with type/status filters |
+| `/t/<slug>/rc/statements/create/` | Create statement | New financial statement form |
+| `/t/<slug>/rc/statements/<pk>/` | Statement detail | Statement info, line items, workflow actions |
+| `/t/<slug>/rc/statements/<pk>/edit/` | Edit statement | Edit statement with line item formset |
+| `/t/<slug>/rc/statements/<pk>/generate/` | Generate statement | Transition draft → generated |
+| `/t/<slug>/rc/statements/<pk>/approve/` | Approve statement | Transition reviewed → approved |
+| `/t/<slug>/rc/management/` | Management report list | Departmental P&Ls and variance reports |
+| `/t/<slug>/rc/management/create/` | Create report | New management report form |
+| `/t/<slug>/rc/management/<pk>/` | Report detail | Budget vs actual with variance lines |
+| `/t/<slug>/rc/management/<pk>/edit/` | Edit report | Edit report with line item formset |
+| `/t/<slug>/rc/management/<pk>/generate/` | Generate report | Transition draft → generated |
+| `/t/<slug>/rc/builder/` | Report builder list | Custom report definitions |
+| `/t/<slug>/rc/builder/create/` | Create custom report | New report builder definition |
+| `/t/<slug>/rc/builder/<pk>/` | Report detail | Columns, filters, configuration |
+| `/t/<slug>/rc/builder/<pk>/edit/` | Edit report | Edit with column/filter formsets |
+| `/t/<slug>/rc/schedules/` | Schedule list | Automated report schedules |
+| `/t/<slug>/rc/schedules/create/` | Create schedule | New schedule with frequency config |
+| `/t/<slug>/rc/schedules/<pk>/` | Schedule detail | Recipients, execution history |
+| `/t/<slug>/rc/schedules/<pk>/edit/` | Edit schedule | Edit with recipient formset |
+| `/t/<slug>/rc/xbrl/` | XBRL filing list | SEC/EDGAR filings with status |
+| `/t/<slug>/rc/xbrl/create/` | Create filing | New XBRL filing record |
+| `/t/<slug>/rc/xbrl/<pk>/` | Filing detail | Tags, documents, submission info |
+| `/t/<slug>/rc/xbrl/<pk>/edit/` | Edit filing | Edit with XBRL tag formset |
+| `/t/<slug>/rc/xbrl/<pk>/validate/` | Validate filing | Transition draft/tagging → validated |
+| `/t/<slug>/rc/xbrl/<pk>/submit/` | Submit filing | Transition validated → submitted |
+| `/t/<slug>/rc/xbrl/<pk>/documents/upload/` | Upload document | Attach filing document |
+| `/t/<slug>/rc/statutory/templates/` | Template list | Statutory reporting templates |
+| `/t/<slug>/rc/statutory/templates/create/` | Create template | New jurisdiction-specific template |
+| `/t/<slug>/rc/statutory/templates/<pk>/edit/` | Edit template | Edit template configuration |
+| `/t/<slug>/rc/statutory/` | Statutory report list | Generated statutory reports |
+| `/t/<slug>/rc/statutory/create/` | Create report | New statutory report from template |
+| `/t/<slug>/rc/statutory/<pk>/` | Report detail | Report info, line items |
+| `/t/<slug>/rc/statutory/<pk>/edit/` | Edit report | Edit with line item formset |
+| `/t/<slug>/rc/statutory/<pk>/generate/` | Generate report | Transition draft → generated |
+| `/t/<slug>/rc/consolidation/` | Package list | Consolidation reporting packages |
+| `/t/<slug>/rc/consolidation/create/` | Create package | New consolidation package |
+| `/t/<slug>/rc/consolidation/<pk>/` | Package detail | Entity data, consolidated lines |
+| `/t/<slug>/rc/consolidation/<pk>/edit/` | Edit package | Edit with entity formset |
+| `/t/<slug>/rc/consolidation/<pk>/consolidate/` | Consolidate | Transition draft/collecting → consolidated |
+| `/t/<slug>/rc/dashboards/` | Dashboard list | Executive/operational dashboards |
+| `/t/<slug>/rc/dashboards/create/` | Create dashboard | New dashboard configuration |
+| `/t/<slug>/rc/dashboards/<pk>/` | Dashboard detail | Widgets, snapshots |
+| `/t/<slug>/rc/dashboards/<pk>/edit/` | Edit dashboard | Edit with widget formset |
+| `/t/<slug>/rc/dashboards/<pk>/snapshot/` | Create snapshot | Capture point-in-time dashboard data |
+
 ---
 
 ## Django Apps
@@ -1610,7 +1672,51 @@ When a tax audit adjustment is posted:
 - **Debit**: Tax Expense
 - **Credit**: Tax Payable
 
-### 16. `dashboard` — Dashboard & Analytics
+### 16. `reporting` — Reporting & Compliance Module
+
+**Models (24 models across 8 submodules):**
+
+#### Financial Statements
+- **FinancialStatement** — Statement record (balance_sheet/income_statement/cash_flow/equity_statement), status workflow (Draft → Generated → Reviewed → Approved → Published), links to fiscal year/period and currency
+- **FinancialStatementLine** — Line items with account reference, current/prior period amounts, variance calculation, formatting controls (bold, underline, indent)
+
+#### Management Reports
+- **ManagementReport** — Departmental P&L or variance analysis (departmental_pl/variance_analysis/budget_vs_actual/trend_analysis), links to department and cost center
+- **ManagementReportLine** — Budget vs actual amounts with variance calculation (amount, percent, favorable indicator)
+
+#### Custom Report Builder
+- **CustomReport** — User-defined report (base entity selection, layout type: tabular/summary/matrix/chart, optional SQL query, public/private visibility)
+- **ReportColumn** — Column definitions (field, aggregation, format string, sort/visibility)
+- **ReportFilter** — Filter definitions (field, operator, runtime parameters)
+
+#### Scheduled Reports
+- **ReportSchedule** — Automated distribution (frequency: daily/weekly/monthly/quarterly/annually, output format: PDF/Excel/CSV/HTML)
+- **ScheduleRecipient** — Email recipients (to/cc)
+- **ScheduleExecution** — Run log (timestamp, status, output file, error message)
+
+#### XBRL/EDGAR Filing
+- **XBRLFiling** — SEC filing record (10-K/10-Q/8-K/20-F/6-K), status workflow (Draft → Tagging → Validated → Submitted → Accepted/Rejected), CIK number
+- **XBRLTag** — Account-to-XBRL element mapping with context and value
+- **FilingDocument** — Attached documents (instance/schema/linkbases)
+
+#### Statutory Reporting
+- **StatutoryTemplate** — Jurisdiction-specific report template (US GAAP/IFRS/local GAAP/tax basis), versioned with effective dates
+- **StatutoryReport** — Generated report instance with filing deadline tracking (Draft → Generated → Reviewed → Filed)
+- **StatutoryReportLine** — Line items with local/reporting currency amounts and GAAP adjustments
+
+#### Consolidation Reports
+- **ConsolidationPackage** — Group-level reporting package (links to ConsolidationGroup), status workflow (Draft → Collecting → Consolidated → Reviewed → Published)
+- **ConsolidationPackageEntity** — Entity-level financial data (assets, liabilities, equity, revenue, net income) with submission status
+- **ConsolidationPackageLine** — Consolidated line items with entity amounts, elimination amounts, and minority interest
+
+#### Dashboards
+- **ReportDashboard** — Dashboard configuration (2/3/4-column grid or freeform layout, private/team/organization visibility)
+- **DashboardWidget** — Widget definition (9 types: KPI card, bar/line/pie/donut/area chart, table, gauge, trend), configurable data source and auto-refresh
+- **DashboardSnapshot** — Point-in-time data capture with JSON storage
+
+**Seed Data:** 5 financial statements, 4 management reports, 3 custom reports, 1 schedule, 2 XBRL filings, 2 statutory templates, 1 statutory report, 1 consolidation package, 2 dashboards with widgets
+
+### 17. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
