@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_create %}New Scheduled Report{% else %}Edit Schedule - {{ schedule.schedule_name }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_create %}New Scheduled Report{% else %}Edit Schedule - {{ schedule.schedule_name }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:schedule_list' tenant_slug=current_tenant.slug %}">Scheduled Reports</a></li>
+            <li class="breadcrumb-item active">{% if is_create %}New{% else %}Edit{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Schedule Configuration -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-calendar-schedule-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Schedule Configuration</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_schedule_name" class="form-label">Schedule Name <span class="text-danger">*</span></label>
+                    {{ form.schedule_name }}
+                    {% if form.schedule_name.errors %}<div class="text-danger small">{{ form.schedule_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_report" class="form-label">Report</label>
+                    {{ form.report }}
+                    {% if form.report.errors %}<div class="text-danger small">{{ form.report.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_financial_statement" class="form-label">Financial Statement</label>
+                    {{ form.financial_statement }}
+                    {% if form.financial_statement.errors %}<div class="text-danger small">{{ form.financial_statement.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_frequency" class="form-label">Frequency <span class="text-danger">*</span></label>
+                    {{ form.frequency }}
+                    {% if form.frequency.errors %}<div class="text-danger small">{{ form.frequency.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_day_of_week" class="form-label">Day of Week</label>
+                    {{ form.day_of_week }}
+                    {% if form.day_of_week.errors %}<div class="text-danger small">{{ form.day_of_week.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_day_of_month" class="form-label">Day of Month</label>
+                    {{ form.day_of_month }}
+                    {% if form.day_of_month.errors %}<div class="text-danger small">{{ form.day_of_month.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_time_of_day" class="form-label">Time of Day <span class="text-danger">*</span></label>
+                    {{ form.time_of_day }}
+                    {% if form.time_of_day.errors %}<div class="text-danger small">{{ form.time_of_day.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_output_format" class="form-label">Output Format <span class="text-danger">*</span></label>
+                    {{ form.output_format }}
+                    {% if form.output_format.errors %}<div class="text-danger small">{{ form.output_format.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_status" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="id_is_active">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_create %}
+    <!-- Recipients -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-mail-line text-success"></i></div>
+                <h5 class="card-title mb-0">Recipients</h5>
+            </div>
+            <button type="button" id="add-recipient" class="btn btn-sm btn-outline-primary">
+                <i class="ri-add-line me-1"></i> Add Recipient
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {{ recipient_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Email</th>
+                            <th>Name</th>
+                            <th>CC</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recipients-container">
+                        {% for rf in recipient_formset %}
+                        <tr class="recipient-row">
+                            <td>{{ rf.email }}{{ rf.id }}</td>
+                            <td>{{ rf.name }}</td>
+                            <td>{{ rf.is_cc }}</td>
+                            <td>
+                                {% if rf.DELETE %}
+                                <div class="form-check">
+                                    {{ rf.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty recipient form template -->
+    <div id="empty-form" class="d-none">
+        <tr class="recipient-row">
+            <td>{{ recipient_formset.empty_form.email }}{{ recipient_formset.empty_form.id }}</td>
+            <td>{{ recipient_formset.empty_form.name }}</td>
+            <td>{{ recipient_formset.empty_form.is_cc }}</td>
+            <td>
+                {% if recipient_formset.empty_form.DELETE %}
+                <div class="form-check">
+                    {{ recipient_formset.empty_form.DELETE }}
+                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'reporting:schedule_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_create %}Create Schedule{% else %}Save Changes{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% if not is_create %}
+{% block extra_js %}
+<script>
+    const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+    let formCount = {{ recipient_formset.total_form_count }};
+
+    document.getElementById('add-recipient').addEventListener('click', function() {
+        const container = document.getElementById('recipients-container');
+        const newForm = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        formCount++;
+        document.getElementById('id_recipients-TOTAL_FORMS').value = formCount;
+    });
+</script>
+{% endblock %}
+{% endif %}
