@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_create %}New Report Builder{% else %}Edit Builder - {{ builder.report_code }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_create %}New Report Builder{% else %}Edit Builder - {{ builder.report_code }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:builder_list' tenant_slug=current_tenant.slug %}">Report Builder</a></li>
+            <li class="breadcrumb-item active">{% if is_create %}New{% else %}Edit{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Report Definition -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-tools-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Report Definition</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="id_report_code" class="form-label">Report Code <span class="text-danger">*</span></label>
+                    {{ form.report_code }}
+                    {% if form.report_code.errors %}<div class="text-danger small">{{ form.report_code.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_base_entity" class="form-label">Base Entity <span class="text-danger">*</span></label>
+                    {{ form.base_entity }}
+                    {% if form.base_entity.errors %}<div class="text-danger small">{{ form.base_entity.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-12">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="id_layout_type" class="form-label">Layout Type <span class="text-danger">*</span></label>
+                    {{ form.layout_type }}
+                    {% if form.layout_type.errors %}<div class="text-danger small">{{ form.layout_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        {{ form.is_public }}
+                        <label class="form-check-label" for="id_is_public">Public</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="id_is_active">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SQL Query -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-code-line text-warning"></i></div>
+                <h5 class="card-title mb-0">SQL Query</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="id_sql_query" class="form-label">SQL Query <span class="text-danger">*</span></label>
+                    {{ form.sql_query }}
+                    {% if form.sql_query.errors %}<div class="text-danger small">{{ form.sql_query.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not is_create %}
+    <!-- Columns -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-layout-column-line text-success"></i></div>
+                <h5 class="card-title mb-0">Columns</h5>
+            </div>
+            <button type="button" id="add-column" class="btn btn-sm btn-outline-primary">
+                <i class="ri-add-line me-1"></i> Add Column
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {{ column_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order</th>
+                            <th>Field Name</th>
+                            <th>Display Name</th>
+                            <th>Aggregation</th>
+                            <th>Format String</th>
+                            <th>Visible</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="columns-container">
+                        {% for cf in column_formset %}
+                        <tr class="column-row">
+                            <td>{{ cf.column_order }}{{ cf.id }}</td>
+                            <td>{{ cf.field_name }}</td>
+                            <td>{{ cf.display_name }}</td>
+                            <td>{{ cf.aggregation }}</td>
+                            <td>{{ cf.format_string }}</td>
+                            <td>{{ cf.is_visible }}</td>
+                            <td>
+                                {% if cf.DELETE %}
+                                <div class="form-check">
+                                    {{ cf.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty column form template -->
+    <div id="empty-column-form" class="d-none">
+        <tr class="column-row">
+            <td>{{ column_formset.empty_form.column_order }}{{ column_formset.empty_form.id }}</td>
+            <td>{{ column_formset.empty_form.field_name }}</td>
+            <td>{{ column_formset.empty_form.display_name }}</td>
+            <td>{{ column_formset.empty_form.aggregation }}</td>
+            <td>{{ column_formset.empty_form.format_string }}</td>
+            <td>{{ column_formset.empty_form.is_visible }}</td>
+            <td>
+                {% if column_formset.empty_form.DELETE %}
+                <div class="form-check">
+                    {{ column_formset.empty_form.DELETE }}
+                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-filter-line text-info"></i></div>
+                <h5 class="card-title mb-0">Filters</h5>
+            </div>
+            <button type="button" id="add-filter" class="btn btn-sm btn-outline-primary">
+                <i class="ri-add-line me-1"></i> Add Filter
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {{ filter_formset.management_form }}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Field Name</th>
+                            <th>Operator</th>
+                            <th>Default Value</th>
+                            <th>Required</th>
+                            <th>Parameter</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="filters-container">
+                        {% for ff in filter_formset %}
+                        <tr class="filter-row">
+                            <td>{{ ff.field_name }}{{ ff.id }}</td>
+                            <td>{{ ff.operator }}</td>
+                            <td>{{ ff.default_value }}</td>
+                            <td>{{ ff.is_required }}</td>
+                            <td>{{ ff.is_parameter }}</td>
+                            <td>
+                                {% if ff.DELETE %}
+                                <div class="form-check">
+                                    {{ ff.DELETE }}
+                                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty filter form template -->
+    <div id="empty-filter-form" class="d-none">
+        <tr class="filter-row">
+            <td>{{ filter_formset.empty_form.field_name }}{{ filter_formset.empty_form.id }}</td>
+            <td>{{ filter_formset.empty_form.operator }}</td>
+            <td>{{ filter_formset.empty_form.default_value }}</td>
+            <td>{{ filter_formset.empty_form.is_required }}</td>
+            <td>{{ filter_formset.empty_form.is_parameter }}</td>
+            <td>
+                {% if filter_formset.empty_form.DELETE %}
+                <div class="form-check">
+                    {{ filter_formset.empty_form.DELETE }}
+                    <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'reporting:builder_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_create %}Create Builder{% else %}Save Changes{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% if not is_create %}
+{% block extra_js %}
+<script>
+    // Columns formset
+    const emptyColumnTemplate = document.getElementById('empty-column-form').innerHTML;
+    let columnCount = {{ column_formset.total_form_count }};
+
+    document.getElementById('add-column').addEventListener('click', function() {
+        const container = document.getElementById('columns-container');
+        const newForm = emptyColumnTemplate.replace(/__prefix__/g, columnCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        columnCount++;
+        document.getElementById('id_columns-TOTAL_FORMS').value = columnCount;
+    });
+
+    // Filters formset
+    const emptyFilterTemplate = document.getElementById('empty-filter-form').innerHTML;
+    let filterCount = {{ filter_formset.total_form_count }};
+
+    document.getElementById('add-filter').addEventListener('click', function() {
+        const container = document.getElementById('filters-container');
+        const newForm = emptyFilterTemplate.replace(/__prefix__/g, filterCount);
+        container.insertAdjacentHTML('beforeend', newForm);
+        filterCount++;
+        document.getElementById('id_filters-TOTAL_FORMS').value = filterCount;
+    });
+</script>
+{% endblock %}
+{% endif %}
