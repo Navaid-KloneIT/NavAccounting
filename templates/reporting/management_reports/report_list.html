@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Management Reports{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Management Reports</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Reporting & Compliance</li>
+            <li class="breadcrumb-item active">Management Reports</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-bar-chart-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Draft</p>
+                        <h3 class="mb-0">{{ draft_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-draft-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Distributed</p>
+                        <h3 class="mb-0">{{ distributed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-send-plane-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Report number, name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for val, label in type_choices %}
+                    <option value="{{ val }}" {% if request.GET.type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'reporting:mgmt_report_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'reporting:mgmt_report_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New Report</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if reports %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Number</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Department</th>
+                        <th>Period</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reports %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'reporting:mgmt_report_detail' tenant_slug=current_tenant.slug pk=r.pk %}">{{ r.report_number }}</a>
+                        </td>
+                        <td>{{ r.name }}</td>
+                        <td>
+                            <span class="badge bg-soft-info text-info">{{ r.get_report_type_display }}</span>
+                        </td>
+                        <td>{{ r.department|default:"-" }}</td>
+                        <td>{{ r.period_start|date:"M d, Y" }} - {{ r.period_end|date:"M d, Y" }}</td>
+                        <td>
+                            {% if r.status == 'draft' %}
+                                <span class="badge bg-soft-secondary text-secondary">Draft</span>
+                            {% elif r.status == 'generated' %}
+                                <span class="badge bg-soft-info text-info">Generated</span>
+                            {% elif r.status == 'reviewed' %}
+                                <span class="badge bg-soft-primary text-primary">Reviewed</span>
+                            {% elif r.status == 'distributed' %}
+                                <span class="badge bg-soft-success text-success">Distributed</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ r.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'reporting:mgmt_report_detail' tenant_slug=current_tenant.slug pk=r.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'reporting:mgmt_report_edit' tenant_slug=current_tenant.slug pk=r.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-bar-chart-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No management reports found.</p>
+            <a href="{% url 'reporting:mgmt_report_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Report</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
