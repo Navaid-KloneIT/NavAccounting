@@ -6482,7 +6482,7 @@ class Command(BaseCommand):
                             tenant=tenant, statement=stmt,
                             line_order=i + 1,
                             line_type='account',
-                            label=f"{acct.account_number} - {acct.account_name}",
+                            label=f"{acct.account_number} - {acct.name}",
                             account=acct,
                             current_amount=Decimal(str(random.randint(10000, 500000))),
                             prior_amount=Decimal(str(random.randint(10000, 500000))),
@@ -6517,7 +6517,7 @@ class Command(BaseCommand):
                         ManagementReportLine.unscoped.create(
                             tenant=tenant, report=rpt,
                             line_order=i + 1,
-                            label=acct.account_name,
+                            label=acct.name,
                             account=acct,
                             budget_amount=budget,
                             actual_amount=actual,
@@ -6653,7 +6653,7 @@ class Command(BaseCommand):
                         StatutoryReportLine.unscoped.create(
                             tenant=tenant, report=sr,
                             line_order=i + 1,
-                            label=acct.account_name,
+                            label=acct.name,
                             account=acct,
                             local_amount=Decimal(str(random.randint(10000, 500000))),
                             reporting_amount=Decimal(str(random.randint(10000, 500000))),
