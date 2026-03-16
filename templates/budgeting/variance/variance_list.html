@@ -13,13 +13,13 @@
                     <h4 class="mb-1">Variance Analyses</h4>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                             <li class="breadcrumb-item">Budgeting & Planning</li>
                             <li class="breadcrumb-item active">Variance Analyses</li>
                         </ol>
                     </nav>
                 </div>
-                <a href="{% url 'budgeting:variance_create' current_tenant.slug %}" class="btn btn-primary">
+                <a href="{% url 'budgeting:variance_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
                     <i class="ri-add-line me-1"></i> New Analysis
                 </a>
             </div>
@@ -84,7 +84,7 @@
                                 <tbody>
                                     {% for analysis in analyses %}
                                         <tr>
-                                            <td><a href="{% url 'budgeting:variance_detail' current_tenant.slug analysis.pk %}">{{ analysis.pk }}</a></td>
+                                            <td><a href="{% url 'budgeting:variance_detail' tenant_slug=current_tenant.slug pk=analysis.pk %}">{{ analysis.pk }}</a></td>
                                             <td>{{ analysis.name }}</td>
                                             <td>{{ analysis.budget }}</td>
                                             <td>{{ analysis.fiscal_period }}</td>
@@ -107,11 +107,8 @@
                                                 {{ analysis.variance_total|intcomma|default:"-" }}
                                             </td>
                                             <td class="text-end">
-                                                <a href="{% url 'budgeting:variance_detail' current_tenant.slug analysis.pk %}" class="btn btn-sm btn-soft-primary" title="View">
+                                                <a href="{% url 'budgeting:variance_detail' tenant_slug=current_tenant.slug pk=analysis.pk %}" class="btn btn-sm btn-soft-primary" title="View">
                                                     <i class="ri-eye-line"></i>
-                                                </a>
-                                                <a href="{% url 'budgeting:variance_edit' current_tenant.slug analysis.pk %}" class="btn btn-sm btn-soft-info" title="Edit">
-                                                    <i class="ri-pencil-line"></i>
                                                 </a>
                                             </td>
                                         </tr>
@@ -126,7 +123,7 @@
                             <i class="ri-arrow-up-down-line display-4 text-muted"></i>
                             <h5 class="mt-3">No Variance Analyses Found</h5>
                             <p class="text-muted">Get started by creating your first variance analysis.</p>
-                            <a href="{% url 'budgeting:variance_create' current_tenant.slug %}" class="btn btn-primary">
+                            <a href="{% url 'budgeting:variance_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
                                 <i class="ri-add-line me-1"></i> New Analysis
                             </a>
                         </div>
