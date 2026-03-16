@@ -12,12 +12,12 @@
                 <div>
                     <h4 class="mb-0">What-If Scenarios</h4>
                     <ol class="breadcrumb m-0 mt-1">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                         <li class="breadcrumb-item">Budgeting & Planning</li>
                         <li class="breadcrumb-item active">What-If Scenarios</li>
                     </ol>
                 </div>
-                <a href="{% url 'budgeting:scenario_create' current_tenant.slug %}" class="btn btn-primary">
+                <a href="{% url 'budgeting:scenario_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
                     <i class="ri-add-line me-1"></i> New Scenario
                 </a>
             </div>
@@ -88,7 +88,7 @@
                                 <tr>
                                     <td>{{ scenario.pk }}</td>
                                     <td>
-                                        <a href="{% url 'budgeting:scenario_detail' current_tenant.slug scenario.pk %}">{{ scenario.name }}</a>
+                                        <a href="{% url 'budgeting:scenario_detail' tenant_slug=current_tenant.slug pk=scenario.pk %}">{{ scenario.name }}</a>
                                     </td>
                                     <td>{{ scenario.budget }}</td>
                                     <td>
@@ -114,13 +114,13 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-end">
-                                        <a href="{% url 'budgeting:scenario_detail' current_tenant.slug scenario.pk %}" class="btn btn-sm btn-light" title="View">
+                                        <a href="{% url 'budgeting:scenario_detail' tenant_slug=current_tenant.slug pk=scenario.pk %}" class="btn btn-sm btn-light" title="View">
                                             <i class="ri-eye-line"></i>
                                         </a>
-                                        <a href="{% url 'budgeting:scenario_edit' current_tenant.slug scenario.pk %}" class="btn btn-sm btn-light" title="Edit">
+                                        <a href="{% url 'budgeting:scenario_edit' tenant_slug=current_tenant.slug pk=scenario.pk %}" class="btn btn-sm btn-light" title="Edit">
                                             <i class="ri-pencil-line"></i>
                                         </a>
-                                        <a href="{% url 'budgeting:scenario_delete' current_tenant.slug scenario.pk %}" class="btn btn-sm btn-light text-danger" title="Delete">
+                                        <a href="{% url 'budgeting:scenario_delete' tenant_slug=current_tenant.slug pk=scenario.pk %}" class="btn btn-sm btn-light text-danger" title="Delete">
                                             <i class="ri-delete-bin-line"></i>
                                         </a>
                                     </td>
@@ -134,7 +134,7 @@
                         <i class="ri-question-line display-4 text-muted"></i>
                         <h5 class="mt-3 text-muted">No scenarios found</h5>
                         <p class="text-muted">Create your first what-if scenario to get started.</p>
-                        <a href="{% url 'budgeting:scenario_create' current_tenant.slug %}" class="btn btn-primary">
+                        <a href="{% url 'budgeting:scenario_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
                             <i class="ri-add-line me-1"></i> New Scenario
                         </a>
                     </div>
