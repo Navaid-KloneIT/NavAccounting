@@ -1491,6 +1491,95 @@
                 </a>
             </li>
 
+            <!-- ═══════════════════════════════════════ -->
+            <!-- BUDGETING & PLANNING                    -->
+            <!-- ═══════════════════════════════════════ -->
+            <li class="menu-title" data-toggle="menu-section">Budgeting & Planning <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- Budget Creation -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:budget_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'budget' in request.resolver_match.url_name and 'version' not in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-wallet-3-line"></i>
+                    <span class="menu-text">Budgets</span>
+                </a>
+            </li>
+
+            <!-- Version Control -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'version' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-git-branch-line"></i>
+                    <span class="menu-text">Version Control</span>
+                </a>
+            </li>
+
+            <!-- Driver-based Planning -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:driver_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'driver' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-settings-4-line"></i>
+                    <span class="menu-text">Planning Drivers</span>
+                </a>
+            </li>
+
+            <!-- Rolling Forecasts -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:forecast_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'forecast' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-line-chart-line"></i>
+                    <span class="menu-text">Rolling Forecasts</span>
+                </a>
+            </li>
+
+            <!-- Variance Analysis -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:variance_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'variance' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-arrow-up-down-line"></i>
+                    <span class="menu-text">Variance Analysis</span>
+                </a>
+            </li>
+
+            <!-- What-if Analysis -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:scenario_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'scenario' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-question-line"></i>
+                    <span class="menu-text">What-if Analysis</span>
+                </a>
+            </li>
+
+            <!-- Workforce Planning -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'budgeting:workforce_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'budgeting' and 'workforce' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-team-line"></i>
+                    <span class="menu-text">Workforce Planning</span>
+                </a>
+            </li>
+
         </ul>
     </div>
 
