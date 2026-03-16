@@ -13,23 +13,20 @@
                     <h4 class="mb-1">{{ analysis.name }}</h4>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                             <li class="breadcrumb-item">Budgeting & Planning</li>
-                            <li class="breadcrumb-item"><a href="{% url 'budgeting:variance_list' current_tenant.slug %}">Variance Analyses</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budgeting:variance_list' tenant_slug=current_tenant.slug %}">Variance Analyses</a></li>
                             <li class="breadcrumb-item active">{{ analysis.name }}</li>
                         </ol>
                     </nav>
                 </div>
                 <div class="d-flex gap-2">
                     {% if analysis.status == 'draft' or analysis.status == 'generated' %}
-                        <a href="{% url 'budgeting:variance_generate' current_tenant.slug analysis.pk %}" class="btn btn-success">
+                        <a href="{% url 'budgeting:variance_generate' tenant_slug=current_tenant.slug pk=analysis.pk %}" class="btn btn-success">
                             <i class="ri-refresh-line me-1"></i> {% if analysis.status == 'draft' %}Generate Variance{% else %}Regenerate Variance{% endif %}
                         </a>
                     {% endif %}
-                    <a href="{% url 'budgeting:variance_edit' current_tenant.slug analysis.pk %}" class="btn btn-info">
-                        <i class="ri-pencil-line me-1"></i> Edit
-                    </a>
-                    <a href="{% url 'budgeting:variance_list' current_tenant.slug %}" class="btn btn-secondary">
+                    <a href="{% url 'budgeting:variance_list' tenant_slug=current_tenant.slug %}" class="btn btn-secondary">
                         <i class="ri-arrow-left-line me-1"></i> Back to List
                     </a>
                 </div>
@@ -169,7 +166,7 @@
                                 {% endif %}
                             </p>
                             {% if analysis.status == 'draft' %}
-                                <a href="{% url 'budgeting:variance_generate' current_tenant.slug analysis.pk %}" class="btn btn-success">
+                                <a href="{% url 'budgeting:variance_generate' tenant_slug=current_tenant.slug pk=analysis.pk %}" class="btn btn-success">
                                     <i class="ri-refresh-line me-1"></i> Generate Variance
                                 </a>
                             {% endif %}
