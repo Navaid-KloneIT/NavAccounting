@@ -12,9 +12,9 @@
                 <h4 class="mb-sm-0">{% if is_edit %}Edit{% else %}Create{% endif %} Budget Version</h4>
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                         <li class="breadcrumb-item">Budgeting & Planning</li>
-                        <li class="breadcrumb-item"><a href="{% url 'budgeting:version_list' current_tenant.slug %}">Versions</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}">Versions</a></li>
                         <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}Create{% endif %}</li>
                     </ol>
                 </div>
@@ -89,7 +89,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="ri-save-line me-1"></i> {% if is_edit %}Update{% else %}Create{% endif %} Version
                             </button>
-                            <a href="{% url 'budgeting:version_list' current_tenant.slug %}" class="btn btn-soft-secondary">
+                            <a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-secondary">
                                 <i class="ri-arrow-left-line me-1"></i> Cancel
                             </a>
                         </div>
