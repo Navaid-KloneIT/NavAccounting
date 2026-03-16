@@ -12,7 +12,7 @@
                 <h4 class="mb-sm-0">Budget Versions</h4>
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                         <li class="breadcrumb-item">Budgeting & Planning</li>
                         <li class="breadcrumb-item active">Versions</li>
                     </ol>
@@ -26,7 +26,7 @@
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="card-title mb-0">All Versions ({{ total_count }})</h5>
-                    <a href="{% url 'budgeting:version_create' current_tenant.slug %}" class="btn btn-primary">
+                    <a href="{% url 'budgeting:version_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
                         <i class="ri-add-line me-1"></i> New Version
                     </a>
                 </div>
@@ -49,7 +49,7 @@
                         </div>
                         {% if request.GET.q or request.GET.version_type %}
                         <div class="col-md-2">
-                            <a href="{% url 'budgeting:version_list' current_tenant.slug %}" class="btn btn-soft-secondary w-100"><i class="ri-refresh-line me-1"></i> Clear</a>
+                            <a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-secondary w-100"><i class="ri-refresh-line me-1"></i> Clear</a>
                         </div>
                         {% endif %}
                     </form>
@@ -72,7 +72,7 @@
                                 {% for v in versions %}
                                 <tr>
                                     <td>
-                                        <a href="{% url 'budgeting:version_detail' current_tenant.slug v.pk %}">{{ v.version_number }}</a>
+                                        <a href="{% url 'budgeting:version_detail' tenant_slug=current_tenant.slug pk=v.pk %}">{{ v.version_number }}</a>
                                     </td>
                                     <td>{{ v.budget }}</td>
                                     <td>{{ v.name }}</td>
@@ -94,13 +94,13 @@
                                     </td>
                                     <td class="text-end">{{ v.total_amount|intcomma }}</td>
                                     <td class="text-end">
-                                        <a href="{% url 'budgeting:version_detail' current_tenant.slug v.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                        <a href="{% url 'budgeting:version_detail' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-info" title="View">
                                             <i class="ri-eye-line"></i>
                                         </a>
-                                        <a href="{% url 'budgeting:version_update' current_tenant.slug v.pk %}" class="btn btn-sm btn-soft-warning" title="Edit">
+                                        <a href="{% url 'budgeting:version_update' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-warning" title="Edit">
                                             <i class="ri-pencil-line"></i>
                                         </a>
-                                        <a href="{% url 'budgeting:version_delete' current_tenant.slug v.pk %}" class="btn btn-sm btn-soft-danger" title="Delete">
+                                        <a href="{% url 'budgeting:version_delete' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-danger" title="Delete">
                                             <i class="ri-delete-bin-line"></i>
                                         </a>
                                     </td>
@@ -117,7 +117,7 @@
                         <i class="ri-git-branch-line display-4 text-muted"></i>
                         <h5 class="mt-3">No Budget Versions Found</h5>
                         <p class="text-muted">Get started by creating your first budget version.</p>
-                        <a href="{% url 'budgeting:version_create' current_tenant.slug %}" class="btn btn-primary">
+                        <a href="{% url 'budgeting:version_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
                             <i class="ri-add-line me-1"></i> New Version
                         </a>
                     </div>
