@@ -12,9 +12,9 @@
                 <h4 class="mb-sm-0">{{ driver.name }}</h4>
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                         <li class="breadcrumb-item">Budgeting & Planning</li>
-                        <li class="breadcrumb-item"><a href="{% url 'budgeting:driver_list' current_tenant.slug %}">Drivers</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'budgeting:driver_list' tenant_slug=current_tenant.slug %}">Drivers</a></li>
                         <li class="breadcrumb-item active">{{ driver.name }}</li>
                     </ol>
                 </div>
@@ -29,13 +29,13 @@
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="card-title mb-0"><i class="ri-settings-4-line me-1"></i> Driver Details</h5>
                     <div class="d-flex gap-2">
-                        <a href="{% url 'budgeting:driver_calculate' current_tenant.slug driver.pk %}" class="btn btn-sm btn-soft-success">
+                        <a href="{% url 'budgeting:driver_calculate' tenant_slug=current_tenant.slug pk=driver.pk %}" class="btn btn-sm btn-soft-success">
                             <i class="ri-calculator-line me-1"></i> Recalculate
                         </a>
-                        <a href="{% url 'budgeting:driver_update' current_tenant.slug driver.pk %}" class="btn btn-sm btn-soft-warning">
+                        <a href="{% url 'budgeting:driver_update' tenant_slug=current_tenant.slug pk=driver.pk %}" class="btn btn-sm btn-soft-warning">
                             <i class="ri-pencil-line me-1"></i> Edit
                         </a>
-                        <a href="{% url 'budgeting:driver_delete' current_tenant.slug driver.pk %}" class="btn btn-sm btn-soft-danger">
+                        <a href="{% url 'budgeting:driver_delete' tenant_slug=current_tenant.slug pk=driver.pk %}" class="btn btn-sm btn-soft-danger">
                             <i class="ri-delete-bin-line me-1"></i> Delete
                         </a>
                     </div>
