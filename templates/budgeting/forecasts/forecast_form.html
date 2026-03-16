@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Forecast{% else %}New Forecast{% endif %} - Budgeting & Planning{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-1">{% if is_edit %}Edit Forecast{% else %}New Forecast{% endif %}</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                            <li class="breadcrumb-item">Budgeting & Planning</li>
+                            <li class="breadcrumb-item"><a href="{% url 'budgeting:forecast_list' current_tenant.slug %}">Rolling Forecasts</a></li>
+                            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Forecast Info -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="ri-information-line me-1"></i> Forecast Info</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <p class="mb-0">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}" class="form-control {% if form.name.errors %}is-invalid{% endif %}" value="{{ form.name.value|default:'' }}">
+                                {% for error in form.name.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.budget.id_for_label }}" class="form-label">Budget <span class="text-danger">*</span></label>
+                                {{ form.budget }}
+                                {% for error in form.budget.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.forecast_type.id_for_label }}" class="form-label">Forecast Type <span class="text-danger">*</span></label>
+                                {{ form.forecast_type }}
+                                {% for error in form.forecast_type.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.horizon_periods.id_for_label }}" class="form-label">Horizon Periods <span class="text-danger">*</span></label>
+                                <input type="number" name="{{ form.horizon_periods.html_name }}" id="{{ form.horizon_periods.id_for_label }}" class="form-control {% if form.horizon_periods.errors %}is-invalid{% endif %}" value="{{ form.horizon_periods.value|default:'' }}">
+                                {% for error in form.horizon_periods.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {{ form.status }}
+                                {% for error in form.status.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.as_of_date.id_for_label }}" class="form-label">As-of Date <span class="text-danger">*</span></label>
+                                <input type="date" name="{{ form.as_of_date.html_name }}" id="{{ form.as_of_date.id_for_label }}" class="form-control {% if form.as_of_date.errors %}is-invalid{% endif %}" value="{{ form.as_of_date.value|default:'' }}">
+                                {% for error in form.as_of_date.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-8">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                <textarea name="{{ form.notes.html_name }}" id="{{ form.notes.id_for_label }}" class="form-control {% if form.notes.errors %}is-invalid{% endif %}" rows="3">{{ form.notes.value|default:'' }}</textarea>
+                                {% for error in form.notes.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecast Lines Formset -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="ri-list-check-2 me-1"></i> Forecast Lines</h5>
+                        <button type="button" class="btn btn-sm btn-soft-primary" id="add-line-btn">
+                            <i class="ri-add-line me-1"></i> Add Line
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        {{ formset.management_form }}
+
+                        {% if formset.non_form_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in formset.non_form_errors %}
+                                    <p class="mb-0">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="lines-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>GL Account</th>
+                                        <th>Fiscal Period</th>
+                                        <th>Forecast Amount</th>
+                                        <th>Notes</th>
+                                        <th class="text-center">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lines-tbody">
+                                    {% for line_form in formset %}
+                                        <tr class="line-row">
+                                            <td>
+                                                {{ line_form.id }}
+                                                {{ line_form.gl_account }}
+                                                {% for error in line_form.gl_account.errors %}
+                                                    <div class="text-danger small">{{ error }}</div>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                {{ line_form.fiscal_period }}
+                                                {% for error in line_form.fiscal_period.errors %}
+                                                    <div class="text-danger small">{{ error }}</div>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                <input type="number" name="{{ line_form.forecast_amount.html_name }}" id="{{ line_form.forecast_amount.id_for_label }}" class="form-control {% if line_form.forecast_amount.errors %}is-invalid{% endif %}" value="{{ line_form.forecast_amount.value|default:'' }}" step="0.01">
+                                                {% for error in line_form.forecast_amount.errors %}
+                                                    <div class="invalid-feedback">{{ error }}</div>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                <input type="text" name="{{ line_form.notes.html_name }}" id="{{ line_form.notes.id_for_label }}" class="form-control {% if line_form.notes.errors %}is-invalid{% endif %}" value="{{ line_form.notes.value|default:'' }}">
+                                                {% for error in line_form.notes.errors %}
+                                                    <div class="invalid-feedback">{{ error }}</div>
+                                                {% endfor %}
+                                            </td>
+                                            <td class="text-center">
+                                                {{ line_form.DELETE }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row mb-4">
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <a href="{% if is_edit %}{% url 'budgeting:forecast_detail' current_tenant.slug forecast.pk %}{% else %}{% url 'budgeting:forecast_list' current_tenant.slug %}{% endif %}" class="btn btn-secondary">
+                    <i class="ri-close-line me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ri-save-line me-1"></i> {% if is_edit %}Update Forecast{% else %}Create Forecast{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('add-line-btn');
+    const tbody = document.getElementById('lines-tbody');
+    const totalForms = document.getElementById('id_lines-TOTAL_FORMS');
+
+    addBtn.addEventListener('click', function() {
+        const formCount = parseInt(totalForms.value);
+        const firstRow = tbody.querySelector('.line-row');
+        if (!firstRow) return;
+
+        const newRow = firstRow.cloneNode(true);
+        // Update all input/select names and ids
+        newRow.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.name) {
+                el.name = el.name.replace(/lines-\d+/, 'lines-' + formCount);
+            }
+            if (el.id) {
+                el.id = el.id.replace(/lines-\d+/, 'lines-' + formCount);
+            }
+            if (el.type === 'hidden' && el.name.endsWith('-id')) {
+                el.value = '';
+            } else if (el.type === 'checkbox') {
+                el.checked = false;
+            } else if (el.tagName !== 'SELECT') {
+                el.value = '';
+            }
+        });
+        newRow.querySelectorAll('label').forEach(function(el) {
+            if (el.htmlFor) {
+                el.htmlFor = el.htmlFor.replace(/lines-\d+/, 'lines-' + formCount);
+            }
+        });
+        // Clear error messages
+        newRow.querySelectorAll('.text-danger, .invalid-feedback').forEach(function(el) {
+            el.remove();
+        });
+        newRow.querySelectorAll('.is-invalid').forEach(function(el) {
+            el.classList.remove('is-invalid');
+        });
+
+        tbody.appendChild(newRow);
+        totalForms.value = formCount + 1;
+    });
+});
+</script>
+{% endblock %}
