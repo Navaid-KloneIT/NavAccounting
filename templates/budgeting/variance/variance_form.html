@@ -13,9 +13,9 @@
                     <h4 class="mb-1">{% if is_edit %}Edit Variance Analysis{% else %}New Variance Analysis{% endif %}</h4>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                             <li class="breadcrumb-item">Budgeting & Planning</li>
-                            <li class="breadcrumb-item"><a href="{% url 'budgeting:variance_list' current_tenant.slug %}">Variance Analyses</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budgeting:variance_list' tenant_slug=current_tenant.slug %}">Variance Analyses</a></li>
                             <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
                         </ol>
                     </nav>
@@ -87,7 +87,7 @@
         <!-- Actions -->
         <div class="row mb-4">
             <div class="col-lg-8 d-flex justify-content-end gap-2">
-                <a href="{% url 'budgeting:variance_list' current_tenant.slug %}" class="btn btn-secondary">
+                <a href="{% url 'budgeting:variance_list' tenant_slug=current_tenant.slug %}" class="btn btn-secondary">
                     <i class="ri-close-line me-1"></i> Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
