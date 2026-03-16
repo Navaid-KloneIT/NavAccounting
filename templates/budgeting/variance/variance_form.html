@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Variance Analysis{% else %}New Variance Analysis{% endif %} - Budgeting & Planning{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-1">{% if is_edit %}Edit Variance Analysis{% else %}New Variance Analysis{% endif %}</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                            <li class="breadcrumb-item">Budgeting & Planning</li>
+                            <li class="breadcrumb-item"><a href="{% url 'budgeting:variance_list' current_tenant.slug %}">Variance Analyses</a></li>
+                            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="ri-information-line me-1"></i> Analysis Details</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <p class="mb-0">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}" class="form-control {% if form.name.errors %}is-invalid{% endif %}" value="{{ form.name.value|default:'' }}">
+                                {% for error in form.name.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.budget.id_for_label }}" class="form-label">Budget <span class="text-danger">*</span></label>
+                                {{ form.budget }}
+                                {% for error in form.budget.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.fiscal_period.id_for_label }}" class="form-label">Fiscal Period <span class="text-danger">*</span></label>
+                                {{ form.fiscal_period }}
+                                {% for error in form.fiscal_period.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {{ form.status }}
+                                {% for error in form.status.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-12">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                <textarea name="{{ form.notes.html_name }}" id="{{ form.notes.id_for_label }}" class="form-control {% if form.notes.errors %}is-invalid{% endif %}" rows="3">{{ form.notes.value|default:'' }}</textarea>
+                                {% for error in form.notes.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row mb-4">
+            <div class="col-lg-8 d-flex justify-content-end gap-2">
+                <a href="{% url 'budgeting:variance_list' current_tenant.slug %}" class="btn btn-secondary">
+                    <i class="ri-close-line me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ri-save-line me-1"></i> {% if is_edit %}Update Analysis{% else %}Create Analysis{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
