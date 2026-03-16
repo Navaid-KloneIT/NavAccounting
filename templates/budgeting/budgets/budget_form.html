@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Budget{% else %}New Budget{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <h4 class="page-title">{% if is_edit %}Edit Budget{% else %}New Budget{% endif %}</h4>
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                <li class="breadcrumb-item">Budgeting & Planning</li>
+                <li class="breadcrumb-item"><a href="{% url 'budgeting:budget_list' current_tenant.slug %}">Budgets</a></li>
+                <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="ri-information-line me-1"></i> Budget Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.budget_type.id_for_label }}" class="form-label">Type</label>
+                    {{ form.budget_type }}
+                    {% if form.budget_type.errors %}
+                        <div class="invalid-feedback d-block">{{ form.budget_type.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.approach.id_for_label }}" class="form-label">Approach</label>
+                    {{ form.approach }}
+                    {% if form.approach.errors %}
+                        <div class="invalid-feedback d-block">{{ form.approach.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.fiscal_year.id_for_label }}" class="form-label">Fiscal Year</label>
+                    {{ form.fiscal_year }}
+                    {% if form.fiscal_year.errors %}
+                        <div class="invalid-feedback d-block">{{ form.fiscal_year.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                        <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="ri-calendar-line me-1"></i> Date Range</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date</label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                        <div class="invalid-feedback d-block">{{ form.start_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date</label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}
+                        <div class="invalid-feedback d-block">{{ form.end_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="ri-sticky-note-line me-1"></i> Notes</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="ri-list-check-2 me-1"></i> Line Items</h5>
+            <button type="button" class="btn btn-sm btn-soft-primary" id="add-line-item">
+                <i class="ri-add-line me-1"></i> Add Line
+            </button>
+        </div>
+        <div class="card-body">
+            {{ formset.management_form }}
+
+            {% if formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {% for error in formset.non_form_errors %}
+                    <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="line-items-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>GL Account</th>
+                            <th>Fiscal Period</th>
+                            <th>Department</th>
+                            <th>Amount</th>
+                            <th>Notes</th>
+                            <th class="text-center">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line_form in formset %}
+                        <tr class="line-item-row">
+                            {{ line_form.id }}
+                            <td>
+                                {{ line_form.gl_account }}
+                                {% if line_form.gl_account.errors %}
+                                    <div class="invalid-feedback d-block">{{ line_form.gl_account.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.fiscal_period }}
+                                {% if line_form.fiscal_period.errors %}
+                                    <div class="invalid-feedback d-block">{{ line_form.fiscal_period.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.department }}
+                                {% if line_form.department.errors %}
+                                    <div class="invalid-feedback d-block">{{ line_form.department.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.amount }}
+                                {% if line_form.amount.errors %}
+                                    <div class="invalid-feedback d-block">{{ line_form.amount.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ line_form.notes }}
+                                {% if line_form.notes.errors %}
+                                    <div class="invalid-feedback d-block">{{ line_form.notes.errors.0 }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {{ line_form.DELETE }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="ri-save-line me-1"></i> {% if is_edit %}Update{% else %}Save{% endif %} Budget
+            </button>
+            <a href="{% url 'budgeting:budget_list' current_tenant.slug %}" class="btn btn-secondary">
+                <i class="ri-close-line me-1"></i> Cancel
+            </a>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('add-line-item');
+    const tbody = document.querySelector('#line-items-table tbody');
+    const totalFormsInput = document.querySelector('#id_lines-TOTAL_FORMS');
+
+    addBtn.addEventListener('click', function() {
+        const formCount = parseInt(totalFormsInput.value);
+        const lastRow = tbody.querySelector('.line-item-row:last-child');
+        if (lastRow) {
+            const newRow = lastRow.cloneNode(true);
+            newRow.innerHTML = newRow.innerHTML.replace(new RegExp('lines-\\d+', 'g'), 'lines-' + formCount);
+            newRow.querySelectorAll('input, select, textarea').forEach(function(el) {
+                if (el.type === 'checkbox') {
+                    el.checked = false;
+                } else {
+                    el.value = '';
+                }
+                el.id = el.id.replace(/lines-\d+/, 'lines-' + formCount);
+                el.name = el.name.replace(/lines-\d+/, 'lines-' + formCount);
+            });
+            tbody.appendChild(newRow);
+        }
+        totalFormsInput.value = formCount + 1;
+    });
+});
+</script>
+{% endblock %}
