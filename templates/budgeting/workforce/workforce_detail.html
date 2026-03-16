@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Workforce Plan: {{ plan.name }} - Budgeting & Planning{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-0">{{ plan.name }}</h4>
+                    <ol class="breadcrumb m-0 mt-1">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                        <li class="breadcrumb-item">Budgeting & Planning</li>
+                        <li class="breadcrumb-item"><a href="{% url 'budgeting:workforce_list' current_tenant.slug %}">Workforce Plans</a></li>
+                        <li class="breadcrumb-item active">{{ plan.name }}</li>
+                    </ol>
+                </div>
+                <a href="{% url 'budgeting:workforce_edit' current_tenant.slug plan.pk %}" class="btn btn-primary">
+                    <i class="ri-pencil-line me-1"></i> Edit
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Headcount</h6>
+                    <h3 class="mb-0">{{ plan.total_headcount|default:"0"|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Salary Cost</h6>
+                    <h3 class="mb-0">{{ plan.total_salary_cost|default:"0"|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Benefit Cost</h6>
+                    <h3 class="mb-0">{{ plan.total_benefit_cost|default:"0"|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Cost</h6>
+                    <h3 class="mb-0">{{ plan.total_cost|default:"0"|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Info -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-information-line me-1"></i> Plan Info</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Name</dt>
+                        <dd class="col-sm-8">{{ plan.name }}</dd>
+
+                        <dt class="col-sm-4">Budget</dt>
+                        <dd class="col-sm-8">{{ plan.budget }}</dd>
+
+                        <dt class="col-sm-4">Department</dt>
+                        <dd class="col-sm-8">{{ plan.department|default:"-" }}</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            {% if plan.status == 'draft' %}
+                                <span class="badge bg-soft-warning text-warning">{{ plan.get_status_display }}</span>
+                            {% elif plan.status == 'active' %}
+                                <span class="badge bg-soft-success text-success">{{ plan.get_status_display }}</span>
+                            {% elif plan.status == 'approved' %}
+                                <span class="badge bg-soft-primary text-primary">{{ plan.get_status_display }}</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ plan.get_status_display }}</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-4">Notes</dt>
+                        <dd class="col-sm-8">{{ plan.notes|default:"-" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Positions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-team-line me-1"></i> Positions</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if positions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Department</th>
+                                    <th class="text-end">Headcount</th>
+                                    <th class="text-end">Annual Salary</th>
+                                    <th class="text-end">Benefit Rate</th>
+                                    <th class="text-end">Benefit Amount</th>
+                                    <th class="text-end">Total Cost</th>
+                                    <th>New Position?</th>
+                                    <th>Salary Account</th>
+                                    <th>Benefit Account</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pos in positions %}
+                                <tr>
+                                    <td>{{ pos.position_title }}</td>
+                                    <td>{{ pos.department|default:"-" }}</td>
+                                    <td class="text-end">{{ pos.headcount|intcomma }}</td>
+                                    <td class="text-end">{{ pos.annual_salary|intcomma }}</td>
+                                    <td class="text-end">{{ pos.benefit_rate }}%</td>
+                                    <td class="text-end">{{ pos.benefit_amount|default:"0"|intcomma }}</td>
+                                    <td class="text-end">{{ pos.total_cost|default:"0"|intcomma }}</td>
+                                    <td>
+                                        {% if pos.is_new_position %}
+                                            <span class="badge bg-soft-success text-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pos.gl_salary_account|default:"-" }}</td>
+                                    <td>{{ pos.gl_benefit_account|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted mb-0">No positions defined for this plan.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
