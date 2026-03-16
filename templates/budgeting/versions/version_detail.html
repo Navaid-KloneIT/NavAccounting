@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Version #{{ version.version_number }} - {{ version.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                <h4 class="mb-sm-0">Version #{{ version.version_number }}</h4>
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                        <li class="breadcrumb-item">Budgeting & Planning</li>
+                        <li class="breadcrumb-item"><a href="{% url 'budgeting:version_list' current_tenant.slug %}">Versions</a></li>
+                        <li class="breadcrumb-item active">{{ version.name }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Version Info Card -->
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="ri-git-branch-line me-1"></i> Version Details</h5>
+                    <div class="d-flex gap-2">
+                        {% if not version.is_current %}
+                        <a href="{% url 'budgeting:version_set_current' current_tenant.slug version.pk %}" class="btn btn-sm btn-soft-success">
+                            <i class="ri-check-double-line me-1"></i> Set as Current
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'budgeting:version_update' current_tenant.slug version.pk %}" class="btn btn-sm btn-soft-warning">
+                            <i class="ri-pencil-line me-1"></i> Edit
+                        </a>
+                        <a href="{% url 'budgeting:version_delete' current_tenant.slug version.pk %}" class="btn btn-sm btn-soft-danger">
+                            <i class="ri-delete-bin-line me-1"></i> Delete
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Version #</dt>
+                        <dd class="col-sm-8">{{ version.version_number }}</dd>
+
+                        <dt class="col-sm-4">Budget</dt>
+                        <dd class="col-sm-8">{{ version.budget }}</dd>
+
+                        <dt class="col-sm-4">Name</dt>
+                        <dd class="col-sm-8">{{ version.name }}</dd>
+
+                        <dt class="col-sm-4">Description</dt>
+                        <dd class="col-sm-8">{{ version.description|default:"-" }}</dd>
+
+                        <dt class="col-sm-4">Type</dt>
+                        <dd class="col-sm-8">
+                            {% if version.version_type == 'original' %}
+                                <span class="badge bg-soft-primary text-primary">Original</span>
+                            {% elif version.version_type == 'revision' %}
+                                <span class="badge bg-soft-info text-info">Revision</span>
+                            {% elif version.version_type == 'scenario' %}
+                                <span class="badge bg-soft-warning text-warning">Scenario</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ version.get_version_type_display }}</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-4">Current</dt>
+                        <dd class="col-sm-8">
+                            {% if version.is_current %}
+                                <span class="badge bg-soft-success text-success"><i class="ri-check-line me-1"></i> Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">No</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-4">Total Amount</dt>
+                        <dd class="col-sm-8">{{ version.total_amount|intcomma }}</dd>
+
+                        <dt class="col-sm-4">Created By</dt>
+                        <dd class="col-sm-8">{{ version.created_by|default:"-" }}</dd>
+
+                        <dt class="col-sm-4">Created At</dt>
+                        <dd class="col-sm-8">{{ version.created_at|date:"M d, Y H:i" }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Snapshot Data -->
+            {% if version.snapshot_data %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="ri-database-2-line me-1"></i> Snapshot Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Account</th>
+                                    <th>Period</th>
+                                    <th>Department</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in version.snapshot_data %}
+                                <tr>
+                                    <td>{{ row.account }}</td>
+                                    <td>{{ row.period }}</td>
+                                    <td>{{ row.dept|default:"-" }}</td>
+                                    <td class="text-end">{{ row.amount|intcomma }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
