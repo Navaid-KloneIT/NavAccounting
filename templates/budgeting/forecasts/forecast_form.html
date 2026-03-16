@@ -13,9 +13,9 @@
                     <h4 class="mb-1">{% if is_edit %}Edit Forecast{% else %}New Forecast{% endif %}</h4>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'dashboard' current_tenant.slug %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
                             <li class="breadcrumb-item">Budgeting & Planning</li>
-                            <li class="breadcrumb-item"><a href="{% url 'budgeting:forecast_list' current_tenant.slug %}">Rolling Forecasts</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budgeting:forecast_list' tenant_slug=current_tenant.slug %}">Rolling Forecasts</a></li>
                             <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
                         </ol>
                     </nav>
@@ -175,7 +175,7 @@
         <!-- Actions -->
         <div class="row mb-4">
             <div class="col-12 d-flex justify-content-end gap-2">
-                <a href="{% if is_edit %}{% url 'budgeting:forecast_detail' current_tenant.slug forecast.pk %}{% else %}{% url 'budgeting:forecast_list' current_tenant.slug %}{% endif %}" class="btn btn-secondary">
+                <a href="{% if is_edit %}{% url 'budgeting:forecast_detail' tenant_slug=current_tenant.slug pk=forecast.pk %}{% else %}{% url 'budgeting:forecast_list' tenant_slug=current_tenant.slug %}{% endif %}" class="btn btn-secondary">
                     <i class="ri-close-line me-1"></i> Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
