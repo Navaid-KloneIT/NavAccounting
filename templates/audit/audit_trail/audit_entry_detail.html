@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ entry.entry_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ entry.entry_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:audit_entry_list' tenant_slug=current_tenant.slug %}">Audit Trail</a></li>
+            <li class="breadcrumb-item active">{{ entry.entry_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Entry Information -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2">
+                        <i class="ri-history-line text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Entry Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Entry #</dt>
+                            <dd class="col-sm-7"><strong>{{ entry.entry_number }}</strong></dd>
+                            <dt class="col-sm-5 text-muted">Action</dt>
+                            <dd class="col-sm-7">
+                                {% if entry.action == 'create' %}
+                                    <span class="badge bg-soft-success text-success">Create</span>
+                                {% elif entry.action == 'update' %}
+                                    <span class="badge bg-soft-info text-info">Update</span>
+                                {% elif entry.action == 'delete' %}
+                                    <span class="badge bg-soft-danger text-danger">Delete</span>
+                                {% elif entry.action == 'view' %}
+                                    <span class="badge bg-soft-primary text-primary">View</span>
+                                {% elif entry.action == 'export' %}
+                                    <span class="badge bg-soft-warning text-warning">Export</span>
+                                {% elif entry.action == 'login' %}
+                                    <span class="badge bg-soft-success text-success">Login</span>
+                                {% elif entry.action == 'logout' %}
+                                    <span class="badge bg-soft-secondary text-secondary">Logout</span>
+                                {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">{{ entry.get_action_display }}</span>
+                                {% endif %}
+                            </dd>
+                            <dt class="col-sm-5 text-muted">Model</dt>
+                            <dd class="col-sm-7"><code>{{ entry.model|default:"-" }}</code></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Record ID</dt>
+                            <dd class="col-sm-7">{{ entry.record_id|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">User</dt>
+                            <dd class="col-sm-7">{% if entry.user %}{{ entry.user.get_full_name|default:entry.user.email }}{% else %}-{% endif %}</dd>
+                            <dt class="col-sm-5 text-muted">Timestamp</dt>
+                            <dd class="col-sm-7">{{ entry.timestamp|date:"M d, Y H:i" }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Changes -->
+        {% if entry.old_values or entry.new_values %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2">
+                        <i class="ri-file-diff-line text-warning"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Changes</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if entry.old_values %}
+                <h6 class="text-muted text-uppercase small mb-2">Old Values</h6>
+                <pre class="bg-light p-3 rounded">{{ entry.old_values|pprint }}</pre>
+                {% endif %}
+                {% if entry.new_values %}
+                <h6 class="text-muted text-uppercase small mb-2">New Values</h6>
+                <pre class="bg-light p-3 rounded">{{ entry.new_values|pprint }}</pre>
+                {% endif %}
+                {% if entry.changes_summary %}
+                <h6 class="text-muted text-uppercase small mb-2 mt-3">Changes Summary</h6>
+                <p>{{ entry.changes_summary }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Metadata -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Metadata</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted small">Timestamp</dt>
+                    <dd class="col-sm-7 small">{{ entry.timestamp|date:"M d, Y H:i:s" }}</dd>
+                    <dt class="col-sm-5 text-muted small">User</dt>
+                    <dd class="col-sm-7 small">{% if entry.user %}{{ entry.user.get_full_name|default:entry.user.email }}{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-5 text-muted small">IP Address</dt>
+                    <dd class="col-sm-7 small">{{ entry.ip_address|default:"-" }}</dd>
+                    <dt class="col-sm-5 text-muted small">Session ID</dt>
+                    <dd class="col-sm-7 small"><code>{{ entry.session_id|default:"-" }}</code></dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-body">
+                <a href="{% url 'audit:audit_entry_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Audit Trail
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
