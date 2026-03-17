@@ -30,6 +30,7 @@ urlpatterns = [
         path('tx/', include('apps.tax.urls')),
         path('rc/', include('apps.reporting.urls')),
         path('bp/', include('apps.budgeting.urls')),
+        path('au/', include('apps.audit.urls')),
     ])),
 
     # Vendor Portal (outside tenant scope, token-based auth)
