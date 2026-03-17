@@ -34,10 +34,13 @@ def version_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    all_versions = BudgetVersion.objects.filter(tenant=tenant)
     return render(request, 'budgeting/versions/version_list.html', {
         'versions': page_obj,
         'page_obj': page_obj,
         'total_count': qs.count(),
+        'current_count': all_versions.filter(is_current=True).count(),
+        'scenario_count': all_versions.filter(version_type='scenario').count(),
         'version_type_choices': BudgetVersion.VERSION_TYPE_CHOICES,
     })
 
