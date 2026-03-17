@@ -160,7 +160,7 @@
                                 <span class="badge bg-soft-secondary text-secondary">{{ entry.get_action_display }}</span>
                             {% endif %}
                         </td>
-                        <td><code>{{ entry.model|default:"-" }}</code></td>
+                        <td><code>{{ entry.model_name|default:"-" }}</code></td>
                         <td>{{ entry.record_id|default:"-" }}</td>
                         <td>{% if entry.user %}{{ entry.user.get_full_name|default:entry.user.email }}{% else %}-{% endif %}</td>
                         <td><small>{{ entry.timestamp|date:"M d, Y H:i" }}</small></td>
