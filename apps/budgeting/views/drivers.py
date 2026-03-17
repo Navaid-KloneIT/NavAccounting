@@ -39,10 +39,13 @@ def driver_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    all_drivers = PlanningDriver.objects.filter(tenant=tenant)
     return render(request, 'budgeting/drivers/driver_list.html', {
         'drivers': page_obj,
         'page_obj': page_obj,
         'total_count': qs.count(),
+        'active_count': all_drivers.filter(is_active=True).count(),
+        'inactive_count': all_drivers.filter(is_active=False).count(),
         'driver_type_choices': PlanningDriver.DRIVER_TYPE_CHOICES,
     })
 
