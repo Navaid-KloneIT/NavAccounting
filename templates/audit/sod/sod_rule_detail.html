@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ rule.rule_number }} - SoD Rule{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ rule.rule_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item">Segregation of Duties</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:sod_rule_list' tenant_slug=current_tenant.slug %}">Rules</a></li>
+            <li class="breadcrumb-item active">{{ rule.rule_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Rule Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Rule Information</h5>
+                <div>
+                    {% if rule.status == 'active' %}
+                        <span class="badge bg-soft-success text-success fs-6">Active</span>
+                    {% elif rule.status == 'inactive' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Inactive</span>
+                    {% elif rule.status == 'under_review' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Under Review</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ rule.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Rule Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ rule.rule_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ rule.name }}</div>
+                </div>
+                {% if rule.description %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Description</div>
+                    <div class="col-sm-8">{{ rule.description }}</div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Conflicting Role 1</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-primary text-primary">{{ rule.conflicting_role_1 }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Conflicting Role 2</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-primary text-primary">{{ rule.conflicting_role_2 }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Risk Level</div>
+                    <div class="col-sm-8">
+                        {% if rule.risk_level == 'high' %}
+                            <span class="badge bg-soft-danger text-danger">{{ rule.get_risk_level_display }}</span>
+                        {% elif rule.risk_level == 'medium' %}
+                            <span class="badge bg-soft-warning text-warning">{{ rule.get_risk_level_display }}</span>
+                        {% elif rule.risk_level == 'low' %}
+                            <span class="badge bg-soft-info text-info">{{ rule.get_risk_level_display }}</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ rule.get_risk_level_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Enforcement</div>
+                    <div class="col-sm-8">
+                        {% if rule.enforcement == 'hard' %}
+                            <span class="badge bg-soft-danger text-danger">{{ rule.get_enforcement_display }}</span>
+                        {% elif rule.enforcement == 'soft' %}
+                            <span class="badge bg-soft-warning text-warning">{{ rule.get_enforcement_display }}</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ rule.get_enforcement_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if rule.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ rule.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Violations -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Violations</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if violations %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Violation #</th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Detected At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for violation in violations %}
+                            <tr>
+                                <td class="fw-semibold">
+                                    <a href="{% url 'audit:sod_violation_detail' tenant_slug=current_tenant.slug pk=violation.pk %}">{{ violation.violation_number }}</a>
+                                </td>
+                                <td>{{ violation.user }}</td>
+                                <td>
+                                    {% if violation.status == 'open' %}
+                                        <span class="badge bg-soft-danger text-danger">Open</span>
+                                    {% elif violation.status == 'acknowledged' %}
+                                        <span class="badge bg-soft-warning text-warning">Acknowledged</span>
+                                    {% elif violation.status == 'mitigated' %}
+                                        <span class="badge bg-soft-success text-success">Mitigated</span>
+                                    {% elif violation.status == 'accepted' %}
+                                        <span class="badge bg-soft-info text-info">Accepted</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">{{ violation.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ violation.detected_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No violations detected.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'audit:sod_rule_edit' tenant_slug=current_tenant.slug pk=rule.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Rule
+                </a>
+                <form method="post" action="{% url 'audit:sod_scan' tenant_slug=current_tenant.slug %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-warning btn-sm w-100">
+                        <i class="ri-radar-line me-1"></i> Run SoD Scan
+                    </button>
+                </form>
+                <a href="{% url 'audit:sod_rule_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Rules
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ rule.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ rule.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ rule.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
