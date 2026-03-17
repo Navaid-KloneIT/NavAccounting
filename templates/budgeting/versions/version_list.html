@@ -1,130 +1,159 @@
 {% extends "base.html" %}
+{% load static %}
 {% load humanize %}
 
 {% block title %}Budget Versions{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Page Title -->
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                <h4 class="mb-sm-0">Budget Versions</h4>
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-                        <li class="breadcrumb-item">Budgeting & Planning</li>
-                        <li class="breadcrumb-item active">Versions</li>
-                    </ol>
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Budget Versions</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Budgeting & Planning</li>
+            <li class="breadcrumb-item active">Versions</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-git-branch-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="card-title mb-0">All Versions ({{ total_count }})</h5>
-                    <a href="{% url 'budgeting:version_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
-                        <i class="ri-add-line me-1"></i> New Version
-                    </a>
-                </div>
-                <div class="card-body">
-                    <!-- Filters -->
-                    <form method="get" class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <input type="text" name="q" class="form-control" placeholder="Search versions..." value="{{ request.GET.q }}">
-                        </div>
-                        <div class="col-md-3">
-                            <select name="version_type" class="form-select">
-                                <option value="">All Types</option>
-                                {% for value, label in version_type_choices %}
-                                    <option value="{{ value }}" {% if request.GET.version_type == value %}selected{% endif %}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-soft-primary w-100"><i class="ri-search-line me-1"></i> Filter</button>
-                        </div>
-                        {% if request.GET.q or request.GET.version_type %}
-                        <div class="col-md-2">
-                            <a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-secondary w-100"><i class="ri-refresh-line me-1"></i> Clear</a>
-                        </div>
-                        {% endif %}
-                    </form>
-
-                    {% if versions %}
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Version #</th>
-                                    <th>Budget</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Current?</th>
-                                    <th class="text-end">Total Amount</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for v in versions %}
-                                <tr>
-                                    <td>
-                                        <a href="{% url 'budgeting:version_detail' tenant_slug=current_tenant.slug pk=v.pk %}">{{ v.version_number }}</a>
-                                    </td>
-                                    <td>{{ v.budget }}</td>
-                                    <td>{{ v.name }}</td>
-                                    <td>
-                                        {% if v.version_type == 'original' %}
-                                            <span class="badge bg-soft-primary text-primary">Original</span>
-                                        {% elif v.version_type == 'revision' %}
-                                            <span class="badge bg-soft-info text-info">Revision</span>
-                                        {% elif v.version_type == 'scenario' %}
-                                            <span class="badge bg-soft-warning text-warning">Scenario</span>
-                                        {% else %}
-                                            <span class="badge bg-soft-secondary text-secondary">{{ v.get_version_type_display }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if v.is_current %}
-                                            <i class="ri-check-line text-success fs-5"></i>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end">{{ v.total_amount|intcomma }}</td>
-                                    <td class="text-end">
-                                        <a href="{% url 'budgeting:version_detail' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-info" title="View">
-                                            <i class="ri-eye-line"></i>
-                                        </a>
-                                        <a href="{% url 'budgeting:version_update' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-warning" title="Edit">
-                                            <i class="ri-pencil-line"></i>
-                                        </a>
-                                        <a href="{% url 'budgeting:version_delete' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-danger" title="Delete">
-                                            <i class="ri-delete-bin-line"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Current</p>
+                        <h3 class="mb-0">{{ current_count }}</h3>
                     </div>
-
-                    {% include "partials/_pagination.html" %}
-
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="ri-git-branch-line display-4 text-muted"></i>
-                        <h5 class="mt-3">No Budget Versions Found</h5>
-                        <p class="text-muted">Get started by creating your first budget version.</p>
-                        <a href="{% url 'budgeting:version_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary">
-                            <i class="ri-add-line me-1"></i> New Version
-                        </a>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-check-double-line text-success" style="font-size: 1.5rem;"></i>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Scenarios</p>
+                        <h3 class="mb-0">{{ scenario_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-question-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Version #, name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="version_type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for val, label in version_type_choices %}
+                    <option value="{{ val }}" {% if request.GET.version_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-7 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'budgeting:version_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New Version</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if versions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Version #</th>
+                        <th>Budget</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Current?</th>
+                        <th class="text-end">Total Amount</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in versions %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'budgeting:version_detail' tenant_slug=current_tenant.slug pk=v.pk %}">{{ v.version_number }}</a>
+                        </td>
+                        <td>{{ v.budget }}</td>
+                        <td>{{ v.name }}</td>
+                        <td>
+                            {% if v.version_type == 'original' %}
+                                <span class="badge bg-soft-primary text-primary">Original</span>
+                            {% elif v.version_type == 'revision' %}
+                                <span class="badge bg-soft-info text-info">Revision</span>
+                            {% elif v.version_type == 'scenario' %}
+                                <span class="badge bg-soft-warning text-warning">Scenario</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ v.get_version_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if v.is_current %}
+                                <i class="ri-check-line text-success fs-5"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ v.total_amount|floatformat:2|intcomma }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'budgeting:version_detail' tenant_slug=current_tenant.slug pk=v.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-git-branch-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No budget versions found.</p>
+            <a href="{% url 'budgeting:version_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Version</a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
