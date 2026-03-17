@@ -44,6 +44,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Multi-Entity & Consolidation** — Entity management (parent/subsidiary/branch/division/JV/associate) with hierarchical structure, intercompany transactions with paired journal entries, IC balance reconciliation, currency translation with CTA calculation, consolidation engine with elimination rules, minority interest computation, transfer pricing policies with arm's length analysis, local GAAP adjustments, regulatory report filing
 - **Tax Management** — Sales tax engine with hierarchical jurisdictions, effective-dated rates, compound rate calculation, product taxability rules & tax groups; tax return preparation (Sales Tax/VAT/GST/Income Tax) with Draft→Calculated→Reviewed→Filed workflow; use tax self-assessment tracking with GL accrual posting; income tax provision with current/deferred tax, temporary differences, and ETR reconciliation; tax calendar with filing deadline management, recurring deadline generation & overdue alerts; audit support with findings tracking, document repository & adjustment GL posting; economic nexus monitoring with threshold tracking, progress alerts & registration management
 - **Reporting & Compliance** — Financial statements (Balance Sheet, P&L, Cash Flow, Equity) with Draft→Generated→Reviewed→Approved→Published workflow; departmental P&Ls with budget vs actual variance analysis; custom report builder with configurable columns, filters, and layout types; scheduled report distribution with email recipients and execution logging; XBRL/EDGAR filing support with taxonomy tagging and SEC submission workflow; statutory reporting with jurisdiction-specific templates (US GAAP/IFRS/local); consolidation reporting packages with entity-level data collection and eliminations; executive and operational dashboards with configurable widgets and snapshots
+- **Budgeting & Planning** — Budget creation (top-down/bottom-up/hybrid) with line items per GL account and fiscal period, Draft→In Review→Approved→Active→Closed workflow; budget version control with snapshot-based revision and scenario tracking; driver-based planning with revenue/cost/headcount/volume drivers and per-period quantity×rate calculations; rolling forecasts (monthly/quarterly) with configurable horizons, forecast vs actual variance tracking; variance analysis with budget vs actual drill-down, favorable/unfavorable classification and explanations; what-if scenario modeling (best case/worst case/most likely/custom) with percentage, fixed amount, and override adjustments; workforce planning with position-level salary and benefits forecasting, headcount tracking, and GL account mapping
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -103,6 +104,7 @@ NavAccounting/
 │   ├── multi_entity/               # Entities, IC Transactions, Currency Translation, Consolidation, Transfer Pricing, Regulatory Reporting
 │   ├── tax/                        # Jurisdictions, Tax Rates, Rules, Groups, Returns, Use Tax, Provisions, Calendar, Audits, Nexus Tracking
 │   ├── reporting/                  # Financial Statements, Management Reports, Report Builder, Scheduled Reports, XBRL/EDGAR, Statutory, Consolidation, Dashboards
+│   ├── budgeting/                  # Budgets, Versions, Planning Drivers, Rolling Forecasts, Variance Analysis, What-if Scenarios, Workforce Planning
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -219,6 +221,14 @@ NavAccounting/
 │   │   ├── calendar/               # Deadline list, form, detail, generate recurring form
 │   │   ├── audit/                  # Audit list, form, detail, finding form, finding edit, document upload
 │   │   └── nexus/                  # Nexus list, form, detail, activity form, dashboard
+│   ├── budgeting/                  # BP templates (21 files across 7 subdirectories)
+│   │   ├── budgets/                # Budget list, form, detail
+│   │   ├── versions/               # Version list, form, detail
+│   │   ├── drivers/                # Driver list, form, detail
+│   │   ├── forecasts/              # Forecast list, form, detail
+│   │   ├── variance/               # Variance list, form, detail
+│   │   ├── scenarios/              # Scenario list, form, detail
+│   │   └── workforce/              # Workforce plan list, form, detail
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -354,6 +364,7 @@ python manage.py seed_data --pj
 python manage.py seed_data --me
 python manage.py seed_data --tx
 python manage.py seed_data --rc
+python manage.py seed_data --bp
 ```
 
 ### What Gets Seeded
@@ -379,6 +390,7 @@ python manage.py seed_data --rc
 | Multi-Entity & Consolidation | 5 entities (HQ parent, EU subsidiary, UK branch, Asia JV, US division), 8 IC transactions with varied statuses, 5 IC balances, 5 currency translation rules, 3 CTA translation adjustments, 2 consolidation groups (Global + EU sub-group), 4 elimination rules, 3 consolidation runs (completed/draft/reversed), 2 elimination entries, 2 minority interest records, 4 transfer pricing policies, 5 TP transactions, 5 GAAP adjustments, 6 regulatory reports |
 | Reporting & Compliance | 5 financial statements (balance sheet/income statement/cash flow/equity with line items), 4 management reports (departmental P&L/budget vs actual/variance/trend with line items), 3 custom reports with columns and filters, 1 scheduled report with recipients, 2 XBRL filings with taxonomy tags, 2 statutory templates (US GAAP/IFRS), 1 statutory report with line items, 1 consolidation package with entity data, 2 dashboards with 6 widgets each |
 | Tax Management | 7 jurisdictions (Federal, 3 states, 2 counties, 1 city) with hierarchy, 7 tax rates (CA/NY/TX/Federal), 8 tax rules (exemptions/reduced/zero-rated/surtax), 4 tax groups (CA+LA, CA+SF, NY+NYC, CA full combined), 5 tax returns with line items (filed/draft/calculated/reviewed), 5 use tax assessments (pending/accrued/paid/exempt), 2 use tax accruals (posted/draft), 3 income tax provisions with deferred items and ETR reconciliation (finalized/draft/calculated), 5 tax deadlines (recurring/one-time), 4 tax audits with findings (closed/in-progress/pending), 4 nexus jurisdictions with activity records |
+| Budgeting & Planning | 5 budgets (Operating/Capital/Department/Marketing/IT with line items across GL accounts and fiscal periods), 4 budget versions (original/revision/2 scenarios with snapshot data), 5 planning drivers (revenue per customer/cost per unit/headcount growth/sales volume/office space with per-period values), 3 rolling forecasts (monthly operations/quarterly revenue/cash flow with forecast vs actual lines), 4 variance analyses (Jan–Apr with per-account budget vs actual, favorable/unfavorable flags, explanations), 4 what-if scenarios (10% revenue growth/15% cost reduction/economic downturn/new market entry with adjustments and calculated results), 3 workforce plans (Engineering/Sales/Operations with position-level salary, benefits, headcount, and new hire tracking) |
 
 ---
 
@@ -475,6 +487,12 @@ These paths skip tenant resolution:
 | — | TaxDeadline, TaxDeadlineReminder |
 | — | TaxAudit, AuditFinding, AuditDocument |
 | — | NexusJurisdiction, NexusActivity |
+| — | Budget, BudgetLineItem, BudgetVersion |
+| — | PlanningDriver, PlanningDriverPeriod |
+| — | RollingForecast, ForecastLineItem |
+| — | VarianceAnalysis, VarianceLineItem |
+| — | ScenarioModel, ScenarioAdjustment |
+| — | WorkforcePlan, WorkforcePlanPosition |
 
 ---
 
@@ -521,7 +539,7 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/admin/` | Django admin panel |
 | `/auth/` | Authentication (login, register, forgot password) |
 | `/tenants/` | Tenant management (select, create, switch) |
-| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ, ME, TX) |
+| `/t/<slug>/` | Tenant-scoped routes (dashboard, company, users, roles, GL, AP, AR, CM, FA, IC, PR, PJ, ME, TX, RC, BP) |
 | `/vendor-portal/` | Vendor portal (token-based, no login required) |
 | `/customer-portal/` | Customer portal (token-based, no login required) |
 | `/` | Redirects to tenant select or login |
@@ -1089,6 +1107,45 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/rc/dashboards/<pk>/` | Dashboard detail | Widgets, snapshots |
 | `/t/<slug>/rc/dashboards/<pk>/edit/` | Edit dashboard | Edit with widget formset |
 | `/t/<slug>/rc/dashboards/<pk>/snapshot/` | Create snapshot | Capture point-in-time dashboard data |
+| **Budgeting & Planning — Budgets** | | |
+| `/t/<slug>/bp/budgets/` | Budget list | All budgets with filters |
+| `/t/<slug>/bp/budgets/create/` | Create budget | New budget with line items |
+| `/t/<slug>/bp/budgets/<pk>/` | Budget detail | Budget info, line items, versions |
+| `/t/<slug>/bp/budgets/<pk>/edit/` | Edit budget | Edit budget with line items |
+| `/t/<slug>/bp/budgets/<pk>/submit/` | Submit budget | Submit for review |
+| `/t/<slug>/bp/budgets/<pk>/approve/` | Approve budget | Approve budget |
+| **Budgeting & Planning — Versions** | | |
+| `/t/<slug>/bp/versions/` | Version list | All budget versions |
+| `/t/<slug>/bp/versions/create/` | Create version | New version with snapshot |
+| `/t/<slug>/bp/versions/<pk>/` | Version detail | Version info, snapshot data |
+| `/t/<slug>/bp/versions/<pk>/set-current/` | Set current | Set version as current |
+| **Budgeting & Planning — Planning Drivers** | | |
+| `/t/<slug>/bp/drivers/` | Driver list | All planning drivers |
+| `/t/<slug>/bp/drivers/create/` | Create driver | New driver with period values |
+| `/t/<slug>/bp/drivers/<pk>/` | Driver detail | Driver info, period values |
+| `/t/<slug>/bp/drivers/<pk>/edit/` | Edit driver | Edit driver with period values |
+| `/t/<slug>/bp/drivers/<pk>/calculate/` | Calculate driver | Recalculate period amounts |
+| **Budgeting & Planning — Rolling Forecasts** | | |
+| `/t/<slug>/bp/forecasts/` | Forecast list | All rolling forecasts |
+| `/t/<slug>/bp/forecasts/create/` | Create forecast | New forecast with line items |
+| `/t/<slug>/bp/forecasts/<pk>/` | Forecast detail | Forecast vs actual with variance |
+| `/t/<slug>/bp/forecasts/<pk>/edit/` | Edit forecast | Edit forecast with line items |
+| **Budgeting & Planning — Variance Analysis** | | |
+| `/t/<slug>/bp/variance/` | Variance list | All variance analyses |
+| `/t/<slug>/bp/variance/create/` | Create variance | New variance analysis |
+| `/t/<slug>/bp/variance/<pk>/` | Variance detail | Budget vs actual drill-down |
+| `/t/<slug>/bp/variance/<pk>/generate/` | Generate variance | Generate variance line items from GL |
+| **Budgeting & Planning — What-if Analysis** | | |
+| `/t/<slug>/bp/scenarios/` | Scenario list | All what-if scenarios |
+| `/t/<slug>/bp/scenarios/create/` | Create scenario | New scenario with adjustments |
+| `/t/<slug>/bp/scenarios/<pk>/` | Scenario detail | Adjustments, results |
+| `/t/<slug>/bp/scenarios/<pk>/edit/` | Edit scenario | Edit scenario adjustments |
+| `/t/<slug>/bp/scenarios/<pk>/calculate/` | Calculate scenario | Apply adjustments and compute results |
+| **Budgeting & Planning — Workforce Planning** | | |
+| `/t/<slug>/bp/workforce/` | Workforce list | All workforce plans |
+| `/t/<slug>/bp/workforce/create/` | Create plan | New plan with positions |
+| `/t/<slug>/bp/workforce/<pk>/` | Plan detail | Positions, cost summary |
+| `/t/<slug>/bp/workforce/<pk>/edit/` | Edit plan | Edit plan with positions |
 
 ---
 
@@ -1716,7 +1773,24 @@ When a tax audit adjustment is posted:
 
 **Seed Data:** 5 financial statements, 4 management reports, 3 custom reports, 1 schedule, 2 XBRL filings, 2 statutory templates, 1 statutory report, 1 consolidation package, 2 dashboards with widgets
 
-### 17. `dashboard` — Dashboard & Analytics
+### 17. `budgeting` — Budgeting & Planning Module
+- **Budget** — Core budget record with top-down/bottom-up/hybrid types, incremental/zero-based/activity-based approaches, Draft→In Review→Approved→Active→Closed workflow
+- **BudgetLineItem** — Per GL account and fiscal period budget amounts with department grouping
+- **BudgetVersion** — Snapshot-based version control (original/revision/scenario) with current version tracking
+- **PlanningDriver** — Revenue, cost, headcount, volume, and custom drivers with base values and growth rates
+- **PlanningDriverPeriod** — Per-period driver values with quantity × rate calculation
+- **RollingForecast** — Monthly or quarterly continuous forecasts with configurable horizons
+- **ForecastLineItem** — Forecast vs actual amounts with variance calculation per GL account and period
+- **VarianceAnalysis** — Budget vs actual analysis with Draft→Generated→Reviewed→Approved workflow
+- **VarianceLineItem** — Per-account variance with favorable/unfavorable flags and explanations
+- **ScenarioModel** — What-if scenarios (best case/worst case/most likely/custom) with JSON assumptions and results
+- **ScenarioAdjustment** — Percentage, fixed amount, or override adjustments per GL account
+- **WorkforcePlan** — Salary and benefits forecasting with department-level headcount tracking
+- **WorkforcePlanPosition** — Position-level detail with annual salary, benefit rate, GL account mapping, new hire tracking
+
+**Seed Data:** 5 budgets with line items, 4 budget versions with snapshots, 5 planning drivers with period values, 3 rolling forecasts with forecast vs actual lines, 4 variance analyses with per-account drill-down, 4 what-if scenarios with adjustments and calculated results, 3 workforce plans with position-level detail
+
+### 18. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
