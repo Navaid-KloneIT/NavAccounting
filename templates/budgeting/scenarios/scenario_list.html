@@ -120,9 +120,6 @@
                                         <a href="{% url 'budgeting:scenario_edit' tenant_slug=current_tenant.slug pk=scenario.pk %}" class="btn btn-sm btn-light" title="Edit">
                                             <i class="ri-pencil-line"></i>
                                         </a>
-                                        <a href="{% url 'budgeting:scenario_delete' tenant_slug=current_tenant.slug pk=scenario.pk %}" class="btn btn-sm btn-light text-danger" title="Delete">
-                                            <i class="ri-delete-bin-line"></i>
-                                        </a>
                                     </td>
                                 </tr>
                                 {% endfor %}
