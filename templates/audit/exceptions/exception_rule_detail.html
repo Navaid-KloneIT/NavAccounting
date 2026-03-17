@@ -84,7 +84,7 @@
         </div>
 
         <!-- Recent Exceptions -->
-        {% if recent_exceptions %}
+        {% if exceptions %}
         <div class="card mb-3">
             <div class="card-header">
                 <div class="d-flex align-items-center">
@@ -107,7 +107,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for exc in recent_exceptions %}
+                            {% for exc in exceptions %}
                             <tr>
                                 <td class="fw-semibold">
                                     <a href="{% url 'audit:exception_detail' tenant_slug=current_tenant.slug pk=exc.pk %}">{{ exc.exception_number }}</a>
