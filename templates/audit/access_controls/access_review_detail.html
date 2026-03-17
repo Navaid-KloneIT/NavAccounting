@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ review.review_number }} - Access Review{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ review.review_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item">Access Controls</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:access_review_list' tenant_slug=current_tenant.slug %}">Reviews</a></li>
+            <li class="breadcrumb-item active">{{ review.review_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Review Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Review Information</h5>
+                <div>
+                    {% if review.status == 'planned' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Planned</span>
+                    {% elif review.status == 'in_progress' %}
+                        <span class="badge bg-soft-info text-info fs-6">In Progress</span>
+                    {% elif review.status == 'completed' %}
+                        <span class="badge bg-soft-success text-success fs-6">Completed</span>
+                    {% elif review.status == 'cancelled' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Cancelled</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ review.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Review Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ review.review_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ review.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Review Date</div>
+                    <div class="col-sm-8">{{ review.review_date|date:"M d, Y" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Reviewer</div>
+                    <div class="col-sm-8">{{ review.reviewer|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Scope</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ review.get_scope_display }}</span>
+                    </div>
+                </div>
+                {% if review.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ review.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Review Items -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Review Items</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if review_items %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Policy</th>
+                                <th>User</th>
+                                <th>Current Access</th>
+                                <th>Recommended Action</th>
+                                <th>Reviewer Decision</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in review_items %}
+                            <tr>
+                                <td class="fw-semibold">{{ item.item_number }}</td>
+                                <td>{{ item.policy|default:"-" }}</td>
+                                <td>{{ item.user|default:"-" }}</td>
+                                <td>{{ item.current_access|default:"-" }}</td>
+                                <td>
+                                    {% if item.recommended_action == 'maintain' %}
+                                        <span class="badge bg-soft-success text-success">Maintain</span>
+                                    {% elif item.recommended_action == 'revoke' %}
+                                        <span class="badge bg-soft-danger text-danger">Revoke</span>
+                                    {% elif item.recommended_action == 'modify' %}
+                                        <span class="badge bg-soft-warning text-warning">Modify</span>
+                                    {% elif item.recommended_action == 'escalate' %}
+                                        <span class="badge bg-soft-info text-info">Escalate</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">{{ item.get_recommended_action_display|default:"-" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.reviewer_decision == 'approved' %}
+                                        <span class="badge bg-soft-success text-success">Approved</span>
+                                    {% elif item.reviewer_decision == 'rejected' %}
+                                        <span class="badge bg-soft-danger text-danger">Rejected</span>
+                                    {% elif item.reviewer_decision == 'pending' %}
+                                        <span class="badge bg-soft-warning text-warning">Pending</span>
+                                    {% elif item.reviewer_decision == 'deferred' %}
+                                        <span class="badge bg-soft-info text-info">Deferred</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">{{ item.get_reviewer_decision_display|default:"-" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No review items.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'audit:access_review_edit' tenant_slug=current_tenant.slug pk=review.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Review
+                </a>
+                <a href="{% url 'audit:access_review_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ review.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ review.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ review.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
