@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ exception.exception_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ exception.exception_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:exception_list' tenant_slug=current_tenant.slug %}">Exceptions</a></li>
+            <li class="breadcrumb-item active">{{ exception.exception_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Exception Information -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2">
+                        <i class="ri-error-warning-line text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Exception Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Exception #</dt>
+                            <dd class="col-sm-7"><strong>{{ exception.exception_number }}</strong></dd>
+                            <dt class="col-sm-5 text-muted">Rule</dt>
+                            <dd class="col-sm-7">
+                                {% if exception.rule %}
+                                <a href="{% url 'audit:exception_rule_detail' tenant_slug=current_tenant.slug pk=exception.rule.pk %}">{{ exception.rule.name }}</a>
+                                {% else %}-{% endif %}
+                            </dd>
+                            <dt class="col-sm-5 text-muted">Severity</dt>
+                            <dd class="col-sm-7">
+                                {% if exception.severity == 'info' %}
+                                    <span class="badge bg-soft-info text-info">Info</span>
+                                {% elif exception.severity == 'warning' %}
+                                    <span class="badge bg-soft-warning text-warning">Warning</span>
+                                {% elif exception.severity == 'critical' %}
+                                    <span class="badge bg-soft-danger text-danger">Critical</span>
+                                {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">{{ exception.get_severity_display }}</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if exception.status == 'open' %}
+                                    <span class="badge bg-soft-danger text-danger">Open</span>
+                                {% elif exception.status == 'investigating' %}
+                                    <span class="badge bg-soft-warning text-warning">Investigating</span>
+                                {% elif exception.status == 'resolved' %}
+                                    <span class="badge bg-soft-success text-success">Resolved</span>
+                                {% elif exception.status == 'false_positive' %}
+                                    <span class="badge bg-soft-secondary text-secondary">False Positive</span>
+                                {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">{{ exception.get_status_display }}</span>
+                                {% endif %}
+                            </dd>
+                            <dt class="col-sm-5 text-muted">Detected At</dt>
+                            <dd class="col-sm-7">{{ exception.detected_at|date:"M d, Y H:i" }}</dd>
+                            <dt class="col-sm-5 text-muted">Assigned To</dt>
+                            <dd class="col-sm-7">{% if exception.assigned_to %}{{ exception.assigned_to.get_full_name|default:exception.assigned_to.email }}{% else %}-{% endif %}</dd>
+                        </dl>
+                    </div>
+                </div>
+                {% if exception.description %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Description</h6>
+                <p>{{ exception.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Record Details -->
+        {% if exception.record_details %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-warning p-2 me-2">
+                        <i class="ri-database-2-line text-warning"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Record Details</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded">{{ exception.record_details|pprint }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                {% if exception.status == 'open' or exception.status == 'investigating' %}
+                <form method="post" action="{% url 'audit:exception_resolve' tenant_slug=current_tenant.slug pk=exception.pk %}" class="mb-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100">
+                        <i class="ri-check-line me-1"></i> Resolve Exception
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'audit:exception_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Exceptions
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Metadata</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted small">Detected At</dt>
+                    <dd class="col-sm-7 small">{{ exception.detected_at|date:"M d, Y H:i" }}</dd>
+                    <dt class="col-sm-5 text-muted small">Created</dt>
+                    <dd class="col-sm-7 small">{{ exception.created_at|date:"M d, Y H:i" }}</dd>
+                    <dt class="col-sm-5 text-muted small">Updated</dt>
+                    <dd class="col-sm-7 small">{{ exception.updated_at|date:"M d, Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
