@@ -2,19 +2,19 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}{% if change_request %}Edit Change Request {{ change_request.request_number }}{% else %}New Change Request{% endif %}{% endblock %}
+{% block title %}{% if is_edit %}Edit Change Request {{ cr.request_number }}{% else %}New Change Request{% endif %}{% endblock %}
 
 {% block content %}
 <div class="page-title-box">
     <div class="page-title-left">
-        <h4 class="page-title">{% if change_request %}Edit Change Request {{ change_request.request_number }}{% else %}New Change Request{% endif %}</h4>
+        <h4 class="page-title">{% if is_edit %}Edit Change Request {{ cr.request_number }}{% else %}New Change Request{% endif %}</h4>
     </div>
     <div class="page-title-right">
         <ol class="breadcrumb m-0">
             <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
             <li class="breadcrumb-item">Audit & Controls</li>
             <li class="breadcrumb-item"><a href="{% url 'audit:change_request_list' tenant_slug=current_tenant.slug %}">Change Management</a></li>
-            <li class="breadcrumb-item active">{% if change_request %}Edit{% else %}New{% endif %}</li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
         </ol>
     </div>
 </div>
@@ -102,10 +102,10 @@
             </button>
         </div>
         <div class="card-body p-0">
-            {{ approvals.management_form }}
-            {% if approvals.non_form_errors %}
+            {{ formset.management_form }}
+            {% if formset.non_form_errors %}
             <div class="alert alert-danger m-3">
-                {% for error in approvals.non_form_errors %}
+                {% for error in formset.non_form_errors %}
                 <p class="mb-0">{{ error }}</p>
                 {% endfor %}
             </div>
@@ -121,7 +121,7 @@
                         </tr>
                     </thead>
                     <tbody id="approvals-container">
-                        {% for af in approvals %}
+                        {% for af in formset %}
                         <tr class="approval-row">
                             <td>
                                 {{ af.approver }}
@@ -155,13 +155,13 @@
     <!-- Empty form template for JS cloning -->
     <div id="empty-approval-form" class="d-none">
         <tr class="approval-row">
-            <td>{{ approvals.empty_form.approver }}{{ approvals.empty_form.id }}</td>
-            <td>{{ approvals.empty_form.decision }}</td>
-            <td>{{ approvals.empty_form.comments }}</td>
+            <td>{{ formset.empty_form.approver }}{{ formset.empty_form.id }}</td>
+            <td>{{ formset.empty_form.decision }}</td>
+            <td>{{ formset.empty_form.comments }}</td>
             <td>
-                {% if approvals.empty_form.DELETE %}
+                {% if formset.empty_form.DELETE %}
                 <div class="form-check">
-                    {{ approvals.empty_form.DELETE }}
+                    {{ formset.empty_form.DELETE }}
                     <label class="form-check-label text-danger" title="Delete"><i class="ri-delete-bin-line"></i></label>
                 </div>
                 {% endif %}
@@ -187,7 +187,7 @@
 <script>
     // Dynamic formset - add new approval rows
     const emptyApprovalTemplate = document.getElementById('empty-approval-form').innerHTML;
-    let approvalFormCount = {{ approvals.total_form_count }};
+    let approvalFormCount = {{ formset.total_form_count }};
 
     document.getElementById('add-approval').addEventListener('click', function() {
         const container = document.getElementById('approvals-container');
