@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Access Policy - {{ policy.policy_number }}{% else %}New Access Policy{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{% if is_edit %}Edit Access Policy - {{ policy.policy_number }}{% else %}New Access Policy{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item">Access Controls</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:access_policy_list' tenant_slug=current_tenant.slug %}">Policies</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}New{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Policy Information -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-shield-keyhole-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Policy Information</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.policy_type.id_for_label }}" class="form-label">Policy Type <span class="text-danger">*</span></label>
+                    {{ form.policy_type }}
+                    {% if form.policy_type.errors %}<div class="text-danger small">{{ form.policy_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.access_level.id_for_label }}" class="form-label">Access Level <span class="text-danger">*</span></label>
+                    {{ form.access_level }}
+                    {% if form.access_level.errors %}<div class="text-danger small">{{ form.access_level.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.target_model.id_for_label }}" class="form-label">Target Model</label>
+                    {{ form.target_model }}
+                    {% if form.target_model.errors %}<div class="text-danger small">{{ form.target_model.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.target_field.id_for_label }}" class="form-label">Target Field</label>
+                    {{ form.target_field }}
+                    {% if form.target_field.errors %}<div class="text-danger small">{{ form.target_field.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.role.id_for_label }}" class="form-label">Role</label>
+                    {{ form.role }}
+                    {% if form.role.errors %}<div class="text-danger small">{{ form.role.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status & Dates -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-success p-2 me-2"><i class="ri-calendar-check-line text-success"></i></div>
+                <h5 class="card-title mb-0">Status & Dates</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.effective_date.id_for_label }}" class="form-label">Effective Date</label>
+                    {{ form.effective_date }}
+                    {% if form.effective_date.errors %}<div class="text-danger small">{{ form.effective_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.expiry_date.id_for_label }}" class="form-label">Expiry Date</label>
+                    {{ form.expiry_date }}
+                    {% if form.expiry_date.errors %}<div class="text-danger small">{{ form.expiry_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="form-check mt-2">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2"><i class="ri-file-text-line text-info"></i></div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-12">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'audit:access_policy_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> {% if is_edit %}Save Changes{% else %}Create Policy{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
