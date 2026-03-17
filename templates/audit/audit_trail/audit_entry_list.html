@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Audit Trail{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Audit Trail</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item active">Audit Trail</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-history-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Creates</p>
+                        <h3 class="mb-0">{{ create_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-add-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Updates</p>
+                        <h3 class="mb-0">{{ update_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-info p-3">
+                        <i class="ri-pencil-line text-info" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Deletes</p>
+                        <h3 class="mb-0">{{ delete_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-delete-bin-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Entry #, model, user..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All Actions</option>
+                    {% for val, label in action_choices %}
+                    <option value="{{ val }}" {% if request.GET.action == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'audit:audit_entry_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if entries %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Entry #</th>
+                        <th>Action</th>
+                        <th>Model</th>
+                        <th>Record ID</th>
+                        <th>User</th>
+                        <th>Timestamp</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'audit:audit_entry_detail' tenant_slug=current_tenant.slug pk=entry.pk %}">{{ entry.entry_number }}</a>
+                        </td>
+                        <td>
+                            {% if entry.action == 'create' %}
+                                <span class="badge bg-soft-success text-success">Create</span>
+                            {% elif entry.action == 'update' %}
+                                <span class="badge bg-soft-info text-info">Update</span>
+                            {% elif entry.action == 'delete' %}
+                                <span class="badge bg-soft-danger text-danger">Delete</span>
+                            {% elif entry.action == 'view' %}
+                                <span class="badge bg-soft-primary text-primary">View</span>
+                            {% elif entry.action == 'export' %}
+                                <span class="badge bg-soft-warning text-warning">Export</span>
+                            {% elif entry.action == 'login' %}
+                                <span class="badge bg-soft-success text-success">Login</span>
+                            {% elif entry.action == 'logout' %}
+                                <span class="badge bg-soft-secondary text-secondary">Logout</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ entry.get_action_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ entry.model|default:"-" }}</code></td>
+                        <td>{{ entry.record_id|default:"-" }}</td>
+                        <td>{% if entry.user %}{{ entry.user.get_full_name|default:entry.user.email }}{% else %}-{% endif %}</td>
+                        <td><small>{{ entry.timestamp|date:"M d, Y H:i" }}</small></td>
+                        <td class="text-center">
+                            <a href="{% url 'audit:audit_entry_detail' tenant_slug=current_tenant.slug pk=entry.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-history-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No audit entries found.</p>
+            <p class="text-muted">Changes will be logged here automatically.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
