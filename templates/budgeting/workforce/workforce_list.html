@@ -105,9 +105,6 @@
                                         <a href="{% url 'budgeting:workforce_edit' tenant_slug=current_tenant.slug pk=plan.pk %}" class="btn btn-sm btn-light" title="Edit">
                                             <i class="ri-pencil-line"></i>
                                         </a>
-                                        <a href="{% url 'budgeting:workforce_delete' tenant_slug=current_tenant.slug pk=plan.pk %}" class="btn btn-sm btn-light text-danger" title="Delete">
-                                            <i class="ri-delete-bin-line"></i>
-                                        </a>
                                     </td>
                                 </tr>
                                 {% endfor %}
