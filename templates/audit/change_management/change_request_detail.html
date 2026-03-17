@@ -13,7 +13,7 @@
         <ol class="breadcrumb m-0">
             <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
             <li class="breadcrumb-item">Audit & Controls</li>
-            <li class="breadcrumb-item"><a href="{% url 'audit:cr_list' tenant_slug=current_tenant.slug %}">Change Management</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:change_request_list' tenant_slug=current_tenant.slug %}">Change Management</a></li>
             <li class="breadcrumb-item active">{{ cr.request_number }}</li>
         </ol>
     </div>
@@ -174,12 +174,12 @@
                 <h5 class="card-title mb-0">Quick Actions</h5>
             </div>
             <div class="card-body d-grid gap-2">
-                <a href="{% url 'audit:cr_edit' tenant_slug=current_tenant.slug pk=cr.pk %}" class="btn btn-outline-primary btn-sm">
+                <a href="{% url 'audit:change_request_edit' tenant_slug=current_tenant.slug pk=cr.pk %}" class="btn btn-outline-primary btn-sm">
                     <i class="ri-pencil-line me-1"></i> Edit
                 </a>
 
                 {% if cr.status == 'draft' %}
-                <form method="post" action="{% url 'audit:cr_submit' tenant_slug=current_tenant.slug pk=cr.pk %}">
+                <form method="post" action="{% url 'audit:change_request_submit' tenant_slug=current_tenant.slug pk=cr.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-soft-info btn-sm w-100">
                         <i class="ri-send-plane-line me-1"></i> Submit for Review
@@ -188,13 +188,13 @@
                 {% endif %}
 
                 {% if cr.status == 'submitted' or cr.status == 'under_review' %}
-                <form method="post" action="{% url 'audit:cr_approve' tenant_slug=current_tenant.slug pk=cr.pk %}">
+                <form method="post" action="{% url 'audit:change_request_approve' tenant_slug=current_tenant.slug pk=cr.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-soft-success btn-sm w-100">
                         <i class="ri-check-double-line me-1"></i> Approve
                     </button>
                 </form>
-                <form method="post" action="{% url 'audit:cr_reject' tenant_slug=current_tenant.slug pk=cr.pk %}">
+                <form method="post" action="{% url 'audit:change_request_reject' tenant_slug=current_tenant.slug pk=cr.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-soft-danger btn-sm w-100">
                         <i class="ri-close-circle-line me-1"></i> Reject
@@ -203,7 +203,7 @@
                 {% endif %}
 
                 {% if cr.status == 'approved' %}
-                <form method="post" action="{% url 'audit:cr_implement' tenant_slug=current_tenant.slug pk=cr.pk %}">
+                <form method="post" action="{% url 'audit:change_request_implement' tenant_slug=current_tenant.slug pk=cr.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-soft-primary btn-sm w-100">
                         <i class="ri-checkbox-circle-line me-1"></i> Mark Implemented
@@ -211,7 +211,7 @@
                 </form>
                 {% endif %}
 
-                <a href="{% url 'audit:cr_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                <a href="{% url 'audit:change_request_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
                     <i class="ri-arrow-left-line me-1"></i> Back to List
                 </a>
             </div>
