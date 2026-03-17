@@ -7232,6 +7232,7 @@ class Command(BaseCommand):
     # AUDIT & CONTROLS
     # ─────────────────────────────────────────────────────────────
     def _seed_au_data(self):
+        """Seed Audit & Controls data for all tenants."""
         from apps.audit.models import (
             SOXControl, SOXControlTest,
             SoDRule, SoDViolation,
@@ -7241,6 +7242,7 @@ class Command(BaseCommand):
             ExceptionRule, AuditException,
             DocumentCategory, Document,
         )
+        from apps.roles.models import Role
         from apps.tenants.managers import set_current_tenant
 
         tenants = Tenant.objects.all()
@@ -7250,70 +7252,95 @@ class Command(BaseCommand):
 
         for tenant in tenants:
             set_current_tenant(tenant)
-            users = CustomUser.objects.filter(
-                tenant_memberships__tenant=tenant
-            ).distinct()
-            if not users.exists():
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
                 continue
-            owner_user = users.first()
-            second_user = users.last() if users.count() > 1 else owner_user
 
-            # ── SOX Controls ──
+            # ── SOX Controls ──────────────────────────────────
             sox_data = [
-                ('Journal Entry Approval', 'preventive', 'financial_reporting', 'monthly', 'high', 'active'),
-                ('Bank Reconciliation Review', 'detective', 'financial_reporting', 'monthly', 'high', 'active'),
-                ('Vendor Master Data Changes', 'preventive', 'operations', 'daily', 'medium', 'active'),
-                ('IT System Access Review', 'detective', 'it_general', 'quarterly', 'medium', 'testing'),
-                ('Revenue Recognition Controls', 'corrective', 'compliance', 'monthly', 'critical', 'draft'),
+                ('SOX-0001', 'Journal Entry Approval', 'preventive', 'financial_reporting', 'monthly', 'high', 'active',
+                 'All journal entries above $10,000 require dual approval before posting. Controller reviews and approves entries prepared by staff accountants.'),
+                ('SOX-0002', 'Bank Reconciliation Review', 'detective', 'financial_reporting', 'monthly', 'high', 'active',
+                 'Monthly bank reconciliations prepared by accounting staff and reviewed by Controller within 5 business days of month-end.'),
+                ('SOX-0003', 'Vendor Master Data Changes', 'preventive', 'operations', 'daily', 'medium', 'active',
+                 'All changes to vendor bank account information require secondary approval and vendor callback verification.'),
+                ('SOX-0004', 'IT System Access Review', 'detective', 'it_general', 'quarterly', 'medium', 'testing',
+                 'Quarterly review of user access to financial systems. IT manager verifies access is appropriate for job function.'),
+                ('SOX-0005', 'Revenue Recognition Controls', 'corrective', 'compliance', 'monthly', 'critical', 'draft',
+                 'Revenue is recognized per ASC 606 criteria. Monthly review of deferred revenue balances and contract modifications.'),
+                ('SOX-0006', 'Segregation of Duties - AP', 'preventive', 'financial_reporting', 'daily', 'high', 'active',
+                 'No single individual can create a vendor, enter an invoice, and approve payment. System enforces role separation.'),
+                ('SOX-0007', 'Inventory Count Verification', 'detective', 'operations', 'quarterly', 'medium', 'active',
+                 'Physical inventory counts performed quarterly. Variances exceeding 2% of total value require investigation and adjustment approval.'),
+                ('SOX-0008', 'Payroll Processing Controls', 'preventive', 'financial_reporting', 'monthly', 'critical', 'active',
+                 'Payroll changes require HR approval. Payroll register reviewed by CFO before transmission. Direct deposit changes require employee verification.'),
             ]
-            for name, ctype, cat, freq, risk, status in sox_data:
+
+            created_controls = []
+            for num, name, ctype, cat, freq, risk, status, desc in sox_data:
                 ctrl, created = SOXControl.unscoped.get_or_create(
-                    tenant=tenant,
-                    name=name,
+                    tenant=tenant, control_number=num,
                     defaults={
-                        'control_number': SOXControl.generate_control_number(tenant),
-                        'description': f'Control for {name.lower()}',
+                        'name': name,
+                        'description': desc,
                         'control_type': ctype,
                         'category': cat,
-                        'owner': owner_user,
+                        'owner': users[0],
                         'frequency': freq,
                         'risk_level': risk,
                         'status': status,
-                        'effective_date': date.today() - timedelta(days=180),
+                        'effective_date': date.today() - timedelta(days=365),
                         'is_active': True,
                     },
                 )
+                created_controls.append(ctrl)
+
+                # Create test records for active controls
                 if created and status == 'active':
-                    for i in range(2):
+                    test_data = [
+                        ('walkthrough', 'passed', 10, 0, 'Walkthrough completed. Control operating as designed. No exceptions noted.'),
+                        ('sample', 'passed', 25, 1, 'Sample of 25 transactions tested. 1 minor exception found — documentation gap, not a control failure.'),
+                        ('full', 'passed', 50, 0, 'Full population tested for Q4. All items compliant. Control is effective.'),
+                    ]
+                    for i, (ttype, result, sample, exc, conclusion) in enumerate(test_data):
                         SOXControlTest.unscoped.create(
                             tenant=tenant,
-                            test_number=SOXControlTest.generate_test_number(tenant),
+                            test_number=f'STT-{SOXControlTest.unscoped.filter(tenant=tenant).count() + 1:04d}',
                             control=ctrl,
                             test_date=date.today() - timedelta(days=30 * (i + 1)),
-                            tested_by=second_user,
-                            test_type=random.choice(['walkthrough', 'sample', 'full']),
-                            result=random.choice(['passed', 'passed', 'inconclusive']),
-                            sample_size=random.randint(5, 25),
-                            exceptions_found=random.randint(0, 2),
-                            conclusion=f'Test {i + 1} completed satisfactorily.',
+                            tested_by=users[1] if len(users) > 1 else users[0],
+                            test_type=ttype,
+                            result=result,
+                            sample_size=sample,
+                            exceptions_found=exc,
+                            conclusion=conclusion,
                         )
                     ctrl.last_tested_date = date.today() - timedelta(days=30)
                     ctrl.save(update_fields=['last_tested_date'])
 
-            # ── SoD Rules ──
+            # ── SoD Rules ─────────────────────────────────────
             sod_data = [
-                ('AP Clerk vs AP Approver', 'AP Clerk', 'AP Approver', 'high', 'hard'),
-                ('AR Clerk vs AR Manager', 'AR Clerk', 'AR Manager', 'medium', 'soft'),
-                ('GL Entry vs GL Approver', 'GL Entry', 'GL Approver', 'high', 'hard'),
-                ('Payroll Processor vs Payroll Approver', 'Payroll Processor', 'Payroll Approver', 'critical', 'hard'),
+                ('SOD-0001', 'AP Clerk vs AP Approver', 'AP Clerk', 'AP Approver', 'high', 'hard',
+                 'Prevents the same user from creating vendor invoices and approving payments. Hard enforcement blocks assignment.'),
+                ('SOD-0002', 'AR Clerk vs AR Manager', 'AR Clerk', 'AR Manager', 'medium', 'soft',
+                 'Users who enter customer invoices should not also manage customer credit limits. Soft enforcement generates alerts.'),
+                ('SOD-0003', 'GL Entry vs GL Approver', 'GL Entry', 'GL Approver', 'high', 'hard',
+                 'Journal entry preparers cannot also approve their own entries. System prevents self-approval.'),
+                ('SOD-0004', 'Payroll Processor vs Payroll Approver', 'Payroll Processor', 'Payroll Approver', 'critical', 'hard',
+                 'Payroll processing and approval must be performed by different individuals. Critical risk for fraud prevention.'),
+                ('SOD-0005', 'Vendor Master vs Payment Processing', 'Vendor Master', 'Payment Processing', 'high', 'hard',
+                 'Users who can modify vendor bank details cannot also initiate payments. Prevents fictitious vendor fraud.'),
+                ('SOD-0006', 'Inventory Adjustment vs Inventory Count', 'Inventory Adjustment', 'Inventory Count', 'medium', 'soft',
+                 'Inventory adjusters should not also perform physical counts. Reduces risk of concealed shrinkage.'),
             ]
-            for name, role1, role2, risk, enforce in sod_data:
+
+            created_rules = []
+            for num, name, role1, role2, risk, enforce, desc in sod_data:
                 rule, created = SoDRule.unscoped.get_or_create(
-                    tenant=tenant,
-                    name=name,
+                    tenant=tenant, rule_number=num,
                     defaults={
-                        'rule_number': SoDRule.generate_rule_number(tenant),
-                        'description': f'Prevents {role1} from also having {role2} access',
+                        'name': name,
+                        'description': desc,
                         'conflicting_role_1': role1,
                         'conflicting_role_2': role2,
                         'risk_level': risk,
@@ -7321,146 +7348,238 @@ class Command(BaseCommand):
                         'status': 'active',
                     },
                 )
-                if created:
-                    SoDViolation.unscoped.create(
-                        tenant=tenant,
-                        violation_number=SoDViolation.generate_violation_number(tenant),
-                        rule=rule,
-                        user=second_user,
-                        role_1_name=role1,
-                        role_2_name=role2,
-                        detected_at=timezone.now() - timedelta(days=random.randint(1, 30)),
-                        status=random.choice(['open', 'acknowledged', 'mitigated']),
-                    )
+                created_rules.append(rule)
 
-            # ── Access Policies ──
-            try:
-                from apps.roles.models import Role
-                roles = Role.unscoped.filter(tenant=tenant)
-                if roles.exists():
-                    role = roles.first()
-                    policy_data = [
-                        ('GL Read-Only Access', 'role_based', 'Account', '', 'read'),
-                        ('Vendor Master Edit', 'role_based', 'Vendor', '', 'write'),
-                        ('Salary Field Restriction', 'field_level', 'Employee', 'salary', 'none'),
-                        ('Full Admin Access', 'data_level', '', '', 'full'),
-                    ]
-                    for name, ptype, model, field, level in policy_data:
-                        AccessPolicy.unscoped.get_or_create(
-                            tenant=tenant,
-                            name=name,
-                            defaults={
-                                'policy_number': AccessPolicy.generate_policy_number(tenant),
-                                'description': f'Policy: {name}',
-                                'policy_type': ptype,
-                                'target_model': model,
-                                'target_field': field,
-                                'access_level': level,
-                                'role': role,
-                                'status': 'active',
-                                'effective_date': date.today() - timedelta(days=90),
-                                'is_active': True,
-                            },
-                        )
-
-                    # Access Review
-                    review, created = AccessReview.unscoped.get_or_create(
-                        tenant=tenant,
-                        name='Q1 2026 Access Review',
+            # SoD Violations
+            violation_data = [
+                ('SDV-0001', 0, 'open', 'User was temporarily granted dual access during staff shortage.'),
+                ('SDV-0002', 1, 'acknowledged', 'Legacy role assignment discovered during quarterly review.'),
+                ('SDV-0003', 2, 'mitigated', 'Compensating control in place: supervisor reviews all GL entries daily.'),
+                ('SDV-0004', 3, 'open', 'New hire assigned conflicting roles in onboarding — escalated to IT.'),
+                ('SDV-0005', 0, 'accepted', 'Small office exception — CFO has formally accepted the risk with documented justification.'),
+                ('SDV-0006', 4, 'mitigated', 'Automated daily report of vendor master changes sent to CFO as mitigating control.'),
+            ]
+            for num, rule_idx, status, notes in violation_data:
+                if rule_idx < len(created_rules):
+                    rule = created_rules[rule_idx]
+                    SoDViolation.unscoped.get_or_create(
+                        tenant=tenant, violation_number=num,
                         defaults={
-                            'review_number': AccessReview.generate_review_number(tenant),
-                            'review_date': date.today(),
-                            'reviewer': owner_user,
-                            'scope': 'full',
-                            'status': 'completed',
-                            'findings_count': 1,
+                            'rule': rule,
+                            'user': users[1] if len(users) > 1 else users[0],
+                            'role_1_name': rule.conflicting_role_1,
+                            'role_2_name': rule.conflicting_role_2,
+                            'detected_at': timezone.now() - timedelta(days=random.randint(5, 45)),
+                            'status': status,
+                            'mitigating_control': notes if status == 'mitigated' else '',
+                            'resolved_by': users[0] if status in ['mitigated', 'accepted'] else None,
+                            'resolved_at': timezone.now() - timedelta(days=2) if status in ['mitigated', 'accepted'] else None,
+                            'notes': notes,
                         },
                     )
-                    if created:
-                        policies = AccessPolicy.unscoped.filter(tenant=tenant)[:2]
-                        for policy in policies:
-                            AccessReviewItem.unscoped.create(
-                                tenant=tenant,
-                                item_number=AccessReviewItem.generate_item_number(tenant),
-                                review=review,
-                                policy=policy,
-                                user=second_user,
-                                current_access=policy.get_access_level_display(),
-                                recommended_action='retain',
-                                reviewer_decision='approved',
-                            )
-            except Exception:
-                pass
 
-            # ── Change Requests ──
-            cr_data = [
-                ('Update Vendor Payment Terms', 'master_data', 'medium', 'implemented'),
-                ('Modify GL Account Structure', 'configuration', 'high', 'approved'),
-                ('New Revenue Recognition Policy', 'process', 'critical', 'under_review'),
-                ('System Upgrade - AR Module', 'system', 'high', 'submitted'),
-                ('Add New Cost Center', 'master_data', 'low', 'draft'),
+            # ── Access Policies ───────────────────────────────
+            roles = Role.unscoped.filter(tenant=tenant)
+            role = roles.first() if roles.exists() else None
+            if not role:
+                continue
+
+            policy_data = [
+                ('ACP-0001', 'GL Read-Only Access', 'role_based', 'Account', '', 'read', 'active',
+                 'Grants read-only access to all General Ledger accounts and journal entries for auditors and viewers.'),
+                ('ACP-0002', 'Vendor Master Edit', 'role_based', 'Vendor', '', 'write', 'active',
+                 'Allows creation and modification of vendor master records including bank details and payment terms.'),
+                ('ACP-0003', 'Salary Field Restriction', 'field_level', 'Employee', 'salary', 'none', 'active',
+                 'Restricts access to salary fields on employee records. Only HR and Payroll roles can view/edit.'),
+                ('ACP-0004', 'Full Admin Access', 'data_level', '', '', 'full', 'active',
+                 'Full administrative access to all system modules. Restricted to system administrators only.'),
+                ('ACP-0005', 'AP Invoice Entry', 'role_based', 'Bill', '', 'write', 'active',
+                 'Allows entry and editing of vendor invoices. Does not include approval or payment capabilities.'),
+                ('ACP-0006', 'Bank Account View', 'field_level', 'BankAccount', 'account_number', 'read', 'inactive',
+                 'Read-only access to bank account numbers. Deprecated — replaced by ACP-0007 with masking.'),
             ]
-            for title, ctype, priority, status in cr_data:
-                cr, created = ChangeRequest.unscoped.get_or_create(
-                    tenant=tenant,
-                    title=title,
+
+            created_policies = []
+            for num, name, ptype, model, field, level, status, desc in policy_data:
+                policy, created = AccessPolicy.unscoped.get_or_create(
+                    tenant=tenant, policy_number=num,
                     defaults={
-                        'request_number': ChangeRequest.generate_request_number(tenant),
-                        'description': f'Request to {title.lower()}',
+                        'name': name,
+                        'description': desc,
+                        'policy_type': ptype,
+                        'target_model': model,
+                        'target_field': field,
+                        'access_level': level,
+                        'role': role,
+                        'status': status,
+                        'effective_date': date.today() - timedelta(days=180),
+                        'expiry_date': date.today() + timedelta(days=180) if status == 'active' else date.today() - timedelta(days=30),
+                        'is_active': status == 'active',
+                    },
+                )
+                created_policies.append(policy)
+
+            # Access Reviews
+            review_data = [
+                ('ACR-0001', 'Q1 2026 Full Access Review', 'full', 'completed', 2),
+                ('ACR-0002', 'Q2 2026 Department Access Review', 'department', 'in_progress', 0),
+                ('ACR-0003', 'Annual Role-Based Review 2026', 'role', 'planned', 0),
+            ]
+            for num, name, scope, status, findings in review_data:
+                review, created = AccessReview.unscoped.get_or_create(
+                    tenant=tenant, review_number=num,
+                    defaults={
+                        'name': name,
+                        'review_date': date.today() - timedelta(days=30) if status == 'completed' else date.today() + timedelta(days=30),
+                        'reviewer': users[0],
+                        'scope': scope,
+                        'status': status,
+                        'findings_count': findings,
+                    },
+                )
+                # Create review items for completed review
+                if created and status == 'completed' and len(created_policies) >= 4:
+                    review_items = [
+                        ('ARI-0001', 0, 'retain', 'approved', 'Read — appropriate for role'),
+                        ('ARI-0002', 1, 'modify', 'modified', 'Write access too broad — restricted to AP team only'),
+                        ('ARI-0003', 2, 'retain', 'approved', 'Salary restriction confirmed appropriate'),
+                        ('ARI-0004', 3, 'revoke', 'revoked', 'User no longer requires admin access — transferred to new department'),
+                    ]
+                    for inum, pidx, rec_action, decision, notes in review_items:
+                        AccessReviewItem.unscoped.create(
+                            tenant=tenant,
+                            item_number=inum,
+                            review=review,
+                            policy=created_policies[pidx],
+                            user=users[1] if len(users) > 1 else users[0],
+                            current_access=created_policies[pidx].get_access_level_display(),
+                            recommended_action=rec_action,
+                            reviewer_decision=decision,
+                            notes=notes,
+                        )
+
+            # ── Change Requests ───────────────────────────────
+            cr_data = [
+                ('CHR-0001', 'Update Vendor Payment Terms', 'master_data', 'medium', 'implemented',
+                 'Change standard payment terms from Net 30 to Net 45 for all existing vendors per CFO directive.'),
+                ('CHR-0002', 'Modify GL Account Structure', 'configuration', 'high', 'approved',
+                 'Add new sub-accounts under 6000-series for departmental expense tracking per new reporting requirements.'),
+                ('CHR-0003', 'New Revenue Recognition Policy', 'process', 'critical', 'under_review',
+                 'Implement ASC 606 multi-element arrangement policy for bundled software + service contracts.'),
+                ('CHR-0004', 'System Upgrade - AR Module', 'system', 'high', 'submitted',
+                 'Upgrade AR module to support automated dunning letters and customer portal integration.'),
+                ('CHR-0005', 'Add New Cost Center', 'master_data', 'low', 'draft',
+                 'Create cost center CC-450 for the new marketing analytics team starting Q3 2026.'),
+                ('CHR-0006', 'Update Bank Account Details', 'master_data', 'critical', 'approved',
+                 'Update primary operating bank account routing number following bank merger notification.'),
+                ('CHR-0007', 'Depreciation Method Change', 'process', 'high', 'implemented',
+                 'Change depreciation method for IT equipment from straight-line to double-declining balance per tax advisor recommendation.'),
+            ]
+            for num, title, ctype, priority, status, desc in cr_data:
+                cr, created = ChangeRequest.unscoped.get_or_create(
+                    tenant=tenant, request_number=num,
+                    defaults={
+                        'title': title,
+                        'description': desc,
                         'change_type': ctype,
                         'priority': priority,
                         'status': status,
-                        'requested_by': owner_user,
-                        'approved_by': second_user if status in ['approved', 'implemented'] else None,
-                        'approved_at': timezone.now() if status in ['approved', 'implemented'] else None,
-                        'implemented_by': second_user if status == 'implemented' else None,
-                        'implemented_at': timezone.now() if status == 'implemented' else None,
+                        'requested_by': users[0],
+                        'approved_by': users[1] if len(users) > 1 and status in ['approved', 'implemented'] else None,
+                        'approved_at': timezone.now() - timedelta(days=10) if status in ['approved', 'implemented'] else None,
+                        'implemented_by': users[1] if len(users) > 1 and status == 'implemented' else None,
+                        'implemented_at': timezone.now() - timedelta(days=3) if status == 'implemented' else None,
+                        'change_data': {'fields_changed': ['payment_terms'], 'old_value': 'Net 30', 'new_value': 'Net 45'} if ctype == 'master_data' else {},
                     },
                 )
+                # Add approval records for non-draft requests
                 if created and status != 'draft':
+                    approval_decisions = {
+                        'submitted': ('pending', ''),
+                        'under_review': ('pending', 'Under review by compliance team.'),
+                        'approved': ('approved', 'Approved. Change is low-risk and well-documented.'),
+                        'implemented': ('approved', 'Approved and verified post-implementation.'),
+                    }
+                    decision, comment = approval_decisions.get(status, ('pending', ''))
                     ChangeApproval.unscoped.create(
                         tenant=tenant,
-                        approval_number=ChangeApproval.generate_approval_number(tenant),
+                        approval_number=f'CHA-{ChangeApproval.unscoped.filter(tenant=tenant).count() + 1:04d}',
                         change_request=cr,
-                        approver=second_user,
-                        decision='approved' if status in ['approved', 'implemented'] else 'pending',
-                        comments='Approved per review.' if status in ['approved', 'implemented'] else '',
-                        decided_at=timezone.now() if status in ['approved', 'implemented'] else None,
+                        approver=users[1] if len(users) > 1 else users[0],
+                        decision=decision,
+                        comments=comment,
+                        decided_at=timezone.now() - timedelta(days=5) if decision == 'approved' else None,
                     )
 
-            # ── Audit Entries ──
-            actions = ['create', 'update', 'update', 'view', 'delete', 'export']
-            models_list = ['Account', 'Vendor', 'Invoice', 'JournalEntry', 'Customer', 'Bill']
-            for i in range(15):
+            # ── Audit Entries ─────────────────────────────────
+            audit_data = [
+                ('AUD-0001', 'create', 'Vendor', 42, 'Created vendor "Acme Corp" with payment terms Net 30.'),
+                ('AUD-0002', 'update', 'Account', 15, 'Changed account 4100 description from "Sales Revenue" to "Product Sales Revenue".'),
+                ('AUD-0003', 'update', 'Vendor', 42, 'Updated vendor "Acme Corp" bank account details. Old routing: ***1234, New routing: ***5678.'),
+                ('AUD-0004', 'create', 'JournalEntry', 101, 'Created journal entry JE-0101 for $45,000 — monthly depreciation.'),
+                ('AUD-0005', 'view', 'Bill', 88, 'Viewed bill BILL-0088 ($12,500 from Office Supplies Inc).'),
+                ('AUD-0006', 'update', 'Customer', 7, 'Changed credit limit from $50,000 to $75,000 per sales manager request.'),
+                ('AUD-0007', 'delete', 'JournalEntry', 95, 'Deleted draft journal entry JE-0095. Reason: duplicate entry.'),
+                ('AUD-0008', 'export', 'Account', None, 'Exported chart of accounts to CSV (152 accounts).'),
+                ('AUD-0009', 'create', 'Invoice', 201, 'Created invoice INV-0201 for $28,750 — consulting services Q1.'),
+                ('AUD-0010', 'update', 'Bill', 88, 'Approved bill BILL-0088 for payment.'),
+                ('AUD-0011', 'login', '', None, 'User logged in from IP 192.168.1.100.'),
+                ('AUD-0012', 'create', 'Vendor', 43, 'Created vendor "Global Supplies Ltd" with international payment terms.'),
+                ('AUD-0013', 'update', 'Account', 22, 'Deactivated account 7500 — no longer in use after restructuring.'),
+                ('AUD-0014', 'view', 'JournalEntry', 101, 'Viewed journal entry JE-0101 details and line items.'),
+                ('AUD-0015', 'export', 'Invoice', None, 'Exported AR aging report to PDF (45 invoices, $382,000 total).'),
+                ('AUD-0016', 'update', 'Customer', 12, 'Placed customer on credit hold. Reason: 90+ days past due.'),
+                ('AUD-0017', 'create', 'Bill', 120, 'Created bill BILL-0120 for $8,200 — office lease payment March 2026.'),
+                ('AUD-0018', 'logout', '', None, 'User session ended. Duration: 2h 15m.'),
+                ('AUD-0019', 'update', 'Vendor', 43, 'Updated vendor tax ID from pending to verified.'),
+                ('AUD-0020', 'delete', 'Invoice', 195, 'Voided invoice INV-0195. Reason: billing error — wrong customer.'),
+            ]
+            ips = ['192.168.1.100', '10.0.0.50', '172.16.0.25', '192.168.1.105']
+            for num, action, model_name, record_id, summary in audit_data:
                 AuditEntry.unscoped.get_or_create(
-                    tenant=tenant,
-                    entry_number=f'AUD-{i + 1:04d}',
+                    tenant=tenant, entry_number=num,
                     defaults={
-                        'action': random.choice(actions),
-                        'model_name': random.choice(models_list),
-                        'record_id': random.randint(1, 100),
-                        'user': random.choice(list(users)),
-                        'ip_address': '127.0.0.1',
-                        'old_values': {'field': 'old_value'} if random.random() > 0.5 else {},
-                        'new_values': {'field': 'new_value'} if random.random() > 0.5 else {},
-                        'changes_summary': 'Sample audit trail entry.',
+                        'action': action,
+                        'model_name': model_name,
+                        'record_id': record_id,
+                        'user': random.choice(users),
+                        'ip_address': random.choice(ips),
+                        'old_values': {'status': 'draft', 'amount': '10000.00'} if action == 'update' else {},
+                        'new_values': {'status': 'approved', 'amount': '10000.00'} if action == 'update' else ({'name': model_name} if action == 'create' else {}),
+                        'changes_summary': summary,
+                        'session_id': f'sess_{random.randint(10000, 99999)}',
                     },
                 )
 
-            # ── Exception Rules & Exceptions ──
+            # ── Exception Rules & Exceptions ──────────────────
             rule_data = [
-                ('Large Transaction Alert', 'threshold', 'JournalEntry', 'warning', {'field': 'amount', 'operator': 'gt', 'value': 100000}),
-                ('Duplicate Vendor Check', 'duplicate', 'Vendor', 'warning', {'fields': ['name', 'tax_id']}),
-                ('Missing Approval Check', 'missing', 'Bill', 'critical', {'field': 'approved_by', 'condition': 'is_null'}),
-                ('After-Hours Transaction', 'timing', 'JournalEntry', 'info', {'after_hour': 18, 'before_hour': 6}),
+                ('EXR-0001', 'Large Transaction Alert', 'threshold', 'JournalEntry', 'warning',
+                 {'field': 'amount', 'operator': 'gt', 'value': 100000},
+                 'Flag any journal entry exceeding $100,000 for additional review.'),
+                ('EXR-0002', 'Duplicate Vendor Check', 'duplicate', 'Vendor', 'warning',
+                 {'fields': ['name', 'tax_id'], 'similarity_threshold': 0.85},
+                 'Detect potential duplicate vendors based on name similarity and tax ID matching.'),
+                ('EXR-0003', 'Missing Approval Check', 'missing', 'Bill', 'critical',
+                 {'field': 'approved_by', 'condition': 'is_null', 'when': 'status=posted'},
+                 'Identify posted bills that were never formally approved — compliance violation.'),
+                ('EXR-0004', 'After-Hours Transaction', 'timing', 'JournalEntry', 'info',
+                 {'after_hour': 20, 'before_hour': 6, 'exclude_weekends': True},
+                 'Log transactions entered outside business hours (8 PM - 6 AM) for pattern analysis.'),
+                ('EXR-0005', 'Round-Number Payments', 'pattern', 'Bill', 'warning',
+                 {'field': 'amount', 'pattern': 'round_thousands', 'min_amount': 5000},
+                 'Flag payments in exact round numbers above $5,000 — potential indicator of fictitious invoices.'),
+                ('EXR-0006', 'Vendor Bank Change + Payment', 'pattern', 'Vendor', 'critical',
+                 {'sequence': ['bank_account_change', 'payment_within_days'], 'days': 3},
+                 'Alert when a payment is issued within 3 days of a vendor bank account change — fraud risk.'),
             ]
-            for name, rtype, model, severity, condition in rule_data:
+
+            created_exc_rules = []
+            for num, name, rtype, model, severity, condition, desc in rule_data:
                 rule, created = ExceptionRule.unscoped.get_or_create(
-                    tenant=tenant,
-                    name=name,
+                    tenant=tenant, rule_number=num,
                     defaults={
-                        'rule_number': ExceptionRule.generate_rule_number(tenant),
-                        'description': f'Rule: {name}',
+                        'name': name,
+                        'description': desc,
                         'rule_type': rtype,
                         'target_model': model,
                         'condition': condition,
@@ -7468,37 +7587,77 @@ class Command(BaseCommand):
                         'is_active': True,
                     },
                 )
-                if created:
-                    for j in range(2):
-                        AuditException.unscoped.create(
-                            tenant=tenant,
-                            exception_number=AuditException.generate_exception_number(tenant),
-                            rule=rule,
-                            detected_at=timezone.now() - timedelta(days=random.randint(1, 60)),
-                            severity=severity,
-                            description=f'Exception detected by {name}',
-                            record_model=model,
-                            record_id=random.randint(1, 50),
-                            record_details={'sample': 'data'},
-                            status=random.choice(['open', 'investigating', 'resolved', 'false_positive']),
-                            assigned_to=second_user if random.random() > 0.5 else None,
-                        )
+                created_exc_rules.append(rule)
 
-            # ── Document Categories & Documents ──
-            cat_data = ['Policies', 'Procedures', 'Evidence', 'Reports']
-            for name in cat_data:
+            # Exceptions
+            exc_data = [
+                ('EXC-0001', 0, 'warning', 'open', 'JournalEntry', 101,
+                 'Journal entry JE-0101 amount $145,000 exceeds threshold of $100,000.',
+                 {'entry_number': 'JE-0101', 'amount': 145000, 'prepared_by': 'jsmith'}),
+                ('EXC-0002', 0, 'warning', 'resolved', 'JournalEntry', 98,
+                 'Journal entry JE-0098 amount $250,000 exceeds threshold. Reviewed — legitimate year-end adjustment.',
+                 {'entry_number': 'JE-0098', 'amount': 250000, 'prepared_by': 'mjones'}),
+                ('EXC-0003', 1, 'warning', 'investigating', 'Vendor', 43,
+                 'Potential duplicate: "Global Supplies Ltd" (V-0043) matches "Global Supply LLC" (V-0012) at 87% similarity.',
+                 {'vendor_1': 'Global Supplies Ltd', 'vendor_2': 'Global Supply LLC', 'similarity': 0.87}),
+                ('EXC-0004', 2, 'critical', 'open', 'Bill', 115,
+                 'Bill BILL-0115 ($18,500) posted without approval. Vendor: Office Solutions Inc.',
+                 {'bill_number': 'BILL-0115', 'amount': 18500, 'vendor': 'Office Solutions Inc'}),
+                ('EXC-0005', 2, 'critical', 'resolved', 'Bill', 108,
+                 'Bill BILL-0108 posted without approval. Investigated — emergency purchase, retroactive approval obtained.',
+                 {'bill_number': 'BILL-0108', 'amount': 7200, 'vendor': 'Emergency Services Co'}),
+                ('EXC-0006', 3, 'info', 'false_positive', 'JournalEntry', 99,
+                 'Journal entry JE-0099 entered at 10:30 PM. Investigation: CFO working late on month-end close.',
+                 {'entry_number': 'JE-0099', 'time': '22:30', 'user': 'cfo_user'}),
+                ('EXC-0007', 4, 'warning', 'open', 'Bill', 119,
+                 'Bill BILL-0119 for exactly $10,000.00 — round number payment to relatively new vendor.',
+                 {'bill_number': 'BILL-0119', 'amount': 10000, 'vendor': 'NewCo Services'}),
+                ('EXC-0008', 5, 'critical', 'investigating', 'Vendor', 42,
+                 'Vendor "Acme Corp" bank account changed on Mar 15, payment of $45,000 issued on Mar 16.',
+                 {'vendor': 'Acme Corp', 'bank_change_date': '2026-03-15', 'payment_date': '2026-03-16', 'amount': 45000}),
+            ]
+            for num, rule_idx, severity, status, rec_model, rec_id, desc, details in exc_data:
+                if rule_idx < len(created_exc_rules):
+                    AuditException.unscoped.get_or_create(
+                        tenant=tenant, exception_number=num,
+                        defaults={
+                            'rule': created_exc_rules[rule_idx],
+                            'detected_at': timezone.now() - timedelta(days=random.randint(1, 45)),
+                            'severity': severity,
+                            'description': desc,
+                            'record_model': rec_model,
+                            'record_id': rec_id,
+                            'record_details': details,
+                            'status': status,
+                            'assigned_to': users[1] if len(users) > 1 and status in ['open', 'investigating'] else None,
+                            'resolved_by': users[0] if status in ['resolved', 'false_positive'] else None,
+                            'resolved_at': timezone.now() - timedelta(days=3) if status in ['resolved', 'false_positive'] else None,
+                            'resolution_notes': 'Reviewed and closed.' if status == 'resolved' else ('False alarm — legitimate activity confirmed.' if status == 'false_positive' else ''),
+                        },
+                    )
+
+            # ── Document Categories ───────────────────────────
+            cat_data = [
+                ('DCC-0001', 'Policies', 'Corporate policies, SOX compliance policies, and governance documents'),
+                ('DCC-0002', 'Procedures', 'Standard operating procedures, work instructions, and process documentation'),
+                ('DCC-0003', 'Evidence', 'Audit evidence, test results, screenshots, and supporting documentation'),
+                ('DCC-0004', 'Reports', 'Audit reports, compliance reports, and management summaries'),
+                ('DCC-0005', 'Contracts', 'Vendor contracts, service agreements, and amendments'),
+                ('DCC-0006', 'Correspondence', 'Auditor letters, management responses, and regulatory correspondence'),
+            ]
+            for num, name, desc in cat_data:
                 DocumentCategory.unscoped.get_or_create(
-                    tenant=tenant,
-                    name=name,
+                    tenant=tenant, category_number=num,
                     defaults={
-                        'category_number': DocumentCategory.generate_category_number(tenant),
-                        'description': f'{name} category for audit documents',
+                        'name': name,
+                        'description': desc,
                         'is_active': True,
                     },
                 )
 
         self.stdout.write(
-            f'  Created AU data (5 SOX controls with tests, 4 SoD rules with violations, '
-            f'4 access policies, 1 access review, 5 change requests, 15 audit entries, '
-            f'4 exception rules with exceptions, 4 document categories)'
+            f'  Created AU data (8 SOX controls with 18 tests, 6 SoD rules with 6 violations, '
+            f'6 access policies, 3 access reviews with 4 review items, '
+            f'7 change requests with approvals, 20 audit trail entries, '
+            f'6 exception rules with 8 exceptions, 6 document categories)'
         )
