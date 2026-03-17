@@ -45,6 +45,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Tax Management** — Sales tax engine with hierarchical jurisdictions, effective-dated rates, compound rate calculation, product taxability rules & tax groups; tax return preparation (Sales Tax/VAT/GST/Income Tax) with Draft→Calculated→Reviewed→Filed workflow; use tax self-assessment tracking with GL accrual posting; income tax provision with current/deferred tax, temporary differences, and ETR reconciliation; tax calendar with filing deadline management, recurring deadline generation & overdue alerts; audit support with findings tracking, document repository & adjustment GL posting; economic nexus monitoring with threshold tracking, progress alerts & registration management
 - **Reporting & Compliance** — Financial statements (Balance Sheet, P&L, Cash Flow, Equity) with Draft→Generated→Reviewed→Approved→Published workflow; departmental P&Ls with budget vs actual variance analysis; custom report builder with configurable columns, filters, and layout types; scheduled report distribution with email recipients and execution logging; XBRL/EDGAR filing support with taxonomy tagging and SEC submission workflow; statutory reporting with jurisdiction-specific templates (US GAAP/IFRS/local); consolidation reporting packages with entity-level data collection and eliminations; executive and operational dashboards with configurable widgets and snapshots
 - **Budgeting & Planning** — Budget creation (top-down/bottom-up/hybrid) with line items per GL account and fiscal period, Draft→In Review→Approved→Active→Closed workflow; budget version control with snapshot-based revision and scenario tracking; driver-based planning with revenue/cost/headcount/volume drivers and per-period quantity×rate calculations; rolling forecasts (monthly/quarterly) with configurable horizons, forecast vs actual variance tracking; variance analysis with budget vs actual drill-down, favorable/unfavorable classification and explanations; what-if scenario modeling (best case/worst case/most likely/custom) with percentage, fixed amount, and override adjustments; workforce planning with position-level salary and benefits forecasting, headcount tracking, and GL account mapping
+- **Audit & Controls** — SOX control documentation with preventive/detective/corrective types, risk levels, and testing workflows (walkthrough/sample/full); segregation of duties rules with hard/soft enforcement, automated conflict scanning, and violation tracking; role-based and field-level access policies with periodic access reviews and reviewer decisions; change management with approval workflows for master data changes (Draft→Submitted→Under Review→Approved→Implemented); comprehensive audit trail with action logging (create/update/delete/view/export), JSON diff snapshots, and IP tracking; exception reporting with configurable rules (threshold/pattern/duplicate/missing/timing), severity levels, and automated scanning; document management with categories, file upload/download, version tracking, and record linking
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -391,6 +392,7 @@ python manage.py seed_data --bp
 | Reporting & Compliance | 5 financial statements (balance sheet/income statement/cash flow/equity with line items), 4 management reports (departmental P&L/budget vs actual/variance/trend with line items), 3 custom reports with columns and filters, 1 scheduled report with recipients, 2 XBRL filings with taxonomy tags, 2 statutory templates (US GAAP/IFRS), 1 statutory report with line items, 1 consolidation package with entity data, 2 dashboards with 6 widgets each |
 | Tax Management | 7 jurisdictions (Federal, 3 states, 2 counties, 1 city) with hierarchy, 7 tax rates (CA/NY/TX/Federal), 8 tax rules (exemptions/reduced/zero-rated/surtax), 4 tax groups (CA+LA, CA+SF, NY+NYC, CA full combined), 5 tax returns with line items (filed/draft/calculated/reviewed), 5 use tax assessments (pending/accrued/paid/exempt), 2 use tax accruals (posted/draft), 3 income tax provisions with deferred items and ETR reconciliation (finalized/draft/calculated), 5 tax deadlines (recurring/one-time), 4 tax audits with findings (closed/in-progress/pending), 4 nexus jurisdictions with activity records |
 | Budgeting & Planning | 5 budgets (Operating/Capital/Department/Marketing/IT with line items across GL accounts and fiscal periods), 4 budget versions (original/revision/2 scenarios with snapshot data), 5 planning drivers (revenue per customer/cost per unit/headcount growth/sales volume/office space with per-period values), 3 rolling forecasts (monthly operations/quarterly revenue/cash flow with forecast vs actual lines), 4 variance analyses (Jan–Apr with per-account budget vs actual, favorable/unfavorable flags, explanations), 4 what-if scenarios (10% revenue growth/15% cost reduction/economic downturn/new market entry with adjustments and calculated results), 3 workforce plans (Engineering/Sales/Operations with position-level salary, benefits, headcount, and new hire tracking) |
+| Audit & Controls | 5 SOX controls (Journal Entry Approval/Bank Reconciliation/Vendor Master/IT Access/Revenue Recognition with tests), 4 SoD rules (AP/AR/GL/Payroll conflict pairs with violations), 4 access policies (role-based/field-level/data-level), 1 access review with items, 5 change requests (various statuses with approvals), 15 audit trail entries, 4 exception rules (threshold/duplicate/missing/timing with exceptions), 4 document categories |
 
 ---
 
@@ -1146,6 +1148,60 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/bp/workforce/create/` | Create plan | New plan with positions |
 | `/t/<slug>/bp/workforce/<pk>/` | Plan detail | Positions, cost summary |
 | `/t/<slug>/bp/workforce/<pk>/edit/` | Edit plan | Edit plan with positions |
+| **Audit & Controls — SOX Controls** | | |
+| `/t/<slug>/au/sox/` | SOX control list | All controls with filters |
+| `/t/<slug>/au/sox/create/` | Create control | New SOX control |
+| `/t/<slug>/au/sox/<pk>/` | Control detail | Control info, test history |
+| `/t/<slug>/au/sox/<pk>/edit/` | Edit control | Edit SOX control |
+| `/t/<slug>/au/sox/<pk>/add-test/` | Add test | Record a control test |
+| **Audit & Controls — Segregation of Duties** | | |
+| `/t/<slug>/au/sod/rules/` | SoD rule list | All rules with filters |
+| `/t/<slug>/au/sod/rules/create/` | Create rule | New SoD rule |
+| `/t/<slug>/au/sod/rules/<pk>/` | Rule detail | Rule info, violations |
+| `/t/<slug>/au/sod/rules/<pk>/edit/` | Edit rule | Edit SoD rule |
+| `/t/<slug>/au/sod/violations/` | Violation list | All violations with filters |
+| `/t/<slug>/au/sod/violations/<pk>/` | Violation detail | Violation info |
+| `/t/<slug>/au/sod/violations/<pk>/resolve/` | Resolve violation | Mark violation resolved |
+| `/t/<slug>/au/sod/scan/` | Run SoD scan | Scan for conflicts |
+| **Audit & Controls — Access Controls** | | |
+| `/t/<slug>/au/access/policies/` | Policy list | All access policies |
+| `/t/<slug>/au/access/policies/create/` | Create policy | New access policy |
+| `/t/<slug>/au/access/policies/<pk>/` | Policy detail | Policy info |
+| `/t/<slug>/au/access/policies/<pk>/edit/` | Edit policy | Edit access policy |
+| `/t/<slug>/au/access/reviews/` | Review list | All access reviews |
+| `/t/<slug>/au/access/reviews/create/` | Create review | New review with items |
+| `/t/<slug>/au/access/reviews/<pk>/` | Review detail | Review items |
+| `/t/<slug>/au/access/reviews/<pk>/edit/` | Edit review | Edit review with items |
+| **Audit & Controls — Change Management** | | |
+| `/t/<slug>/au/changes/` | Change request list | All change requests |
+| `/t/<slug>/au/changes/create/` | Create request | New change request |
+| `/t/<slug>/au/changes/<pk>/` | Request detail | Request info, approvals |
+| `/t/<slug>/au/changes/<pk>/edit/` | Edit request | Edit change request |
+| `/t/<slug>/au/changes/<pk>/submit/` | Submit request | Submit for review |
+| `/t/<slug>/au/changes/<pk>/approve/` | Approve request | Approve change request |
+| `/t/<slug>/au/changes/<pk>/reject/` | Reject request | Reject change request |
+| `/t/<slug>/au/changes/<pk>/implement/` | Implement request | Mark as implemented |
+| **Audit & Controls — Audit Trail** | | |
+| `/t/<slug>/au/trail/` | Audit entry list | All audit entries (read-only) |
+| `/t/<slug>/au/trail/<pk>/` | Entry detail | Full audit entry with JSON diff |
+| **Audit & Controls — Exception Reporting** | | |
+| `/t/<slug>/au/exceptions/rules/` | Exception rule list | All exception rules |
+| `/t/<slug>/au/exceptions/rules/create/` | Create rule | New exception rule |
+| `/t/<slug>/au/exceptions/rules/<pk>/` | Rule detail | Rule info, exceptions |
+| `/t/<slug>/au/exceptions/rules/<pk>/edit/` | Edit rule | Edit exception rule |
+| `/t/<slug>/au/exceptions/` | Exception list | All exceptions |
+| `/t/<slug>/au/exceptions/<pk>/` | Exception detail | Exception info |
+| `/t/<slug>/au/exceptions/<pk>/resolve/` | Resolve exception | Mark resolved |
+| `/t/<slug>/au/exceptions/run-scan/` | Run scan | Execute exception rules |
+| **Audit & Controls — Document Management** | | |
+| `/t/<slug>/au/documents/categories/` | Category list | Document categories |
+| `/t/<slug>/au/documents/categories/create/` | Create category | New category |
+| `/t/<slug>/au/documents/categories/<pk>/edit/` | Edit category | Edit category |
+| `/t/<slug>/au/documents/` | Document list | All documents |
+| `/t/<slug>/au/documents/upload/` | Upload document | Upload new document |
+| `/t/<slug>/au/documents/<pk>/` | Document detail | Document info |
+| `/t/<slug>/au/documents/<pk>/edit/` | Edit document | Edit document metadata |
+| `/t/<slug>/au/documents/<pk>/download/` | Download document | Download file |
 
 ---
 
@@ -1790,7 +1846,25 @@ When a tax audit adjustment is posted:
 
 **Seed Data:** 5 budgets with line items, 4 budget versions with snapshots, 5 planning drivers with period values, 3 rolling forecasts with forecast vs actual lines, 4 variance analyses with per-account drill-down, 4 what-if scenarios with adjustments and calculated results, 3 workforce plans with position-level detail
 
-### 18. `dashboard` — Dashboard & Analytics
+### 18. `audit` — Audit & Controls Module
+- **SOXControl** — SOX control documentation with preventive/detective/corrective types, financial reporting/operations/compliance/IT categories, configurable frequency (daily→annually), risk levels (low→critical), Draft→Active→Testing→Deficient→Remediated workflow
+- **SOXControlTest** — Test execution records with walkthrough/sample/full test types, passed/failed/inconclusive results, sample size and exception tracking
+- **SoDRule** — Segregation of duties conflict rules with configurable conflicting role pairs, hard/soft enforcement, Active→Inactive→Under Review status
+- **SoDViolation** — Detected SoD violations with user/role mapping, Open→Acknowledged→Mitigated→Accepted workflow, mitigating control documentation
+- **AccessPolicy** — Role-based, field-level, and data-level access policies with role FK, target model/field specification, none/read/write/full access levels
+- **AccessReview** — Periodic access review campaigns with full/department/role scope, Planned→In Progress→Completed→Closed workflow, findings tracking
+- **AccessReviewItem** — Individual review items with policy/user assessment, retain/revoke/modify recommendations, pending/approved/revoked/modified reviewer decisions
+- **ChangeRequest** — Master data change approval workflows with master_data/configuration/process/system types, priority levels, Draft→Submitted→Under Review→Approved→Rejected→Implemented workflow
+- **ChangeApproval** — Individual approval decisions (pending/approved/rejected/deferred) with comments and timestamps
+- **AuditEntry** — Complete transaction history with create/update/delete/view/export/login/logout actions, JSON old/new value snapshots, IP address and session tracking
+- **ExceptionRule** — Anomaly detection rules with threshold/pattern/duplicate/missing/timing types, JSON condition configuration, info/warning/critical severity
+- **AuditException** — Detected anomalies with rule linkage, record model/ID reference, Open→Investigating→Resolved→False Positive workflow
+- **DocumentCategory** — Categories for organizing audit documents (Policies, Procedures, Evidence, Reports)
+- **Document** — File attachment and retrieval with category FK, FileField upload, version tracking, tags, record linking via generic model/ID reference
+
+**Seed Data:** 5 SOX controls with test records, 4 SoD rules with violations, 4 access policies with 1 completed access review, 5 change requests with approvals, 15 audit trail entries, 4 exception rules with detected exceptions, 4 document categories
+
+### 19. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
