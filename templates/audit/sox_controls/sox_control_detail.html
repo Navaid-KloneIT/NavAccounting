@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ control.control_number }} - SOX Control{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ control.control_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:sox_control_list' tenant_slug=current_tenant.slug %}">SOX Controls</a></li>
+            <li class="breadcrumb-item active">{{ control.control_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Control Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Control Information</h5>
+                <div>
+                    {% if control.status == 'draft' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Draft</span>
+                    {% elif control.status == 'active' %}
+                        <span class="badge bg-soft-success text-success fs-6">Active</span>
+                    {% elif control.status == 'testing' %}
+                        <span class="badge bg-soft-info text-info fs-6">Testing</span>
+                    {% elif control.status == 'deficient' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Deficient</span>
+                    {% elif control.status == 'remediated' %}
+                        <span class="badge bg-soft-primary text-primary fs-6">Remediated</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ control.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Control Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ control.control_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ control.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Control Type</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ control.get_control_type_display }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Category</div>
+                    <div class="col-sm-8">{{ control.get_category_display }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Owner</div>
+                    <div class="col-sm-8">{{ control.owner }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Frequency</div>
+                    <div class="col-sm-8">{{ control.get_frequency_display }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Risk Level</div>
+                    <div class="col-sm-8">
+                        {% if control.risk_level == 'low' %}
+                            <span class="badge bg-soft-success text-success">Low</span>
+                        {% elif control.risk_level == 'medium' %}
+                            <span class="badge bg-soft-warning text-warning">Medium</span>
+                        {% elif control.risk_level == 'high' %}
+                            <span class="badge bg-soft-danger text-danger">High</span>
+                        {% elif control.risk_level == 'critical' %}
+                            <span class="badge bg-soft-danger text-danger">Critical</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ control.get_risk_level_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Effective Date</div>
+                    <div class="col-sm-8">{{ control.effective_date|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Last Tested</div>
+                    <div class="col-sm-8">{{ control.last_tested_date|default:"-" }}</div>
+                </div>
+                {% if control.description %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Description</div>
+                    <div class="col-sm-8">{{ control.description }}</div>
+                </div>
+                {% endif %}
+                {% if control.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ control.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tests -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Tests</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if tests %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Test #</th>
+                                <th>Test Date</th>
+                                <th>Test Type</th>
+                                <th>Result</th>
+                                <th class="text-end">Exceptions Found</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for test in tests %}
+                            <tr>
+                                <td class="fw-semibold">{{ test.test_number }}</td>
+                                <td>{{ test.test_date }}</td>
+                                <td>{{ test.get_test_type_display }}</td>
+                                <td>
+                                    {% if test.result == 'passed' %}
+                                        <span class="badge bg-soft-success text-success">Passed</span>
+                                    {% elif test.result == 'failed' %}
+                                        <span class="badge bg-soft-danger text-danger">Failed</span>
+                                    {% elif test.result == 'inconclusive' %}
+                                        <span class="badge bg-soft-warning text-warning">Inconclusive</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">{{ test.get_result_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ test.exceptions_found }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No tests recorded.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'audit:sox_control_edit' tenant_slug=current_tenant.slug pk=control.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Control
+                </a>
+                <a href="{% url 'audit:sox_test_create' tenant_slug=current_tenant.slug pk=control.pk %}" class="btn btn-soft-info btn-sm">
+                    <i class="ri-add-line me-1"></i> Add Test
+                </a>
+                <a href="{% url 'audit:sox_control_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ control.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ control.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
