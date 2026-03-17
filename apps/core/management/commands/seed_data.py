@@ -14,6 +14,7 @@ Usage:
     python manage.py seed_data --pj         # Seed project/job costing
     python manage.py seed_data --me         # Seed multi-entity & consolidation
     python manage.py seed_data --bp         # Seed budgeting & planning
+    python manage.py seed_data --au         # Seed audit & controls
 """
 import random
 from datetime import date, timedelta
@@ -62,6 +63,7 @@ class Command(BaseCommand):
         parser.add_argument('--tx', action='store_true', help='Seed tax management data only')
         parser.add_argument('--rc', action='store_true', help='Seed reporting & compliance data only')
         parser.add_argument('--bp', action='store_true', help='Seed budgeting & planning data only')
+        parser.add_argument('--au', action='store_true', help='Seed audit & controls data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -73,7 +75,7 @@ class Command(BaseCommand):
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
             options['pr'], options['pj'], options['me'], options['tx'],
-            options['rc'], options['bp'],
+            options['rc'], options['bp'], options['au'],
         ])
 
         # Always seed system-level data
@@ -150,9 +152,41 @@ class Command(BaseCommand):
             self.stdout.write('Seeding budgeting & planning data...')
             self._seed_bp_data()
 
+        if seed_all or options['au']:
+            self.stdout.write('Seeding audit & controls data...')
+            self._seed_au_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean AU (Audit & Controls) data first
+        try:
+            from apps.audit.models import (
+                Document, DocumentCategory,
+                AuditException, ExceptionRule,
+                AuditEntry,
+                ChangeApproval, ChangeRequest,
+                AccessReviewItem, AccessReview, AccessPolicy,
+                SoDViolation, SoDRule,
+                SOXControlTest, SOXControl,
+            )
+            Document.unscoped.all().delete()
+            DocumentCategory.unscoped.all().delete()
+            AuditException.unscoped.all().delete()
+            ExceptionRule.unscoped.all().delete()
+            AuditEntry.unscoped.all().delete()
+            ChangeApproval.unscoped.all().delete()
+            ChangeRequest.unscoped.all().delete()
+            AccessReviewItem.unscoped.all().delete()
+            AccessReview.unscoped.all().delete()
+            AccessPolicy.unscoped.all().delete()
+            SoDViolation.unscoped.all().delete()
+            SoDRule.unscoped.all().delete()
+            SOXControlTest.unscoped.all().delete()
+            SOXControl.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean BP (Budgeting & Planning) data first
         try:
             from apps.budgeting.models import (
@@ -7192,4 +7226,279 @@ class Command(BaseCommand):
             f'  Created BP data (5 budgets with line items, 4 budget versions, '
             f'5 planning drivers with period values, 3 rolling forecasts, '
             f'4 variance analyses, 4 what-if scenarios, 3 workforce plans)'
+        )
+
+    # ─────────────────────────────────────────────────────────────
+    # AUDIT & CONTROLS
+    # ─────────────────────────────────────────────────────────────
+    def _seed_au_data(self):
+        from apps.audit.models import (
+            SOXControl, SOXControlTest,
+            SoDRule, SoDViolation,
+            AccessPolicy, AccessReview, AccessReviewItem,
+            ChangeRequest, ChangeApproval,
+            AuditEntry,
+            ExceptionRule, AuditException,
+            DocumentCategory, Document,
+        )
+        from apps.tenants.managers import set_current_tenant
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found — skipping AU seed.')
+            return
+
+        for tenant in tenants:
+            set_current_tenant(tenant)
+            users = CustomUser.objects.filter(
+                tenant_memberships__tenant=tenant
+            ).distinct()
+            if not users.exists():
+                continue
+            owner_user = users.first()
+            second_user = users.last() if users.count() > 1 else owner_user
+
+            # ── SOX Controls ──
+            sox_data = [
+                ('Journal Entry Approval', 'preventive', 'financial_reporting', 'monthly', 'high', 'active'),
+                ('Bank Reconciliation Review', 'detective', 'financial_reporting', 'monthly', 'high', 'active'),
+                ('Vendor Master Data Changes', 'preventive', 'operations', 'daily', 'medium', 'active'),
+                ('IT System Access Review', 'detective', 'it_general', 'quarterly', 'medium', 'testing'),
+                ('Revenue Recognition Controls', 'corrective', 'compliance', 'monthly', 'critical', 'draft'),
+            ]
+            for name, ctype, cat, freq, risk, status in sox_data:
+                ctrl, created = SOXControl.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    defaults={
+                        'control_number': SOXControl.generate_control_number(tenant),
+                        'description': f'Control for {name.lower()}',
+                        'control_type': ctype,
+                        'category': cat,
+                        'owner': owner_user,
+                        'frequency': freq,
+                        'risk_level': risk,
+                        'status': status,
+                        'effective_date': date.today() - timedelta(days=180),
+                        'is_active': True,
+                    },
+                )
+                if created and status == 'active':
+                    for i in range(2):
+                        SOXControlTest.unscoped.create(
+                            tenant=tenant,
+                            test_number=SOXControlTest.generate_test_number(tenant),
+                            control=ctrl,
+                            test_date=date.today() - timedelta(days=30 * (i + 1)),
+                            tested_by=second_user,
+                            test_type=random.choice(['walkthrough', 'sample', 'full']),
+                            result=random.choice(['passed', 'passed', 'inconclusive']),
+                            sample_size=random.randint(5, 25),
+                            exceptions_found=random.randint(0, 2),
+                            conclusion=f'Test {i + 1} completed satisfactorily.',
+                        )
+                    ctrl.last_tested_date = date.today() - timedelta(days=30)
+                    ctrl.save(update_fields=['last_tested_date'])
+
+            # ── SoD Rules ──
+            sod_data = [
+                ('AP Clerk vs AP Approver', 'AP Clerk', 'AP Approver', 'high', 'hard'),
+                ('AR Clerk vs AR Manager', 'AR Clerk', 'AR Manager', 'medium', 'soft'),
+                ('GL Entry vs GL Approver', 'GL Entry', 'GL Approver', 'high', 'hard'),
+                ('Payroll Processor vs Payroll Approver', 'Payroll Processor', 'Payroll Approver', 'critical', 'hard'),
+            ]
+            for name, role1, role2, risk, enforce in sod_data:
+                rule, created = SoDRule.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    defaults={
+                        'rule_number': SoDRule.generate_rule_number(tenant),
+                        'description': f'Prevents {role1} from also having {role2} access',
+                        'conflicting_role_1': role1,
+                        'conflicting_role_2': role2,
+                        'risk_level': risk,
+                        'enforcement': enforce,
+                        'status': 'active',
+                    },
+                )
+                if created:
+                    SoDViolation.unscoped.create(
+                        tenant=tenant,
+                        violation_number=SoDViolation.generate_violation_number(tenant),
+                        rule=rule,
+                        user=second_user,
+                        role_1_name=role1,
+                        role_2_name=role2,
+                        detected_at=timezone.now() - timedelta(days=random.randint(1, 30)),
+                        status=random.choice(['open', 'acknowledged', 'mitigated']),
+                    )
+
+            # ── Access Policies ──
+            try:
+                from apps.roles.models import Role
+                roles = Role.unscoped.filter(tenant=tenant)
+                if roles.exists():
+                    role = roles.first()
+                    policy_data = [
+                        ('GL Read-Only Access', 'role_based', 'Account', '', 'read'),
+                        ('Vendor Master Edit', 'role_based', 'Vendor', '', 'write'),
+                        ('Salary Field Restriction', 'field_level', 'Employee', 'salary', 'none'),
+                        ('Full Admin Access', 'data_level', '', '', 'full'),
+                    ]
+                    for name, ptype, model, field, level in policy_data:
+                        AccessPolicy.unscoped.get_or_create(
+                            tenant=tenant,
+                            name=name,
+                            defaults={
+                                'policy_number': AccessPolicy.generate_policy_number(tenant),
+                                'description': f'Policy: {name}',
+                                'policy_type': ptype,
+                                'target_model': model,
+                                'target_field': field,
+                                'access_level': level,
+                                'role': role,
+                                'status': 'active',
+                                'effective_date': date.today() - timedelta(days=90),
+                                'is_active': True,
+                            },
+                        )
+
+                    # Access Review
+                    review, created = AccessReview.unscoped.get_or_create(
+                        tenant=tenant,
+                        name='Q1 2026 Access Review',
+                        defaults={
+                            'review_number': AccessReview.generate_review_number(tenant),
+                            'review_date': date.today(),
+                            'reviewer': owner_user,
+                            'scope': 'full',
+                            'status': 'completed',
+                            'findings_count': 1,
+                        },
+                    )
+                    if created:
+                        policies = AccessPolicy.unscoped.filter(tenant=tenant)[:2]
+                        for policy in policies:
+                            AccessReviewItem.unscoped.create(
+                                tenant=tenant,
+                                item_number=AccessReviewItem.generate_item_number(tenant),
+                                review=review,
+                                policy=policy,
+                                user=second_user,
+                                current_access=policy.get_access_level_display(),
+                                recommended_action='retain',
+                                reviewer_decision='approved',
+                            )
+            except Exception:
+                pass
+
+            # ── Change Requests ──
+            cr_data = [
+                ('Update Vendor Payment Terms', 'master_data', 'medium', 'implemented'),
+                ('Modify GL Account Structure', 'configuration', 'high', 'approved'),
+                ('New Revenue Recognition Policy', 'process', 'critical', 'under_review'),
+                ('System Upgrade - AR Module', 'system', 'high', 'submitted'),
+                ('Add New Cost Center', 'master_data', 'low', 'draft'),
+            ]
+            for title, ctype, priority, status in cr_data:
+                cr, created = ChangeRequest.unscoped.get_or_create(
+                    tenant=tenant,
+                    title=title,
+                    defaults={
+                        'request_number': ChangeRequest.generate_request_number(tenant),
+                        'description': f'Request to {title.lower()}',
+                        'change_type': ctype,
+                        'priority': priority,
+                        'status': status,
+                        'requested_by': owner_user,
+                        'approved_by': second_user if status in ['approved', 'implemented'] else None,
+                        'approved_at': timezone.now() if status in ['approved', 'implemented'] else None,
+                        'implemented_by': second_user if status == 'implemented' else None,
+                        'implemented_at': timezone.now() if status == 'implemented' else None,
+                    },
+                )
+                if created and status != 'draft':
+                    ChangeApproval.unscoped.create(
+                        tenant=tenant,
+                        approval_number=ChangeApproval.generate_approval_number(tenant),
+                        change_request=cr,
+                        approver=second_user,
+                        decision='approved' if status in ['approved', 'implemented'] else 'pending',
+                        comments='Approved per review.' if status in ['approved', 'implemented'] else '',
+                        decided_at=timezone.now() if status in ['approved', 'implemented'] else None,
+                    )
+
+            # ── Audit Entries ──
+            actions = ['create', 'update', 'update', 'view', 'delete', 'export']
+            models_list = ['Account', 'Vendor', 'Invoice', 'JournalEntry', 'Customer', 'Bill']
+            for i in range(15):
+                AuditEntry.unscoped.get_or_create(
+                    tenant=tenant,
+                    entry_number=f'AUD-{i + 1:04d}',
+                    defaults={
+                        'action': random.choice(actions),
+                        'model_name': random.choice(models_list),
+                        'record_id': random.randint(1, 100),
+                        'user': random.choice(list(users)),
+                        'ip_address': '127.0.0.1',
+                        'old_values': {'field': 'old_value'} if random.random() > 0.5 else {},
+                        'new_values': {'field': 'new_value'} if random.random() > 0.5 else {},
+                        'changes_summary': 'Sample audit trail entry.',
+                    },
+                )
+
+            # ── Exception Rules & Exceptions ──
+            rule_data = [
+                ('Large Transaction Alert', 'threshold', 'JournalEntry', 'warning', {'field': 'amount', 'operator': 'gt', 'value': 100000}),
+                ('Duplicate Vendor Check', 'duplicate', 'Vendor', 'warning', {'fields': ['name', 'tax_id']}),
+                ('Missing Approval Check', 'missing', 'Bill', 'critical', {'field': 'approved_by', 'condition': 'is_null'}),
+                ('After-Hours Transaction', 'timing', 'JournalEntry', 'info', {'after_hour': 18, 'before_hour': 6}),
+            ]
+            for name, rtype, model, severity, condition in rule_data:
+                rule, created = ExceptionRule.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    defaults={
+                        'rule_number': ExceptionRule.generate_rule_number(tenant),
+                        'description': f'Rule: {name}',
+                        'rule_type': rtype,
+                        'target_model': model,
+                        'condition': condition,
+                        'severity': severity,
+                        'is_active': True,
+                    },
+                )
+                if created:
+                    for j in range(2):
+                        AuditException.unscoped.create(
+                            tenant=tenant,
+                            exception_number=AuditException.generate_exception_number(tenant),
+                            rule=rule,
+                            detected_at=timezone.now() - timedelta(days=random.randint(1, 60)),
+                            severity=severity,
+                            description=f'Exception detected by {name}',
+                            record_model=model,
+                            record_id=random.randint(1, 50),
+                            record_details={'sample': 'data'},
+                            status=random.choice(['open', 'investigating', 'resolved', 'false_positive']),
+                            assigned_to=second_user if random.random() > 0.5 else None,
+                        )
+
+            # ── Document Categories & Documents ──
+            cat_data = ['Policies', 'Procedures', 'Evidence', 'Reports']
+            for name in cat_data:
+                DocumentCategory.unscoped.get_or_create(
+                    tenant=tenant,
+                    name=name,
+                    defaults={
+                        'category_number': DocumentCategory.generate_category_number(tenant),
+                        'description': f'{name} category for audit documents',
+                        'is_active': True,
+                    },
+                )
+
+        self.stdout.write(
+            f'  Created AU data (5 SOX controls with tests, 4 SoD rules with violations, '
+            f'4 access policies, 1 access review, 5 change requests, 15 audit entries, '
+            f'4 exception rules with exceptions, 4 document categories)'
         )
