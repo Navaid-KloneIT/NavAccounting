@@ -1,82 +1,100 @@
 {% extends "base.html" %}
+{% load static %}
 {% load humanize %}
 
-{% block title %}Budget: {{ budget.name }}{% endblock %}
+{% block title %}{{ budget.budget_number }} - Budget{% endblock %}
 
 {% block content %}
 <div class="page-title-box">
-    <div class="row align-items-center">
-        <div class="col-auto">
-            <h4 class="page-title">{{ budget.name }}</h4>
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-                <li class="breadcrumb-item">Budgeting & Planning</li>
-                <li class="breadcrumb-item"><a href="{% url 'budgeting:budget_list' tenant_slug=current_tenant.slug %}">Budgets</a></li>
-                <li class="breadcrumb-item active">{{ budget.name }}</li>
-            </ol>
-        </div>
-        <div class="col">
-            <div class="float-end">
-                <a href="{% url 'budgeting:budget_edit' tenant_slug=current_tenant.slug pk=budget.pk %}" class="btn btn-soft-info">
-                    <i class="ri-pencil-line me-1"></i> Edit
-                </a>
-                <a href="{% url 'budgeting:budget_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-secondary ms-1">
-                    <i class="ri-arrow-left-line me-1"></i> Back to List
-                </a>
-            </div>
-        </div>
+    <div class="page-title-left">
+        <h4 class="page-title">{{ budget.budget_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Budgeting & Planning</li>
+            <li class="breadcrumb-item"><a href="{% url 'budgeting:budget_list' tenant_slug=current_tenant.slug %}">Budgets</a></li>
+            <li class="breadcrumb-item active">{{ budget.budget_number }}</li>
+        </ol>
     </div>
 </div>
 
 <div class="row">
     <!-- Left Column -->
     <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0"><i class="ri-information-line me-1"></i> Budget Information</h5>
+        <!-- Budget Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Budget Information</h5>
+                <div>
+                    {% if budget.status == 'draft' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Draft</span>
+                    {% elif budget.status == 'in_review' %}
+                        <span class="badge bg-soft-info text-info fs-6">In Review</span>
+                    {% elif budget.status == 'approved' %}
+                        <span class="badge bg-soft-success text-success fs-6">Approved</span>
+                    {% elif budget.status == 'active' %}
+                        <span class="badge bg-soft-primary text-primary fs-6">Active</span>
+                    {% elif budget.status == 'closed' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Closed</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ budget.get_status_display }}</span>
+                    {% endif %}
+                </div>
             </div>
             <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Budget Number</dt>
-                    <dd class="col-sm-8">{{ budget.budget_number }}</dd>
-
-                    <dt class="col-sm-4">Name</dt>
-                    <dd class="col-sm-8">{{ budget.name }}</dd>
-
-                    <dt class="col-sm-4">Type</dt>
-                    <dd class="col-sm-8">{{ budget.get_budget_type_display }}</dd>
-
-                    <dt class="col-sm-4">Approach</dt>
-                    <dd class="col-sm-8">{{ budget.get_approach_display }}</dd>
-
-                    <dt class="col-sm-4">Fiscal Year</dt>
-                    <dd class="col-sm-8">{{ budget.fiscal_year }}</dd>
-
-                    <dt class="col-sm-4">Start Date</dt>
-                    <dd class="col-sm-8">{{ budget.start_date }}</dd>
-
-                    <dt class="col-sm-4">End Date</dt>
-                    <dd class="col-sm-8">{{ budget.end_date }}</dd>
-
-                    <dt class="col-sm-4">Total Amount</dt>
-                    <dd class="col-sm-8"><strong>{{ budget.total_amount|floatformat:2|intcomma }}</strong></dd>
-
-                    {% if budget.notes %}
-                    <dt class="col-sm-4">Notes</dt>
-                    <dd class="col-sm-8">{{ budget.notes }}</dd>
-                    {% endif %}
-                </dl>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Budget Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ budget.budget_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ budget.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Type</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ budget.get_budget_type_display }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Approach</div>
+                    <div class="col-sm-8">{{ budget.get_approach_display }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Fiscal Year</div>
+                    <div class="col-sm-8">{{ budget.fiscal_year }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Start Date</div>
+                    <div class="col-sm-8">{{ budget.start_date }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">End Date</div>
+                    <div class="col-sm-8">{{ budget.end_date }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Total Amount</div>
+                    <div class="col-sm-8 fw-semibold">${{ budget.total_amount|floatformat:2|intcomma }}</div>
+                </div>
+                {% if budget.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ budget.notes }}</div>
+                </div>
+                {% endif %}
             </div>
         </div>
 
-        <div class="card">
+        <!-- Line Items -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0"><i class="ri-list-check-2 me-1"></i> Line Items</h5>
+                <h5 class="card-title mb-0">Line Items</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 {% if line_items %}
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th>Account</th>
@@ -90,8 +108,8 @@
                             <tr>
                                 <td>{{ item.gl_account }}</td>
                                 <td>{{ item.fiscal_period }}</td>
-                                <td>{{ item.department }}</td>
-                                <td class="text-end">{{ item.amount|floatformat:2|intcomma }}</td>
+                                <td>{{ item.department|default:"-" }}</td>
+                                <td class="text-end">${{ item.amount|floatformat:2|intcomma }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -99,8 +117,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="ri-list-check-2 display-4 text-muted"></i>
-                    <p class="text-muted mt-2">No line items added yet.</p>
+                    <p class="text-muted mb-0">No line items.</p>
                 </div>
                 {% endif %}
             </div>
@@ -109,44 +126,35 @@
 
     <!-- Right Column -->
     <div class="col-lg-4">
-        <div class="card">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0"><i class="ri-flag-line me-1"></i> Status</h5>
+                <h5 class="card-title mb-0">Quick Actions</h5>
             </div>
-            <div class="card-body text-center">
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'budgeting:budget_edit' tenant_slug=current_tenant.slug pk=budget.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Budget
+                </a>
                 {% if budget.status == 'draft' %}
-                    <span class="badge bg-soft-warning text-warning fs-6 mb-3">Draft</span>
-                {% elif budget.status == 'in_review' %}
-                    <span class="badge bg-soft-info text-info fs-6 mb-3">In Review</span>
-                {% elif budget.status == 'approved' %}
-                    <span class="badge bg-soft-success text-success fs-6 mb-3">Approved</span>
-                {% elif budget.status == 'active' %}
-                    <span class="badge bg-soft-primary text-primary fs-6 mb-3">Active</span>
-                {% elif budget.status == 'closed' %}
-                    <span class="badge bg-soft-secondary text-secondary fs-6 mb-3">Closed</span>
-                {% else %}
-                    <span class="badge bg-soft-secondary text-secondary fs-6 mb-3">{{ budget.get_status_display }}</span>
+                <a href="{% url 'budgeting:budget_submit' tenant_slug=current_tenant.slug pk=budget.pk %}" class="btn btn-soft-info btn-sm">
+                    <i class="ri-send-plane-line me-1"></i> Submit for Review
+                </a>
                 {% endif %}
-
-                <div class="d-grid gap-2">
-                    {% if budget.status == 'draft' %}
-                    <a href="{% url 'budgeting:budget_submit' tenant_slug=current_tenant.slug pk=budget.pk %}" class="btn btn-info">
-                        <i class="ri-send-plane-line me-1"></i> Submit for Review
-                    </a>
-                    {% endif %}
-
-                    {% if budget.status == 'in_review' %}
-                    <a href="{% url 'budgeting:budget_approve' tenant_slug=current_tenant.slug pk=budget.pk %}" class="btn btn-success">
-                        <i class="ri-check-double-line me-1"></i> Approve Budget
-                    </a>
-                    {% endif %}
-                </div>
+                {% if budget.status == 'in_review' %}
+                <a href="{% url 'budgeting:budget_approve' tenant_slug=current_tenant.slug pk=budget.pk %}" class="btn btn-soft-success btn-sm">
+                    <i class="ri-check-double-line me-1"></i> Approve Budget
+                </a>
+                {% endif %}
+                <a href="{% url 'budgeting:budget_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
             </div>
         </div>
 
-        <div class="card">
+        <!-- Versions -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0"><i class="ri-history-line me-1"></i> Versions</h5>
+                <h5 class="card-title mb-0">Versions</h5>
             </div>
             <div class="card-body">
                 {% if versions %}
@@ -154,9 +162,8 @@
                     {% for version in versions %}
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
-                            <strong>Version {{ version.version_number }}</strong>
-                            <br>
-                            <small class="text-muted">{{ version.created_at }}</small>
+                            <strong>{{ version.version_number }}</strong>
+                            <br><small class="text-muted">{{ version.created_at|date:"M d, Y" }}</small>
                         </div>
                         {% if version.is_current %}
                             <span class="badge bg-soft-primary text-primary">Current</span>
@@ -167,6 +174,31 @@
                 {% else %}
                 <p class="text-muted text-center mb-0">No versions recorded.</p>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ budget.created_by }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ budget.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ budget.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Approved By</div>
+                    <div class="col-sm-7">{{ budget.approved_by|default:"-" }}</div>
+                </div>
             </div>
         </div>
     </div>
