@@ -38,10 +38,13 @@ def budget_list(request, tenant_slug):
     paginator = Paginator(qs, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    all_budgets = Budget.objects.filter(tenant=tenant)
     return render(request, 'budgeting/budgets/budget_list.html', {
         'budgets': page_obj,
         'page_obj': page_obj,
         'total_count': qs.count(),
+        'draft_count': all_budgets.filter(status='draft').count(),
+        'active_count': all_budgets.filter(status='active').count(),
         'status_choices': Budget.STATUS_CHOICES,
         'budget_type_choices': Budget.BUDGET_TYPE_CHOICES,
     })
