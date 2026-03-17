@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ document.document_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ document.document_number }} - {{ document.title }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item"><a href="{% url 'audit:document_list' tenant_slug=current_tenant.slug %}">Documents</a></li>
+            <li class="breadcrumb-item active">{{ document.document_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Document Information -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2">
+                        <i class="ri-file-line text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Document Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Document #</dt>
+                            <dd class="col-sm-7"><strong>{{ document.document_number }}</strong></dd>
+                            <dt class="col-sm-5 text-muted">Title</dt>
+                            <dd class="col-sm-7">{{ document.title }}</dd>
+                            <dt class="col-sm-5 text-muted">Category</dt>
+                            <dd class="col-sm-7">{{ document.category.name|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">Version</dt>
+                            <dd class="col-sm-7">{{ document.version|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">Tags</dt>
+                            <dd class="col-sm-7">{{ document.tags|default:"-" }}</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">File Name</dt>
+                            <dd class="col-sm-7">{{ document.file_name|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">File Size</dt>
+                            <dd class="col-sm-7">{{ document.file_size|filesizeformat }}</dd>
+                            <dt class="col-sm-5 text-muted">File Type</dt>
+                            <dd class="col-sm-7"><span class="badge bg-soft-info text-info">{{ document.file_type|default:"-" }}</span></dd>
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if document.status == 'active' %}
+                                    <span class="badge bg-soft-success text-success">Active</span>
+                                {% elif document.status == 'archived' %}
+                                    <span class="badge bg-soft-secondary text-secondary">Archived</span>
+                                {% elif document.status == 'draft' %}
+                                    <span class="badge bg-soft-warning text-warning">Draft</span>
+                                {% elif document.status == 'review' %}
+                                    <span class="badge bg-soft-info text-info">Review</span>
+                                {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">{{ document.get_status_display }}</span>
+                                {% endif %}
+                            </dd>
+                            <dt class="col-sm-5 text-muted">Active</dt>
+                            <dd class="col-sm-7">
+                                {% if document.is_active %}
+                                    <span class="badge bg-soft-success text-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">No</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                {% if document.linked_model or document.linked_record_id %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Linking</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-muted">Linked Model</dt>
+                    <dd class="col-sm-9">{{ document.linked_model|default:"-" }}</dd>
+                    <dt class="col-sm-3 text-muted">Linked Record ID</dt>
+                    <dd class="col-sm-9">{{ document.linked_record_id|default:"-" }}</dd>
+                </dl>
+                {% endif %}
+                {% if document.description %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Description</h6>
+                <p>{{ document.description }}</p>
+                {% endif %}
+                {% if document.notes %}
+                <h6 class="text-muted text-uppercase small mb-2">Notes</h6>
+                <p>{{ document.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                <a href="{% url 'audit:document_edit' tenant_slug=current_tenant.slug pk=document.pk %}" class="btn btn-soft-primary btn-sm w-100 mb-2">
+                    <i class="ri-pencil-line me-1"></i> Edit Document
+                </a>
+                <a href="{% url 'audit:document_download' tenant_slug=current_tenant.slug pk=document.pk %}" class="btn btn-soft-success btn-sm w-100 mb-2">
+                    <i class="ri-download-line me-1"></i> Download
+                </a>
+                <a href="{% url 'audit:document_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Documents
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Metadata</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted small">Uploaded By</dt>
+                    <dd class="col-sm-7 small">{% if document.uploaded_by %}{{ document.uploaded_by.get_full_name|default:document.uploaded_by.email }}{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-5 text-muted small">Created</dt>
+                    <dd class="col-sm-7 small">{{ document.created_at|date:"M d, Y H:i" }}</dd>
+                    <dt class="col-sm-5 text-muted small">Updated</dt>
+                    <dd class="col-sm-7 small">{{ document.updated_at|date:"M d, Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
