@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Access Reviews{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">Access Reviews</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Audit & Controls</li>
+            <li class="breadcrumb-item">Access Controls</li>
+            <li class="breadcrumb-item active">Reviews</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-file-search-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Planned</p>
+                        <h3 class="mb-0">{{ planned_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-calendar-todo-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Completed</p>
+                        <h3 class="mb-0">{{ completed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-check-double-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Review #, name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Scope</label>
+                <select name="scope" class="form-select">
+                    <option value="">All Scopes</option>
+                    {% for val, label in scope_choices %}
+                    <option value="{{ val }}" {% if request.GET.scope == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'audit:access_review_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'audit:access_review_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New Review</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if reviews %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Review #</th>
+                        <th>Name</th>
+                        <th>Review Date</th>
+                        <th>Scope</th>
+                        <th>Status</th>
+                        <th class="text-center">Findings</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for review in reviews %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'audit:access_review_detail' tenant_slug=current_tenant.slug pk=review.pk %}">{{ review.review_number }}</a>
+                        </td>
+                        <td>{{ review.name }}</td>
+                        <td>{{ review.review_date|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge bg-soft-info text-info">{{ review.get_scope_display }}</span>
+                        </td>
+                        <td>
+                            {% if review.status == 'planned' %}
+                                <span class="badge bg-soft-warning text-warning">Planned</span>
+                            {% elif review.status == 'in_progress' %}
+                                <span class="badge bg-soft-info text-info">In Progress</span>
+                            {% elif review.status == 'completed' %}
+                                <span class="badge bg-soft-success text-success">Completed</span>
+                            {% elif review.status == 'cancelled' %}
+                                <span class="badge bg-soft-danger text-danger">Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ review.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ review.findings_count|default:"0" }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'audit:access_review_detail' tenant_slug=current_tenant.slug pk=review.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'audit:access_review_edit' tenant_slug=current_tenant.slug pk=review.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-file-search-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No access reviews found.</p>
+            <a href="{% url 'audit:access_review_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Review</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
