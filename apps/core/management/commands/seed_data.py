@@ -13,6 +13,7 @@ Usage:
     python manage.py seed_data --pr         # Seed payroll integration
     python manage.py seed_data --pj         # Seed project/job costing
     python manage.py seed_data --me         # Seed multi-entity & consolidation
+    python manage.py seed_data --bp         # Seed budgeting & planning
 """
 import random
 from datetime import date, timedelta
@@ -60,6 +61,7 @@ class Command(BaseCommand):
         parser.add_argument('--me', action='store_true', help='Seed multi-entity & consolidation data only')
         parser.add_argument('--tx', action='store_true', help='Seed tax management data only')
         parser.add_argument('--rc', action='store_true', help='Seed reporting & compliance data only')
+        parser.add_argument('--bp', action='store_true', help='Seed budgeting & planning data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -71,7 +73,7 @@ class Command(BaseCommand):
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
             options['pr'], options['pj'], options['me'], options['tx'],
-            options['rc'],
+            options['rc'], options['bp'],
         ])
 
         # Always seed system-level data
@@ -144,9 +146,39 @@ class Command(BaseCommand):
             self.stdout.write('Seeding reporting & compliance data...')
             self._seed_rc_data()
 
+        if seed_all or options['bp']:
+            self.stdout.write('Seeding budgeting & planning data...')
+            self._seed_bp_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean BP (Budgeting & Planning) data first
+        try:
+            from apps.budgeting.models import (
+                WorkforcePlanPosition, WorkforcePlan,
+                ScenarioAdjustment, ScenarioModel,
+                VarianceLineItem, VarianceAnalysis,
+                ForecastLineItem, RollingForecast,
+                PlanningDriverPeriod, PlanningDriver,
+                BudgetVersion, BudgetLineItem, Budget,
+            )
+            WorkforcePlanPosition.unscoped.all().delete()
+            WorkforcePlan.unscoped.all().delete()
+            ScenarioAdjustment.unscoped.all().delete()
+            ScenarioModel.unscoped.all().delete()
+            VarianceLineItem.unscoped.all().delete()
+            VarianceAnalysis.unscoped.all().delete()
+            ForecastLineItem.unscoped.all().delete()
+            RollingForecast.unscoped.all().delete()
+            PlanningDriverPeriod.unscoped.all().delete()
+            PlanningDriver.unscoped.all().delete()
+            BudgetVersion.unscoped.all().delete()
+            BudgetLineItem.unscoped.all().delete()
+            Budget.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean RC (Reporting & Compliance) data first
         try:
             from apps.reporting.models import (
@@ -6728,4 +6760,436 @@ class Command(BaseCommand):
             f'  Created RC data (financial statements, management reports, '
             f'custom reports, schedules, XBRL filings, statutory reports, '
             f'consolidation packages, dashboards)'
+        )
+
+    def _seed_bp_data(self):
+        """Seed Budgeting & Planning data for all tenants."""
+        from apps.budgeting.models import (
+            Budget, BudgetLineItem, BudgetVersion,
+            PlanningDriver, PlanningDriverPeriod,
+            RollingForecast, ForecastLineItem,
+            VarianceAnalysis, VarianceLineItem,
+            ScenarioModel, ScenarioAdjustment,
+            WorkforcePlan, WorkforcePlanPosition,
+        )
+        from apps.company.models import FiscalYear, FiscalPeriod
+        from apps.general_ledger.models import Account
+        from apps.tenants.managers import set_current_tenant
+
+        tenants = Tenant.objects.all()
+        for tenant in tenants:
+            set_current_tenant(tenant)
+            fy = FiscalYear.unscoped.filter(tenant=tenant).first()
+            if not fy:
+                continue
+            periods = list(FiscalPeriod.unscoped.filter(
+                fiscal_year=fy
+            ).order_by('period_number')[:12])
+            if not periods:
+                continue
+            accounts = list(Account.unscoped.filter(
+                tenant=tenant, is_active=True, is_header=False
+            )[:15])
+            if len(accounts) < 5:
+                continue
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
+                continue
+
+            # Split accounts for different uses
+            revenue_accounts = accounts[:3]
+            expense_accounts = accounts[3:8]
+            salary_accounts = accounts[8:11] if len(accounts) > 10 else accounts[3:6]
+            benefit_accounts = accounts[11:14] if len(accounts) > 13 else accounts[6:9]
+
+            # ── Budgets ──────────────────────────────────────
+            budget_data = [
+                ('BUD-0001', 'FY 2026 Operating Budget', 'top_down', 'incremental', 'active'),
+                ('BUD-0002', 'FY 2026 Capital Budget', 'bottom_up', 'zero_based', 'approved'),
+                ('BUD-0003', 'FY 2026 Department Budget', 'hybrid', 'activity_based', 'in_review'),
+                ('BUD-0004', 'FY 2026 Marketing Budget', 'top_down', 'incremental', 'draft'),
+                ('BUD-0005', 'FY 2026 IT Infrastructure Budget', 'bottom_up', 'zero_based', 'draft'),
+            ]
+            created_budgets = []
+            for num, name, btype, approach, status in budget_data:
+                budget, created = Budget.unscoped.get_or_create(
+                    tenant=tenant, budget_number=num,
+                    defaults={
+                        'name': name,
+                        'budget_type': btype,
+                        'approach': approach,
+                        'status': status,
+                        'fiscal_year': fy,
+                        'start_date': fy.start_date,
+                        'end_date': fy.end_date,
+                        'created_by': users[0],
+                        'approved_by': users[1] if status in ('approved', 'active') else None,
+                        'approved_at': timezone.now() if status in ('approved', 'active') else None,
+                        'total_amount': Decimal('0.00'),
+                    }
+                )
+                created_budgets.append(budget)
+
+                # Create line items for each budget
+                if created:
+                    total = Decimal('0.00')
+                    for i, acct in enumerate(expense_accounts):
+                        for j, period in enumerate(periods[:6]):
+                            amt = Decimal(str(random.randint(5000, 80000)))
+                            BudgetLineItem.unscoped.create(
+                                tenant=tenant, budget=budget,
+                                gl_account=acct, fiscal_period=period,
+                                department=random.choice([
+                                    'Sales', 'Marketing', 'Engineering',
+                                    'Operations', 'Finance', 'HR',
+                                ]),
+                                amount=amt,
+                            )
+                            total += amt
+                    budget.total_amount = total
+                    budget.save(update_fields=['total_amount'])
+
+            # ── Budget Versions ──────────────────────────────
+            if created_budgets:
+                main_budget = created_budgets[0]
+                version_data = [
+                    ('VER-0001', 'Original Budget', 'original', True),
+                    ('VER-0002', 'Q1 Revision', 'revision', False),
+                    ('VER-0003', 'Optimistic Scenario', 'scenario', False),
+                    ('VER-0004', 'Conservative Scenario', 'scenario', False),
+                ]
+                for num, name, vtype, is_current in version_data:
+                    lines = main_budget.line_items.select_related(
+                        'gl_account', 'fiscal_period'
+                    ).all()
+                    snapshot = []
+                    for line in lines[:10]:
+                        snapshot.append({
+                            'gl_account_id': line.gl_account_id,
+                            'gl_account_number': line.gl_account.account_number,
+                            'gl_account_name': line.gl_account.name,
+                            'fiscal_period_id': line.fiscal_period_id,
+                            'fiscal_period_name': str(line.fiscal_period),
+                            'department': line.department,
+                            'amount': str(line.amount),
+                        })
+                    multiplier = {
+                        'original': Decimal('1.00'),
+                        'revision': Decimal('1.05'),
+                        'scenario': Decimal(str(random.choice(['0.90', '1.15']))),
+                    }[vtype]
+                    BudgetVersion.unscoped.get_or_create(
+                        tenant=tenant, version_number=num,
+                        defaults={
+                            'budget': main_budget,
+                            'name': name,
+                            'description': f'{name} for {main_budget.name}',
+                            'version_type': vtype,
+                            'is_current': is_current,
+                            'created_by': users[0],
+                            'snapshot_data': snapshot,
+                            'total_amount': (
+                                main_budget.total_amount * multiplier
+                            ).quantize(Decimal('0.01')),
+                        }
+                    )
+
+            # ── Planning Drivers ─────────────────────────────
+            driver_data = [
+                ('DRV-0001', 'Revenue per Customer', 'revenue', 'customers',
+                 Decimal('2500.00'), Decimal('5.00'), revenue_accounts[0]),
+                ('DRV-0002', 'Cost per Unit Sold', 'cost', 'units',
+                 Decimal('45.50'), Decimal('2.50'), expense_accounts[0]),
+                ('DRV-0003', 'Headcount Growth', 'headcount', 'FTEs',
+                 Decimal('150.00'), Decimal('8.00'), salary_accounts[0]),
+                ('DRV-0004', 'Monthly Sales Volume', 'volume', 'units',
+                 Decimal('10000.00'), Decimal('3.00'), revenue_accounts[1] if len(revenue_accounts) > 1 else revenue_accounts[0]),
+                ('DRV-0005', 'Office Space Cost Driver', 'custom', 'sqft',
+                 Decimal('35.00'), Decimal('4.00'), expense_accounts[1]),
+            ]
+            created_drivers = []
+            for num, name, dtype, unit, base, growth, acct in driver_data:
+                driver, created = PlanningDriver.unscoped.get_or_create(
+                    tenant=tenant, driver_number=num,
+                    defaults={
+                        'name': name,
+                        'driver_type': dtype,
+                        'unit': unit,
+                        'base_value': base,
+                        'growth_rate': growth,
+                        'gl_account': acct,
+                        'budget': created_budgets[0] if created_budgets else None,
+                        'is_active': True,
+                    }
+                )
+                created_drivers.append(driver)
+
+                # Create period values
+                if created and periods:
+                    current_qty = base
+                    for period in periods[:6]:
+                        qty = current_qty * (1 + Decimal(str(random.uniform(-0.05, 0.10))))
+                        rate = base * Decimal('0.01') * (1 + growth / 100)
+                        calc = (qty * rate).quantize(Decimal('0.01'))
+                        PlanningDriverPeriod.unscoped.create(
+                            tenant=tenant, driver=driver,
+                            fiscal_period=period,
+                            quantity=qty.quantize(Decimal('0.0001')),
+                            rate=rate.quantize(Decimal('0.0001')),
+                            calculated_amount=calc,
+                        )
+                        current_qty = qty
+
+            # ── Rolling Forecasts ────────────────────────────
+            forecast_data = [
+                ('RFC-0001', 'Monthly Rolling Forecast - Operations', 'monthly', 'active', 12),
+                ('RFC-0002', 'Quarterly Revenue Forecast', 'quarterly', 'active', 4),
+                ('RFC-0003', 'Cash Flow Forecast Q2 2026', 'monthly', 'draft', 6),
+            ]
+            for num, name, ftype, status, horizon in forecast_data:
+                forecast, created = RollingForecast.unscoped.get_or_create(
+                    tenant=tenant, forecast_number=num,
+                    defaults={
+                        'name': name,
+                        'budget': created_budgets[0] if created_budgets else None,
+                        'forecast_type': ftype,
+                        'horizon_periods': horizon,
+                        'status': status,
+                        'as_of_date': date(2026, 3, 1),
+                        'created_by': users[0],
+                    }
+                )
+                if created:
+                    for acct in revenue_accounts[:2] + expense_accounts[:3]:
+                        for period in periods[:min(horizon, len(periods))]:
+                            forecast_amt = Decimal(str(random.randint(20000, 150000)))
+                            actual_amt = (
+                                forecast_amt * Decimal(str(random.uniform(0.85, 1.15)))
+                            ).quantize(Decimal('0.01'))
+                            variance_amt = forecast_amt - actual_amt
+                            variance_pct = (
+                                (variance_amt / forecast_amt * 100)
+                                if forecast_amt else Decimal('0.00')
+                            ).quantize(Decimal('0.01'))
+                            ForecastLineItem.unscoped.create(
+                                tenant=tenant, forecast=forecast,
+                                gl_account=acct, fiscal_period=period,
+                                forecast_amount=forecast_amt,
+                                actual_amount=actual_amt,
+                                variance_amount=variance_amt,
+                                variance_pct=variance_pct,
+                            )
+
+            # ── Variance Analyses ────────────────────────────
+            if created_budgets and periods:
+                var_data = [
+                    ('VAR-0001', 'January 2026 Variance', 'approved', 0),
+                    ('VAR-0002', 'February 2026 Variance', 'reviewed', 1),
+                    ('VAR-0003', 'March 2026 Variance', 'generated', 2),
+                    ('VAR-0004', 'April 2026 Variance', 'draft', 3),
+                ]
+                for num, name, status, period_idx in var_data:
+                    if period_idx >= len(periods):
+                        continue
+                    total_budget = Decimal('0.00')
+                    total_actual = Decimal('0.00')
+                    analysis, created = VarianceAnalysis.unscoped.get_or_create(
+                        tenant=tenant, analysis_number=num,
+                        defaults={
+                            'name': name,
+                            'budget': created_budgets[0],
+                            'fiscal_period': periods[period_idx],
+                            'status': status,
+                            'generated_at': timezone.now() if status != 'draft' else None,
+                            'generated_by': users[0] if status != 'draft' else None,
+                            'total_budget': Decimal('0.00'),
+                            'total_actual': Decimal('0.00'),
+                            'total_variance': Decimal('0.00'),
+                        }
+                    )
+                    if created:
+                        for acct in expense_accounts:
+                            budget_amt = Decimal(str(random.randint(20000, 100000)))
+                            actual_amt = (
+                                budget_amt * Decimal(str(random.uniform(0.80, 1.25)))
+                            ).quantize(Decimal('0.01'))
+                            variance_amt = budget_amt - actual_amt
+                            variance_pct = (
+                                (variance_amt / budget_amt * 100)
+                                if budget_amt else Decimal('0.00')
+                            ).quantize(Decimal('0.01'))
+                            VarianceLineItem.unscoped.create(
+                                tenant=tenant, analysis=analysis,
+                                gl_account=acct,
+                                budget_amount=budget_amt,
+                                actual_amount=actual_amt,
+                                variance_amount=variance_amt,
+                                variance_pct=variance_pct,
+                                is_favorable=variance_amt >= 0,
+                                explanation=random.choice([
+                                    'Within expected range',
+                                    'Higher than planned due to seasonal spike',
+                                    'Cost savings from renegotiated contracts',
+                                    'Delayed project pushed costs to next period',
+                                    'Volume-driven increase',
+                                    '',
+                                ]),
+                            )
+                            total_budget += budget_amt
+                            total_actual += actual_amt
+                        analysis.total_budget = total_budget
+                        analysis.total_actual = total_actual
+                        analysis.total_variance = total_budget - total_actual
+                        analysis.save(update_fields=[
+                            'total_budget', 'total_actual', 'total_variance',
+                        ])
+
+            # ── What-if Scenarios ────────────────────────────
+            if created_budgets:
+                scenario_data = [
+                    ('SCN-0001', '10% Revenue Growth', 'best_case', 'calculated'),
+                    ('SCN-0002', '15% Cost Reduction', 'most_likely', 'calculated'),
+                    ('SCN-0003', 'Economic Downturn', 'worst_case', 'reviewed'),
+                    ('SCN-0004', 'New Market Entry', 'custom', 'draft'),
+                ]
+                for num, name, stype, status in scenario_data:
+                    scenario, created = ScenarioModel.unscoped.get_or_create(
+                        tenant=tenant, scenario_number=num,
+                        defaults={
+                            'name': name,
+                            'description': f'What-if analysis: {name}',
+                            'budget': created_budgets[0],
+                            'scenario_type': stype,
+                            'status': status,
+                            'created_by': users[0],
+                            'assumptions': {
+                                'description': name,
+                                'base_budget': str(created_budgets[0].budget_number),
+                            },
+                            'result_summary': {},
+                        }
+                    )
+                    if created:
+                        adj_configs = {
+                            'best_case': [('percentage', Decimal('10.00')), ('percentage', Decimal('5.00'))],
+                            'most_likely': [('percentage', Decimal('-15.00')), ('fixed_amount', Decimal('-50000.00'))],
+                            'worst_case': [('percentage', Decimal('-20.00')), ('percentage', Decimal('-10.00'))],
+                            'custom': [('override', Decimal('500000.00')), ('percentage', Decimal('8.00'))],
+                        }
+                        adjustments = adj_configs.get(stype, [])
+                        results = []
+                        for i, (adj_type, adj_val) in enumerate(adjustments):
+                            acct = expense_accounts[i] if i < len(expense_accounts) else expense_accounts[0]
+                            original = Decimal(str(random.randint(100000, 500000)))
+                            if adj_type == 'percentage':
+                                adjusted = (original * (1 + adj_val / 100)).quantize(Decimal('0.01'))
+                            elif adj_type == 'fixed_amount':
+                                adjusted = original + adj_val
+                            else:
+                                adjusted = adj_val.quantize(Decimal('0.01'))
+                            ScenarioAdjustment.unscoped.create(
+                                tenant=tenant, scenario=scenario,
+                                gl_account=acct,
+                                adjustment_type=adj_type,
+                                adjustment_value=adj_val,
+                                original_amount=original,
+                                adjusted_amount=adjusted,
+                                fiscal_period=periods[0] if periods else None,
+                            )
+                            results.append({
+                                'account': acct.account_number,
+                                'original': str(original),
+                                'adjusted': str(adjusted),
+                                'change': str(adjusted - original),
+                            })
+                        if status == 'calculated':
+                            scenario.result_summary = {'adjustments': results}
+                            scenario.save(update_fields=['result_summary'])
+
+            # ── Workforce Plans ──────────────────────────────
+            if created_budgets:
+                plan_data = [
+                    ('WFP-0001', 'FY 2026 Engineering Workforce', 'Engineering', 'approved'),
+                    ('WFP-0002', 'FY 2026 Sales Workforce', 'Sales', 'active'),
+                    ('WFP-0003', 'FY 2026 Operations Workforce', 'Operations', 'draft'),
+                ]
+                for num, name, dept, status in plan_data:
+                    plan, created = WorkforcePlan.unscoped.get_or_create(
+                        tenant=tenant, plan_number=num,
+                        defaults={
+                            'name': name,
+                            'budget': created_budgets[0],
+                            'department': dept,
+                            'status': status,
+                            'created_by': users[0],
+                            'total_headcount': 0,
+                            'total_salary_cost': Decimal('0.00'),
+                            'total_benefit_cost': Decimal('0.00'),
+                            'total_cost': Decimal('0.00'),
+                        }
+                    )
+                    if created:
+                        positions_config = {
+                            'Engineering': [
+                                ('Senior Software Engineer', 5, Decimal('145000.00'), False),
+                                ('Staff Engineer', 2, Decimal('185000.00'), False),
+                                ('Engineering Manager', 1, Decimal('175000.00'), False),
+                                ('Junior Developer', 3, Decimal('85000.00'), True),
+                                ('DevOps Engineer', 2, Decimal('135000.00'), True),
+                            ],
+                            'Sales': [
+                                ('Account Executive', 8, Decimal('95000.00'), False),
+                                ('Sales Manager', 2, Decimal('130000.00'), False),
+                                ('SDR', 5, Decimal('60000.00'), True),
+                                ('Sales Engineer', 2, Decimal('125000.00'), True),
+                            ],
+                            'Operations': [
+                                ('Operations Manager', 1, Decimal('120000.00'), False),
+                                ('Operations Analyst', 3, Decimal('75000.00'), False),
+                                ('Warehouse Supervisor', 2, Decimal('65000.00'), False),
+                                ('Logistics Coordinator', 4, Decimal('55000.00'), True),
+                            ],
+                        }
+                        positions = positions_config.get(dept, [])
+                        total_hc = 0
+                        total_sal = Decimal('0.00')
+                        total_ben = Decimal('0.00')
+                        for title, hc, salary, is_new in positions:
+                            benefit_rate = Decimal('25.00')
+                            benefit_amt = (
+                                salary * benefit_rate / 100 * hc
+                            ).quantize(Decimal('0.01'))
+                            total_cost = (salary * hc) + benefit_amt
+                            sal_acct = salary_accounts[0] if salary_accounts else expense_accounts[0]
+                            ben_acct = benefit_accounts[0] if benefit_accounts else expense_accounts[1]
+                            WorkforcePlanPosition.unscoped.create(
+                                tenant=tenant, workforce_plan=plan,
+                                position_title=title,
+                                department=dept,
+                                headcount=hc,
+                                annual_salary=salary,
+                                benefit_rate=benefit_rate,
+                                benefit_amount=benefit_amt,
+                                total_cost=total_cost,
+                                start_date=date(2026, 1, 1) if not is_new else date(2026, 4, 1),
+                                gl_salary_account=sal_acct,
+                                gl_benefit_account=ben_acct,
+                                is_new_position=is_new,
+                            )
+                            total_hc += hc
+                            total_sal += salary * hc
+                            total_ben += benefit_amt
+                        plan.total_headcount = total_hc
+                        plan.total_salary_cost = total_sal
+                        plan.total_benefit_cost = total_ben
+                        plan.total_cost = total_sal + total_ben
+                        plan.save(update_fields=[
+                            'total_headcount', 'total_salary_cost',
+                            'total_benefit_cost', 'total_cost',
+                        ])
+
+        self.stdout.write(
+            f'  Created BP data (5 budgets with line items, 4 budget versions, '
+            f'5 planning drivers with period values, 3 rolling forecasts, '
+            f'4 variance analyses, 4 what-if scenarios, 3 workforce plans)'
         )
