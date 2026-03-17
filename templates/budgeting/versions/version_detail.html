@@ -1,127 +1,157 @@
 {% extends "base.html" %}
+{% load static %}
 {% load humanize %}
 
-{% block title %}Version #{{ version.version_number }} - {{ version.name }}{% endblock %}
+{% block title %}{{ version.version_number }} - Budget Version{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Page Title -->
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                <h4 class="mb-sm-0">Version #{{ version.version_number }}</h4>
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
-                        <li class="breadcrumb-item">Budgeting & Planning</li>
-                        <li class="breadcrumb-item"><a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}">Versions</a></li>
-                        <li class="breadcrumb-item active">{{ version.name }}</li>
-                    </ol>
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ version.version_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">Budgeting & Planning</li>
+            <li class="breadcrumb-item"><a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}">Versions</a></li>
+            <li class="breadcrumb-item active">{{ version.version_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Version Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Version Information</h5>
+                <div>
+                    {% if version.version_type == 'original' %}
+                        <span class="badge bg-soft-primary text-primary fs-6">Original</span>
+                    {% elif version.version_type == 'revision' %}
+                        <span class="badge bg-soft-info text-info fs-6">Revision</span>
+                    {% elif version.version_type == 'scenario' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Scenario</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ version.get_version_type_display }}</span>
+                    {% endif %}
                 </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Version Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ version.version_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Budget</div>
+                    <div class="col-sm-8">{{ version.budget }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ version.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Current</div>
+                    <div class="col-sm-8">
+                        {% if version.is_current %}
+                            <span class="badge bg-soft-success text-success"><i class="ri-check-line me-1"></i>Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Total Amount</div>
+                    <div class="col-sm-8 fw-semibold">${{ version.total_amount|floatformat:2|intcomma }}</div>
+                </div>
+                {% if version.description %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Description</div>
+                    <div class="col-sm-8">{{ version.description }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Snapshot Data -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Snapshot Data</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if version.snapshot_data %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Account #</th>
+                                <th>Account Name</th>
+                                <th>Period</th>
+                                <th>Department</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in version.snapshot_data %}
+                            <tr>
+                                <td class="fw-semibold">{{ row.gl_account_number }}</td>
+                                <td>{{ row.gl_account_name }}</td>
+                                <td>{{ row.fiscal_period_name }}</td>
+                                <td>{{ row.department|default:"-" }}</td>
+                                <td class="text-end">${{ row.amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No snapshot data.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8">
-            <!-- Version Info Card -->
-            <div class="card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="card-title mb-0"><i class="ri-git-branch-line me-1"></i> Version Details</h5>
-                    <div class="d-flex gap-2">
-                        {% if not version.is_current %}
-                        <a href="{% url 'budgeting:version_set_current' tenant_slug=current_tenant.slug pk=version.pk %}" class="btn btn-sm btn-soft-success">
-                            <i class="ri-check-double-line me-1"></i> Set as Current
-                        </a>
-                        {% endif %}
-                        <a href="{% url 'budgeting:version_update' tenant_slug=current_tenant.slug pk=version.pk %}" class="btn btn-sm btn-soft-warning">
-                            <i class="ri-pencil-line me-1"></i> Edit
-                        </a>
-                        <a href="{% url 'budgeting:version_delete' tenant_slug=current_tenant.slug pk=version.pk %}" class="btn btn-sm btn-soft-danger">
-                            <i class="ri-delete-bin-line me-1"></i> Delete
-                        </a>
-                    </div>
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if not version.is_current %}
+                <a href="{% url 'budgeting:version_set_current' tenant_slug=current_tenant.slug pk=version.pk %}" class="btn btn-soft-success btn-sm">
+                    <i class="ri-check-double-line me-1"></i> Set as Current
+                </a>
+                {% endif %}
+                <a href="{% url 'budgeting:version_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ version.created_by|default:"-" }}</div>
                 </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">Version #</dt>
-                        <dd class="col-sm-8">{{ version.version_number }}</dd>
-
-                        <dt class="col-sm-4">Budget</dt>
-                        <dd class="col-sm-8">{{ version.budget }}</dd>
-
-                        <dt class="col-sm-4">Name</dt>
-                        <dd class="col-sm-8">{{ version.name }}</dd>
-
-                        <dt class="col-sm-4">Description</dt>
-                        <dd class="col-sm-8">{{ version.description|default:"-" }}</dd>
-
-                        <dt class="col-sm-4">Type</dt>
-                        <dd class="col-sm-8">
-                            {% if version.version_type == 'original' %}
-                                <span class="badge bg-soft-primary text-primary">Original</span>
-                            {% elif version.version_type == 'revision' %}
-                                <span class="badge bg-soft-info text-info">Revision</span>
-                            {% elif version.version_type == 'scenario' %}
-                                <span class="badge bg-soft-warning text-warning">Scenario</span>
-                            {% else %}
-                                <span class="badge bg-soft-secondary text-secondary">{{ version.get_version_type_display }}</span>
-                            {% endif %}
-                        </dd>
-
-                        <dt class="col-sm-4">Current</dt>
-                        <dd class="col-sm-8">
-                            {% if version.is_current %}
-                                <span class="badge bg-soft-success text-success"><i class="ri-check-line me-1"></i> Yes</span>
-                            {% else %}
-                                <span class="badge bg-soft-secondary text-secondary">No</span>
-                            {% endif %}
-                        </dd>
-
-                        <dt class="col-sm-4">Total Amount</dt>
-                        <dd class="col-sm-8">{{ version.total_amount|intcomma }}</dd>
-
-                        <dt class="col-sm-4">Created By</dt>
-                        <dd class="col-sm-8">{{ version.created_by|default:"-" }}</dd>
-
-                        <dt class="col-sm-4">Created At</dt>
-                        <dd class="col-sm-8">{{ version.created_at|date:"M d, Y H:i" }}</dd>
-                    </dl>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ version.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ version.updated_at|date:"M d, Y H:i" }}</div>
                 </div>
             </div>
-
-            <!-- Snapshot Data -->
-            {% if version.snapshot_data %}
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0"><i class="ri-database-2-line me-1"></i> Snapshot Data</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Account</th>
-                                    <th>Period</th>
-                                    <th>Department</th>
-                                    <th class="text-end">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in version.snapshot_data %}
-                                <tr>
-                                    <td>{{ row.account }}</td>
-                                    <td>{{ row.period }}</td>
-                                    <td>{{ row.dept|default:"-" }}</td>
-                                    <td class="text-end">{{ row.amount|intcomma }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
