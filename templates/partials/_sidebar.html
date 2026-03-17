@@ -1580,6 +1580,163 @@
                 </a>
             </li>
 
+            <!-- ═══════════════════════════════════════ -->
+            <!-- AUDIT & CONTROLS                       -->
+            <!-- ═══════════════════════════════════════ -->
+            <li class="menu-title" data-toggle="menu-section">Audit & Controls <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
+
+            <!-- SOX Controls -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'audit:sox_control_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'audit' and 'sox' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-shield-check-line"></i>
+                    <span class="menu-text">SOX Controls</span>
+                </a>
+            </li>
+
+            <!-- Segregation of Duties -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'audit' and 'sod' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-git-merge-line"></i>
+                    <span class="menu-text">Segregation of Duties</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'audit' and 'sod' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:sod_rule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'sod_rule_list' or request.resolver_match.url_name == 'sod_rule_detail' or request.resolver_match.url_name == 'sod_rule_create' or request.resolver_match.url_name == 'sod_rule_edit' %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Rules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:sod_violation_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'violation' in request.resolver_match.url_name %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Violations</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Access Controls -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'audit' and 'access' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-lock-line"></i>
+                    <span class="menu-text">Access Controls</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'audit' and 'access' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:access_policy_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'policy' in request.resolver_match.url_name %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Policies</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:access_review_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'review' in request.resolver_match.url_name %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Reviews</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Change Management -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'audit:change_request_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'audit' and 'change' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-file-edit-line"></i>
+                    <span class="menu-text">Change Management</span>
+                </a>
+            </li>
+
+            <!-- Audit Trail -->
+            <li class="nav-item">
+                {% if current_tenant %}
+                <a href="{% url 'audit:audit_entry_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.app_name == 'audit' and 'audit_entry' in request.resolver_match.url_name %}active{% endif %}">
+                {% else %}
+                <a href="#" class="menu-link">
+                {% endif %}
+                    <i class="ri-history-line"></i>
+                    <span class="menu-text">Audit Trail</span>
+                </a>
+            </li>
+
+            <!-- Exception Reporting -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'audit' and 'exception' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-alarm-warning-line"></i>
+                    <span class="menu-text">Exception Reporting</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'audit' and 'exception' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:exception_rule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'rule' in request.resolver_match.url_name %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Rules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:exception_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'exception_list' or request.resolver_match.url_name == 'exception_detail' %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Exceptions</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Document Management -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'audit' and 'document' in request.resolver_match.url_name %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-folder-shield-2-line"></i>
+                    <span class="menu-text">Documents</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'audit' and 'document' in request.resolver_match.url_name %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:document_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'document_list' or request.resolver_match.url_name == 'document_detail' or request.resolver_match.url_name == 'document_upload' or request.resolver_match.url_name == 'document_edit' %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">All Documents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {% if current_tenant %}
+                        <a href="{% url 'audit:document_category_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}">
+                        {% else %}
+                        <a href="#" class="menu-link">
+                        {% endif %}
+                            <span class="menu-text">Categories</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
         </ul>
     </div>
 
