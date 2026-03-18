@@ -15,6 +15,7 @@ Usage:
     python manage.py seed_data --me         # Seed multi-entity & consolidation
     python manage.py seed_data --bp         # Seed budgeting & planning
     python manage.py seed_data --au         # Seed audit & controls
+    python manage.py seed_data --sa         # Seed system administration
 """
 import random
 from datetime import date, timedelta
@@ -64,6 +65,7 @@ class Command(BaseCommand):
         parser.add_argument('--rc', action='store_true', help='Seed reporting & compliance data only')
         parser.add_argument('--bp', action='store_true', help='Seed budgeting & planning data only')
         parser.add_argument('--au', action='store_true', help='Seed audit & controls data only')
+        parser.add_argument('--sa', action='store_true', help='Seed system administration data only')
 
     def handle(self, *args, **options):
         if options['clean']:
@@ -75,7 +77,7 @@ class Command(BaseCommand):
             options['coa'], options['dashboard'], options['gl'], options['ap'],
             options['ar'], options['cm'], options['fa'], options['ic'],
             options['pr'], options['pj'], options['me'], options['tx'],
-            options['rc'], options['bp'], options['au'],
+            options['rc'], options['bp'], options['au'], options['sa'],
         ])
 
         # Always seed system-level data
@@ -156,9 +158,46 @@ class Command(BaseCommand):
             self.stdout.write('Seeding audit & controls data...')
             self._seed_au_data()
 
+        if seed_all or options['sa']:
+            self.stdout.write('Seeding system administration data...')
+            self._seed_sa_data()
+
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))
 
     def _clean(self):
+        # Clean SA (System Administration) data first
+        try:
+            from apps.system_admin.models import (
+                WorkflowStepLog, WorkflowInstance, WorkflowStep, WorkflowDefinition,
+                NotificationLog, NotificationRule, NotificationChannel,
+                MetricDataPoint, SystemMetric, SystemHealthCheck, UsageAnalytics,
+                DataImportJob, DataExportJob, DataImportTemplate,
+                RestoreJob, BackupJob, BackupSchedule,
+                MFAConfiguration, IPRestriction, SessionPolicy,
+            )
+            WorkflowStepLog.unscoped.all().delete()
+            WorkflowInstance.unscoped.all().delete()
+            WorkflowStep.unscoped.all().delete()
+            WorkflowDefinition.unscoped.all().delete()
+            NotificationLog.unscoped.all().delete()
+            NotificationRule.unscoped.all().delete()
+            NotificationChannel.unscoped.all().delete()
+            MetricDataPoint.unscoped.all().delete()
+            SystemMetric.unscoped.all().delete()
+            SystemHealthCheck.unscoped.all().delete()
+            UsageAnalytics.unscoped.all().delete()
+            DataImportJob.unscoped.all().delete()
+            DataExportJob.unscoped.all().delete()
+            DataImportTemplate.unscoped.all().delete()
+            RestoreJob.unscoped.all().delete()
+            BackupJob.unscoped.all().delete()
+            BackupSchedule.unscoped.all().delete()
+            MFAConfiguration.unscoped.all().delete()
+            IPRestriction.unscoped.all().delete()
+            SessionPolicy.unscoped.all().delete()
+        except Exception:
+            pass
+
         # Clean AU (Audit & Controls) data first
         try:
             from apps.audit.models import (
@@ -7660,4 +7699,552 @@ class Command(BaseCommand):
             f'6 access policies, 3 access reviews with 4 review items, '
             f'7 change requests with approvals, 20 audit trail entries, '
             f'6 exception rules with 8 exceptions, 6 document categories)'
+        )
+
+    # ══════════════════════════════════════════════════════════════
+    # SYSTEM ADMINISTRATION (SA)
+    # ══════════════════════════════════════════════════════════════
+    def _seed_sa_data(self):
+        """Seed System Administration data for all tenants."""
+        from apps.system_admin.models import (
+            MFAConfiguration, IPRestriction, SessionPolicy,
+            WorkflowDefinition, WorkflowStep, WorkflowInstance, WorkflowStepLog,
+            NotificationChannel, NotificationRule, NotificationLog,
+            DataImportJob, DataExportJob, DataImportTemplate,
+            BackupSchedule, BackupJob, RestoreJob,
+            SystemMetric, MetricDataPoint, SystemHealthCheck, UsageAnalytics,
+        )
+        from apps.roles.models import Role
+        from apps.tenants.managers import set_current_tenant
+        from django.utils import timezone as tz
+
+        tenants = Tenant.objects.all()
+        if not tenants.exists():
+            self.stdout.write('  No tenants found — skipping SA seed.')
+            return
+
+        for tenant in tenants:
+            set_current_tenant(tenant)
+            users = list(CustomUser.objects.all()[:3])
+            if not users:
+                continue
+
+            roles = list(Role.unscoped.filter(tenant=tenant)[:4])
+
+            # ── Security Settings ──────────────────────────────────
+
+            # MFA Configurations
+            mfa_data = [
+                ('MFA-0001', 'TOTP for All Users', 'totp', True, 'all', 7, 'active'),
+                ('MFA-0002', 'Email OTP for Admins', 'email', True, 'admin', 0, 'active'),
+                ('MFA-0003', 'SMS Backup Method', 'sms', False, 'role_based', 14, 'inactive'),
+            ]
+            for num, name, method, enforced, scope, grace, status in mfa_data:
+                mfa, created = MFAConfiguration.unscoped.get_or_create(
+                    tenant=tenant, config_number=num,
+                    defaults={
+                        'name': name,
+                        'mfa_method': method,
+                        'is_enforced': enforced,
+                        'enforcement_scope': scope,
+                        'grace_period_days': grace,
+                        'status': status,
+                        'notes': f'Auto-seeded MFA configuration for {tenant.name}.',
+                    },
+                )
+                if created and roles and scope == 'role_based':
+                    mfa.enforced_roles.add(roles[0])
+
+            # IP Restrictions
+            ip_data = [
+                ('IPR-0001', 'Office Network', 'allow', '192.168.1.0', '192.168.1.0/24', 'all', 10, 'active'),
+                ('IPR-0002', 'VPN Access', 'allow', '10.0.0.0', '10.0.0.0/8', 'all', 20, 'active'),
+                ('IPR-0003', 'Block Suspicious Range', 'deny', '203.0.113.0', '203.0.113.0/24', 'all', 5, 'active'),
+                ('IPR-0004', 'Admin Only Range', 'allow', '172.16.0.0', '172.16.0.0/12', 'role', 30, 'active'),
+                ('IPR-0005', 'Deprecated Range', 'deny', '198.51.100.0', '198.51.100.0/24', 'all', 50, 'inactive'),
+            ]
+            for num, name, rtype, ip, cidr, applies, prio, status in ip_data:
+                ipr, created = IPRestriction.unscoped.get_or_create(
+                    tenant=tenant, restriction_number=num,
+                    defaults={
+                        'name': name,
+                        'rule_type': rtype,
+                        'ip_address': ip,
+                        'cidr_range': cidr,
+                        'applies_to': applies,
+                        'priority': prio,
+                        'is_active': status == 'active',
+                        'status': status,
+                        'description': f'{rtype.title()} rule for {cidr}.',
+                    },
+                )
+                if created and roles and applies == 'role':
+                    ipr.target_roles.add(roles[0])
+
+            # Session Policies
+            session_data = [
+                ('SSP-0001', 'Standard Policy', 480, 30, 3, False, False, 90, 8, True, 'active'),
+                ('SSP-0002', 'High Security Policy', 240, 15, 1, True, True, 30, 12, True, 'active'),
+                ('SSP-0003', 'Relaxed Policy', 720, 60, 5, False, False, 180, 6, False, 'inactive'),
+            ]
+            for num, name, dur, idle, mx, single, reauth, expiry, minpw, special, status in session_data:
+                SessionPolicy.unscoped.get_or_create(
+                    tenant=tenant, policy_number=num,
+                    defaults={
+                        'name': name,
+                        'max_session_duration_minutes': dur,
+                        'idle_timeout_minutes': idle,
+                        'max_concurrent_sessions': mx,
+                        'enforce_single_session': single,
+                        'require_re_auth_for_sensitive': reauth,
+                        'password_expiry_days': expiry,
+                        'min_password_length': minpw,
+                        'require_special_chars': special,
+                        'status': status,
+                        'is_active': status == 'active',
+                    },
+                )
+
+            # ── Workflow Designer ──────────────────────────────────
+
+            wf_data = [
+                ('WFD-0001', 'Journal Entry Approval', 'JournalEntry', 'on_create', 'active'),
+                ('WFD-0002', 'Purchase Order Approval', 'PurchaseOrder', 'on_status_change', 'active'),
+                ('WFD-0003', 'Invoice Approval Workflow', 'Invoice', 'on_create', 'draft'),
+                ('WFD-0004', 'Expense Report Review', 'Expense', 'manual', 'active'),
+            ]
+            created_workflows = []
+            for num, name, target, trigger, status in wf_data:
+                wf, created = WorkflowDefinition.unscoped.get_or_create(
+                    tenant=tenant, workflow_number=num,
+                    defaults={
+                        'name': name,
+                        'description': f'Automated {name.lower()} process.',
+                        'target_model': target,
+                        'trigger_event': trigger,
+                        'status': status,
+                        'is_active': status == 'active',
+                        'version': 1,
+                        'created_by': users[0],
+                    },
+                )
+                created_workflows.append(wf)
+
+            # Workflow Steps
+            step_data = [
+                # (workflow_idx, step_num, name, order, step_type, assignee_type, timeout)
+                (0, 'WFS-0001', 'Manager Review', 1, 'approval', 'manager', 24),
+                (0, 'WFS-0002', 'Controller Approval', 2, 'approval', 'role', 48),
+                (0, 'WFS-0003', 'Notify Finance Team', 3, 'notification', 'role', 0),
+                (1, 'WFS-0004', 'Department Head Approval', 1, 'approval', 'manager', 24),
+                (1, 'WFS-0005', 'Check Amount Threshold', 2, 'condition', 'creator', 0),
+                (1, 'WFS-0006', 'CFO Approval', 3, 'approval', 'role', 72),
+                (1, 'WFS-0007', 'Send PO Confirmation', 4, 'notification', 'creator', 0),
+                (3, 'WFS-0008', 'Supervisor Review', 1, 'approval', 'manager', 48),
+                (3, 'WFS-0009', 'Finance Verification', 2, 'approval', 'role', 24),
+            ]
+            created_steps = []
+            for wf_idx, snum, sname, order, stype, atype, timeout in step_data:
+                step, created = WorkflowStep.unscoped.get_or_create(
+                    tenant=tenant, step_number=snum,
+                    defaults={
+                        'workflow': created_workflows[wf_idx],
+                        'name': sname,
+                        'order': order,
+                        'step_type': stype,
+                        'assignee_type': atype,
+                        'assigned_role': roles[0] if roles and atype == 'role' else None,
+                        'timeout_hours': timeout,
+                        'on_timeout': 'escalate' if timeout > 0 else 'skip',
+                        'condition_field': 'amount' if stype == 'condition' else '',
+                        'condition_operator': 'gt' if stype == 'condition' else '',
+                        'condition_value': '10000' if stype == 'condition' else '',
+                    },
+                )
+                created_steps.append(step)
+
+            # Workflow Instances
+            if created_workflows and created_steps:
+                inst_data = [
+                    ('WFI-0001', 0, 'JournalEntry', 101, 'completed'),
+                    ('WFI-0002', 0, 'JournalEntry', 102, 'in_progress'),
+                    ('WFI-0003', 1, 'PurchaseOrder', 201, 'completed'),
+                    ('WFI-0004', 1, 'PurchaseOrder', 202, 'cancelled'),
+                    ('WFI-0005', 3, 'Expense', 301, 'in_progress'),
+                ]
+                created_instances = []
+                for inum, wf_idx, target, rec_id, status in inst_data:
+                    inst, created = WorkflowInstance.unscoped.get_or_create(
+                        tenant=tenant, instance_number=inum,
+                        defaults={
+                            'workflow': created_workflows[wf_idx],
+                            'target_model': target,
+                            'target_record_id': rec_id,
+                            'initiated_by': users[0],
+                            'status': status,
+                            'completed_at': tz.now() if status == 'completed' else None,
+                        },
+                    )
+                    created_instances.append(inst)
+
+                # Step Logs for completed instances
+                log_idx = 1
+                for inst in created_instances:
+                    if inst.status == 'completed':
+                        wf_steps = list(inst.workflow.steps.all().order_by('order')[:3])
+                        for step in wf_steps:
+                            WorkflowStepLog.unscoped.get_or_create(
+                                tenant=tenant, log_number=f'WFL-{log_idx:04d}',
+                                defaults={
+                                    'instance': inst,
+                                    'step': step,
+                                    'action_taken': 'approved',
+                                    'performed_by': users[log_idx % len(users)],
+                                    'comments': f'Approved by {users[log_idx % len(users)].get_full_name() or users[log_idx % len(users)].email}.',
+                                },
+                            )
+                            log_idx += 1
+
+            # ── Notification Center ────────────────────────────────
+
+            channel_data = [
+                ('NCH-0001', 'System Email', 'email', 'active'),
+                ('NCH-0002', 'In-App Alerts', 'in_app', 'active'),
+                ('NCH-0003', 'Slack Integration', 'slack', 'active'),
+                ('NCH-0004', 'Webhook Endpoint', 'webhook', 'inactive'),
+            ]
+            created_channels = []
+            for num, name, ctype, status in channel_data:
+                ch, created = NotificationChannel.unscoped.get_or_create(
+                    tenant=tenant, channel_number=num,
+                    defaults={
+                        'name': name,
+                        'channel_type': ctype,
+                        'is_active': status == 'active',
+                        'status': status,
+                        'config': {'enabled': True} if status == 'active' else {},
+                    },
+                )
+                created_channels.append(ch)
+
+            # Notification Rules
+            rule_data = [
+                ('NRL-0001', 'Invoice Approval Required', 'approval_needed', 'Invoice', 'role', 'active'),
+                ('NRL-0002', 'Payment Processed', 'status_changed', 'Payment', 'creator', 'active'),
+                ('NRL-0003', 'New User Registration', 'record_created', 'CustomUser', 'role', 'active'),
+                ('NRL-0004', 'Budget Threshold Alert', 'threshold_exceeded', 'Budget', 'user', 'active'),
+                ('NRL-0005', 'Monthly Report Ready', 'scheduled', 'FinancialStatement', 'all', 'active'),
+                ('NRL-0006', 'Journal Entry Posted', 'status_changed', 'JournalEntry', 'role', 'inactive'),
+            ]
+            created_rules = []
+            for num, name, event, target, rtype, status in rule_data:
+                rule, created = NotificationRule.unscoped.get_or_create(
+                    tenant=tenant, rule_number=num,
+                    defaults={
+                        'name': name,
+                        'event_type': event,
+                        'target_model': target,
+                        'channel': created_channels[0],
+                        'recipient_type': rtype,
+                        'is_active': status == 'active',
+                        'status': status,
+                        'subject_template': f'{name} - {{{{ record.id }}}}',
+                        'body_template': f'{name} notification triggered for record #{{{{ record.id }}}}.',
+                        'description': f'Sends notification when {event.replace("_", " ")} occurs on {target}.',
+                    },
+                )
+                created_rules.append(rule)
+
+            # Notification Logs
+            log_data = [
+                ('NLG-0001', 'Invoice #INV-001 requires approval', 'sent'),
+                ('NLG-0002', 'Payment PMT-001 processed successfully', 'sent'),
+                ('NLG-0003', 'New user john@example.com registered', 'sent'),
+                ('NLG-0004', 'Budget threshold exceeded for Q1 Operating', 'read'),
+                ('NLG-0005', 'Monthly financial report is ready for review', 'pending'),
+                ('NLG-0006', 'Failed to deliver notification to slack channel', 'failed'),
+                ('NLG-0007', 'Invoice #INV-002 requires approval', 'sent'),
+                ('NLG-0008', 'Journal Entry JE-2025-001 posted', 'read'),
+            ]
+            for i, (num, subject, status) in enumerate(log_data):
+                NotificationLog.unscoped.get_or_create(
+                    tenant=tenant, log_number=num,
+                    defaults={
+                        'rule': created_rules[i % len(created_rules)],
+                        'channel': created_channels[i % len(created_channels)],
+                        'recipient': users[i % len(users)],
+                        'subject': subject,
+                        'body': f'{subject}. Please take appropriate action.',
+                        'status': status,
+                        'sent_at': tz.now() - timedelta(hours=i * 6) if status in ('sent', 'read') else None,
+                        'read_at': tz.now() - timedelta(hours=i * 3) if status == 'read' else None,
+                        'error_message': 'Connection timeout to Slack webhook' if status == 'failed' else '',
+                    },
+                )
+
+            # ── Data Import/Export ─────────────────────────────────
+
+            # Import Templates
+            tpl_data = [
+                ('IMT-0001', 'Vendor Import Template', 'Vendor', 'csv'),
+                ('IMT-0002', 'Customer Import Template', 'Customer', 'xlsx'),
+                ('IMT-0003', 'Chart of Accounts Template', 'Account', 'csv'),
+            ]
+            for num, name, target, fmt in tpl_data:
+                DataImportTemplate.unscoped.get_or_create(
+                    tenant=tenant, template_number=num,
+                    defaults={
+                        'name': name,
+                        'description': f'Standard {fmt.upper()} template for importing {target} data.',
+                        'target_model': target,
+                        'file_format': fmt,
+                        'column_mapping': {'name': 'Name', 'code': 'Code', 'status': 'Status'},
+                        'is_active': True,
+                        'created_by': users[0],
+                    },
+                )
+
+            # Import Jobs
+            import_data = [
+                ('IMP-0001', 'Q1 Vendor Import', 'csv', 'Vendor', 150, 150, 148, 2, 'completed'),
+                ('IMP-0002', 'Customer List Import', 'xlsx', 'Customer', 75, 75, 75, 0, 'completed'),
+                ('IMP-0003', 'GL Account Import', 'csv', 'Account', 200, 0, 0, 0, 'draft'),
+                ('IMP-0004', 'Employee Data Import', 'xlsx', 'Employee', 50, 30, 28, 2, 'failed'),
+            ]
+            for num, name, fmt, target, total, proc, success, err, status in import_data:
+                DataImportJob.unscoped.get_or_create(
+                    tenant=tenant, job_number=num,
+                    defaults={
+                        'name': name,
+                        'file_format': fmt,
+                        'target_model': target,
+                        'source_file_name': f'{name.lower().replace(" ", "_")}.{fmt}',
+                        'total_rows': total,
+                        'processed_rows': proc,
+                        'success_rows': success,
+                        'error_rows': err,
+                        'status': status,
+                        'column_mapping': {'col1': 'field1', 'col2': 'field2'},
+                        'error_log': [{'row': 12, 'field': 'email', 'error': 'Invalid format'}] if err > 0 else [],
+                        'started_by': users[0],
+                        'started_at': tz.now() - timedelta(days=5) if status != 'draft' else None,
+                        'completed_at': tz.now() - timedelta(days=4) if status == 'completed' else None,
+                    },
+                )
+
+            # Export Jobs
+            export_data = [
+                ('EXP-0001', 'Vendor List Export', 'csv', 'Vendor', 250, 'completed'),
+                ('EXP-0002', 'Customer Report', 'xlsx', 'Customer', 120, 'completed'),
+                ('EXP-0003', 'GL Trial Balance', 'pdf', 'Account', 0, 'pending'),
+                ('EXP-0004', 'Invoice Archive', 'json', 'Invoice', 500, 'completed'),
+            ]
+            for num, name, fmt, source, records, status in export_data:
+                DataExportJob.unscoped.get_or_create(
+                    tenant=tenant, job_number=num,
+                    defaults={
+                        'name': name,
+                        'file_format': fmt,
+                        'source_model': source,
+                        'total_records': records,
+                        'output_file_name': f'{name.lower().replace(" ", "_")}.{fmt}' if status == 'completed' else '',
+                        'status': status,
+                        'started_by': users[0],
+                        'started_at': tz.now() - timedelta(days=3) if status != 'pending' else None,
+                        'completed_at': tz.now() - timedelta(days=2) if status == 'completed' else None,
+                    },
+                )
+
+            # ── Backup & Recovery ──────────────────────────────────
+
+            schedule_data = [
+                ('BKS-0001', 'Nightly Full Backup', 'full', 'daily', '02:00', None, None, 30, 'active'),
+                ('BKS-0002', 'Weekly Incremental', 'incremental', 'weekly', '03:00', 0, None, 90, 'active'),
+                ('BKS-0003', 'Monthly Archive', 'full', 'monthly', '01:00', None, 1, 365, 'active'),
+                ('BKS-0004', 'Old Hourly Backup', 'differential', 'hourly', '00:00', None, None, 7, 'paused'),
+            ]
+            for num, name, btype, freq, time_str, dow, dom, ret, status in schedule_data:
+                from datetime import time as dt_time
+                h, m = map(int, time_str.split(':'))
+                BackupSchedule.unscoped.get_or_create(
+                    tenant=tenant, schedule_number=num,
+                    defaults={
+                        'name': name,
+                        'backup_type': btype,
+                        'frequency': freq,
+                        'scheduled_time': dt_time(h, m),
+                        'day_of_week': dow,
+                        'day_of_month': dom,
+                        'retention_days': ret,
+                        'storage_location': '/backups/navaccounting/',
+                        'include_media': True,
+                        'is_active': status == 'active',
+                        'status': status,
+                        'last_run_at': tz.now() - timedelta(days=1) if status == 'active' else None,
+                        'next_run_at': tz.now() + timedelta(days=1) if status == 'active' else None,
+                        'created_by': users[0],
+                    },
+                )
+
+            # Backup Jobs
+            job_data = [
+                ('BKJ-0001', 'full', 'scheduled', 'completed', 1073741824, 5),
+                ('BKJ-0002', 'full', 'scheduled', 'completed', 1082130432, 4),
+                ('BKJ-0003', 'incremental', 'scheduled', 'completed', 52428800, 3),
+                ('BKJ-0004', 'full', 'manual', 'completed', 1099511627, 2),
+                ('BKJ-0005', 'full', 'scheduled', 'running', 0, 0),
+                ('BKJ-0006', 'differential', 'scheduled', 'failed', 0, 1),
+            ]
+            created_jobs = []
+            for num, btype, trigger, status, size, days_ago in job_data:
+                job, created = BackupJob.unscoped.get_or_create(
+                    tenant=tenant, job_number=num,
+                    defaults={
+                        'backup_type': btype,
+                        'trigger': trigger,
+                        'status': status,
+                        'file_path': f'/backups/navaccounting/{num}.sql.gz' if status == 'completed' else '',
+                        'file_size_bytes': size,
+                        'tables_included': ['all'],
+                        'started_at': tz.now() - timedelta(days=days_ago),
+                        'completed_at': tz.now() - timedelta(days=days_ago, hours=-1) if status == 'completed' else None,
+                        'initiated_by': users[0],
+                        'error_message': 'Disk space insufficient' if status == 'failed' else '',
+                        'expires_at': tz.now() + timedelta(days=30) if status == 'completed' else None,
+                    },
+                )
+                created_jobs.append(job)
+
+            # Restore Jobs
+            completed_backups = [j for j in created_jobs if j.status == 'completed']
+            if completed_backups:
+                restore_data = [
+                    ('RST-0001', 0, 'full', 'completed'),
+                    ('RST-0002', 1, 'partial', 'completed'),
+                    ('RST-0003', 0, 'point_in_time', 'failed'),
+                ]
+                for num, bk_idx, rtype, status in restore_data:
+                    RestoreJob.unscoped.get_or_create(
+                        tenant=tenant, job_number=num,
+                        defaults={
+                            'backup': completed_backups[bk_idx % len(completed_backups)],
+                            'restore_type': rtype,
+                            'target_tables': ['accounts_payable_vendor'] if rtype == 'partial' else [],
+                            'point_in_time': tz.now() - timedelta(days=7) if rtype == 'point_in_time' else None,
+                            'status': status,
+                            'started_at': tz.now() - timedelta(days=1),
+                            'completed_at': tz.now() - timedelta(hours=23) if status == 'completed' else None,
+                            'initiated_by': users[0],
+                            'error_message': 'Point-in-time target not found in backup' if status == 'failed' else '',
+                        },
+                    )
+
+            # ── System Health ──────────────────────────────────────
+
+            metric_data = [
+                ('SMT-0001', 'API Response Time', 'gauge', 'performance', 'ms', 500, 1000),
+                ('SMT-0002', 'Database Query Time', 'gauge', 'performance', 'ms', 200, 500),
+                ('SMT-0003', 'Active Users', 'gauge', 'usage', 'count', 100, 200),
+                ('SMT-0004', 'Disk Usage', 'gauge', 'storage', '%', 80, 95),
+                ('SMT-0005', 'Error Rate', 'counter', 'error', '%', 1, 5),
+                ('SMT-0006', 'Memory Usage', 'gauge', 'performance', '%', 75, 90),
+            ]
+            created_metrics = []
+            for num, name, mtype, cat, unit, warn, crit in metric_data:
+                metric, created = SystemMetric.unscoped.get_or_create(
+                    tenant=tenant, metric_number=num,
+                    defaults={
+                        'name': name,
+                        'metric_type': mtype,
+                        'category': cat,
+                        'unit': unit,
+                        'description': f'Tracks {name.lower()} across the platform.',
+                        'warning_threshold': Decimal(str(warn)),
+                        'critical_threshold': Decimal(str(crit)),
+                        'is_active': True,
+                        'collection_interval_minutes': 5,
+                    },
+                )
+                created_metrics.append(metric)
+
+            # Metric Data Points (last 24 hours, every 2 hours)
+            now = tz.now()
+            base_values = [120, 45, 32, 62, 0.3, 58]
+            for metric, base in zip(created_metrics, base_values):
+                for h in range(12):
+                    ts = now - timedelta(hours=h * 2)
+                    jitter = random.uniform(-0.15, 0.15)
+                    value = round(base * (1 + jitter), 4)
+                    MetricDataPoint.unscoped.get_or_create(
+                        tenant=tenant, metric=metric, recorded_at=ts,
+                        defaults={'value': Decimal(str(value))},
+                    )
+
+            # Health Checks
+            check_data = [
+                ('SHC-0001', 'Primary Database', 'database', 'localhost:3306', 'healthy', 12),
+                ('SHC-0002', 'File Storage', 'storage', '/media/', 'healthy', 45),
+                ('SHC-0003', 'Email Service', 'email', 'smtp.example.com:587', 'healthy', 230),
+                ('SHC-0004', 'Redis Cache', 'cache', 'localhost:6379', 'degraded', 85),
+                ('SHC-0005', 'Payment Gateway', 'external_api', 'https://api.stripe.com/v1/health', 'healthy', 310),
+                ('SHC-0006', 'Celery Queue', 'queue', 'redis://localhost:6379/1', 'unhealthy', None),
+            ]
+            for num, name, ctype, endpoint, status, resp_time in check_data:
+                SystemHealthCheck.unscoped.get_or_create(
+                    tenant=tenant, check_number=num,
+                    defaults={
+                        'name': name,
+                        'check_type': ctype,
+                        'endpoint': endpoint,
+                        'last_status': status,
+                        'last_checked_at': tz.now() - timedelta(minutes=5),
+                        'last_response_time_ms': resp_time,
+                        'last_error': 'Connection refused: Celery worker not running' if status == 'unhealthy' else '',
+                        'check_interval_minutes': 5,
+                        'is_active': True,
+                    },
+                )
+
+            # Usage Analytics
+            analytics_data = [
+                ('UAN-0001', 'daily', 1, 28, 145, 892, 1250, 12),
+                ('UAN-0002', 'daily', 2, 31, 162, 1023, 1280, 15),
+                ('UAN-0003', 'daily', 3, 25, 130, 756, 1310, 8),
+                ('UAN-0004', 'weekly', 7, 42, 876, 5234, 1350, 89),
+                ('UAN-0005', 'monthly', 30, 58, 3420, 21560, 1500, 342),
+            ]
+            for num, ptype, days_span, active, logins, txns, storage, api in analytics_data:
+                end = date.today() - timedelta(days=1)
+                start = end - timedelta(days=days_span - 1)
+                UsageAnalytics.unscoped.get_or_create(
+                    tenant=tenant, analytics_number=num,
+                    defaults={
+                        'period_start': start,
+                        'period_end': end,
+                        'period_type': ptype,
+                        'active_users': active,
+                        'total_logins': logins,
+                        'total_transactions': txns,
+                        'storage_used_mb': Decimal(str(storage)),
+                        'api_calls': api,
+                        'top_modules': {
+                            'general_ledger': random.randint(100, 500),
+                            'accounts_payable': random.randint(80, 300),
+                            'accounts_receivable': random.randint(60, 250),
+                            'inventory': random.randint(40, 200),
+                            'dashboard': random.randint(200, 600),
+                        },
+                        'top_users': [
+                            {'email': u.email, 'actions': random.randint(50, 200)}
+                            for u in users[:3]
+                        ],
+                    },
+                )
+
+        self.stdout.write(
+            f'  Created SA data (3 MFA configs, 5 IP restrictions, 3 session policies, '
+            f'4 workflows with 9 steps and 5 instances, 4 notification channels with 6 rules '
+            f'and 8 logs, 3 import templates with 4 imports and 4 exports, 4 backup schedules '
+            f'with 6 jobs and 3 restores, 6 metrics with 72 data points, 6 health checks, '
+            f'5 usage analytics records)'
         )
