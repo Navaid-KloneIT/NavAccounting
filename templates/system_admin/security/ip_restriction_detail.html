@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ restriction.restriction_number }} - IP Restriction{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ restriction.restriction_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:ip_restriction_list' tenant_slug=current_tenant.slug %}">IP Restrictions</a></li>
+            <li class="breadcrumb-item active">{{ restriction.restriction_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Restriction Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Restriction Information</h5>
+                <div>
+                    {% if restriction.status == 'active' %}
+                        <span class="badge bg-soft-success text-success fs-6">Active</span>
+                    {% elif restriction.status == 'inactive' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Inactive</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ restriction.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Restriction Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ restriction.restriction_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ restriction.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Rule Type</div>
+                    <div class="col-sm-8">
+                        {% if restriction.rule_type == 'allow' %}
+                            <span class="badge bg-soft-success text-success">{{ restriction.get_rule_type_display }}</span>
+                        {% elif restriction.rule_type == 'deny' %}
+                            <span class="badge bg-soft-danger text-danger">{{ restriction.get_rule_type_display }}</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ restriction.get_rule_type_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">IP Address</div>
+                    <div class="col-sm-8">{{ restriction.ip_address|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">CIDR Range</div>
+                    <div class="col-sm-8">{{ restriction.cidr_range|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Applies To</div>
+                    <div class="col-sm-8">{{ restriction.get_applies_to_display|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Priority</div>
+                    <div class="col-sm-8">{{ restriction.priority|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Active</div>
+                    <div class="col-sm-8">
+                        {% if restriction.is_active %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-danger text-danger">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if restriction.description %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Description</div>
+                    <div class="col-sm-8">{{ restriction.description }}</div>
+                </div>
+                {% endif %}
+                {% if restriction.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ restriction.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:ip_restriction_edit' tenant_slug=current_tenant.slug pk=restriction.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Restriction
+                </a>
+                <a href="{% url 'system_admin:ip_restriction_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ restriction.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ restriction.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ restriction.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
