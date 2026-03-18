@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ metric.metric_number }} - System Metric{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">
+            <i class="ri-line-chart-line me-1"></i> {{ metric.metric_number }}
+        </h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:metric_list' tenant_slug=current_tenant.slug %}">System Metrics</a></li>
+            <li class="breadcrumb-item active">{{ metric.metric_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Metric Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Metric Information</h5>
+                <div>
+                    {% if metric.is_active %}
+                        <span class="badge bg-soft-success text-success fs-6">Active</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Inactive</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Metric Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ metric.metric_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ metric.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Metric Type</div>
+                    <div class="col-sm-8">
+                        {% if metric.metric_type == 'gauge' %}
+                            <span class="badge bg-soft-primary text-primary">Gauge</span>
+                        {% elif metric.metric_type == 'counter' %}
+                            <span class="badge bg-soft-info text-info">Counter</span>
+                        {% elif metric.metric_type == 'histogram' %}
+                            <span class="badge bg-soft-warning text-warning">Histogram</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ metric.get_metric_type_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Category</div>
+                    <div class="col-sm-8">
+                        {% if metric.category == 'performance' %}
+                            <span class="badge bg-soft-primary text-primary">{{ metric.get_category_display }}</span>
+                        {% elif metric.category == 'usage' %}
+                            <span class="badge bg-soft-info text-info">{{ metric.get_category_display }}</span>
+                        {% elif metric.category == 'storage' %}
+                            <span class="badge bg-soft-warning text-warning">{{ metric.get_category_display }}</span>
+                        {% elif metric.category == 'error' %}
+                            <span class="badge bg-soft-danger text-danger">{{ metric.get_category_display }}</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ metric.get_category_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Unit</div>
+                    <div class="col-sm-8">{{ metric.unit|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Warning Threshold</div>
+                    <div class="col-sm-8">{{ metric.warning_threshold|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Critical Threshold</div>
+                    <div class="col-sm-8">{{ metric.critical_threshold|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Collection Interval</div>
+                    <div class="col-sm-8">{{ metric.collection_interval_minutes|default:"-" }}{% if metric.collection_interval_minutes %} minutes{% endif %}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Active</div>
+                    <div class="col-sm-8">
+                        {% if metric.is_active %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Data Points -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Data Points</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if data_points %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Value</th>
+                                <th>Recorded At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for point in data_points %}
+                            <tr>
+                                <td>{{ point.value }}</td>
+                                <td>{{ point.recorded_at|date:"M d, Y H:i:s" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No data points recorded.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:metric_edit' tenant_slug=current_tenant.slug pk=metric.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Metric
+                </a>
+                <a href="{% url 'system_admin:metric_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ metric.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ metric.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ metric.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
