@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ job.job_number }} - Backup Job{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4><i class="ri-hard-drive-2-line me-1"></i> {{ job.job_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:backup_job_list' tenant_slug=current_tenant.slug %}">Backup Jobs</a></li>
+            <li class="breadcrumb-item active">{{ job.job_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Job Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Job Information</h5>
+                <div>
+                    {% if job.status == 'pending' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Pending</span>
+                    {% elif job.status == 'running' %}
+                        <span class="badge bg-soft-info text-info fs-6">Running</span>
+                    {% elif job.status == 'completed' %}
+                        <span class="badge bg-soft-success text-success fs-6">Completed</span>
+                    {% elif job.status == 'failed' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Failed</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ job.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Job Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ job.job_number }}</div>
+                </div>
+                {% if job.schedule %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Schedule</div>
+                    <div class="col-sm-8">
+                        <a href="{% url 'system_admin:backup_schedule_detail' tenant_slug=current_tenant.slug pk=job.schedule.pk %}">{{ job.schedule.schedule_number }}</a>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Backup Type</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ job.get_backup_type_display }}</span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Trigger</div>
+                    <div class="col-sm-8">
+                        {% if job.trigger == 'scheduled' %}
+                            <span class="badge bg-soft-info text-info">Scheduled</span>
+                        {% elif job.trigger == 'manual' %}
+                            <span class="badge bg-soft-primary text-primary">Manual</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ job.get_trigger_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">File Path</div>
+                    <div class="col-sm-8"><code>{{ job.file_path|default:"-" }}</code></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">File Size</div>
+                    <div class="col-sm-8">{{ job.file_size_bytes|filesizeformat|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Started At</div>
+                    <div class="col-sm-8">{{ job.started_at|date:"M d, Y H:i:s"|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Completed At</div>
+                    <div class="col-sm-8">{{ job.completed_at|date:"M d, Y H:i:s"|default:"-" }}</div>
+                </div>
+                {% if job.error_message %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Error Message</div>
+                    <div class="col-sm-8">
+                        <div class="alert alert-danger mb-0 py-2">{{ job.error_message }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if job.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ job.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Restores from this Backup -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Restore Jobs from this Backup</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Job #</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Initiated By</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for restore in restores %}
+                            <tr>
+                                <td class="fw-semibold">
+                                    <a href="{% url 'system_admin:restore_detail' tenant_slug=current_tenant.slug pk=restore.pk %}">{{ restore.job_number }}</a>
+                                </td>
+                                <td>{{ restore.get_restore_type_display }}</td>
+                                <td>
+                                    {% if restore.status == 'pending' %}
+                                        <span class="badge bg-soft-secondary text-secondary">Pending</span>
+                                    {% elif restore.status == 'running' %}
+                                        <span class="badge bg-soft-info text-info">Running</span>
+                                    {% elif restore.status == 'completed' %}
+                                        <span class="badge bg-soft-success text-success">Completed</span>
+                                    {% elif restore.status == 'failed' %}
+                                        <span class="badge bg-soft-danger text-danger">Failed</span>
+                                    {% elif restore.status == 'rolled_back' %}
+                                        <span class="badge bg-soft-warning text-warning">Rolled Back</span>
+                                    {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary">{{ restore.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ restore.initiated_by|default:"-" }}</td>
+                                <td>{{ restore.started_at|date:"M d, Y H:i"|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No restore jobs for this backup.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:restore_create' tenant_slug=current_tenant.slug pk=job.pk %}" class="btn btn-outline-warning btn-sm">
+                    <i class="ri-restart-line me-1"></i> Restore from this Backup
+                </a>
+                <a href="{% url 'system_admin:backup_job_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Jobs
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ job.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ job.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ job.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
