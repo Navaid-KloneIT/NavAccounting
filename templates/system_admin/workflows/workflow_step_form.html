@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if is_edit %}Edit Step - {{ step.step_number }}{% else %}Add Step to {{ workflow.workflow_number }}{% endif %} - NavAccounting{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4><i class="ri-flow-chart me-1"></i> {% if is_edit %}Edit Step - {{ step.step_number }}{% else %}Add Step to {{ workflow.workflow_number }}{% endif %}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:workflow_list' tenant_slug=current_tenant.slug %}">Workflow Definitions</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:workflow_detail' tenant_slug=current_tenant.slug pk=workflow.pk %}">{{ workflow.workflow_number }}</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit Step{% else %}Add Step{% endif %}</li>
+        </ol>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Card 1: Step Details -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2">
+                    <i class="ri-flow-chart text-primary"></i>
+                </div>
+                <h5 class="card-title mb-0">Step Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.order.id_for_label }}" class="form-label">Order <span class="text-danger">*</span></label>
+                    {{ form.order }}
+                    {% if form.order.errors %}<div class="text-danger small">{{ form.order.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.step_type.id_for_label }}" class="form-label">Step Type <span class="text-danger">*</span></label>
+                    {{ form.step_type }}
+                    {% if form.step_type.errors %}<div class="text-danger small">{{ form.step_type.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Assignment -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-info p-2 me-2">
+                    <i class="ri-user-line text-info"></i>
+                </div>
+                <h5 class="card-title mb-0">Assignment</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="{{ form.assignee_type.id_for_label }}" class="form-label">Assignee Type</label>
+                    {{ form.assignee_type }}
+                    {% if form.assignee_type.errors %}<div class="text-danger small">{{ form.assignee_type.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.assigned_user.id_for_label }}" class="form-label">Assigned User</label>
+                    {{ form.assigned_user }}
+                    {% if form.assigned_user.errors %}<div class="text-danger small">{{ form.assigned_user.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.assigned_role.id_for_label }}" class="form-label">Assigned Role</label>
+                    {{ form.assigned_role }}
+                    {% if form.assigned_role.errors %}<div class="text-danger small">{{ form.assigned_role.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Conditions -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2">
+                    <i class="ri-git-branch-line text-warning"></i>
+                </div>
+                <h5 class="card-title mb-0">Conditions</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="{{ form.condition_field.id_for_label }}" class="form-label">Condition Field</label>
+                    {{ form.condition_field }}
+                    {% if form.condition_field.errors %}<div class="text-danger small">{{ form.condition_field.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.condition_operator.id_for_label }}" class="form-label">Condition Operator</label>
+                    {{ form.condition_operator }}
+                    {% if form.condition_operator.errors %}<div class="text-danger small">{{ form.condition_operator.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.condition_value.id_for_label }}" class="form-label">Condition Value</label>
+                    {{ form.condition_value }}
+                    {% if form.condition_value.errors %}<div class="text-danger small">{{ form.condition_value.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Timeout -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-danger p-2 me-2">
+                    <i class="ri-time-line text-danger"></i>
+                </div>
+                <h5 class="card-title mb-0">Timeout</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ form.timeout_hours.id_for_label }}" class="form-label">Timeout Hours</label>
+                    {{ form.timeout_hours }}
+                    {% if form.timeout_hours.errors %}<div class="text-danger small">{{ form.timeout_hours.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.on_timeout.id_for_label }}" class="form-label">On Timeout</label>
+                    {{ form.on_timeout }}
+                    {% if form.on_timeout.errors %}<div class="text-danger small">{{ form.on_timeout.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 5: Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-secondary p-2 me-2">
+                    <i class="ri-file-text-line text-secondary"></i>
+                </div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'system_admin:workflow_detail' tenant_slug=current_tenant.slug pk=workflow.pk %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Step
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
