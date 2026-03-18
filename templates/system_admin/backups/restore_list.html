@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Restore Jobs{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4><i class="ri-restart-line me-1"></i> Restore Jobs</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item active">Restore Jobs</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-restart-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Completed</p>
+                        <h3 class="mb-0">{{ completed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-check-double-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Failed</p>
+                        <h3 class="mb-0">{{ failed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-error-warning-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Job #..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Restore Type</label>
+                <select name="restore_type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for val, label in restore_type_choices %}
+                    <option value="{{ val }}" {% if request.GET.restore_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'system_admin:restore_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Job #</th>
+                        <th>Backup</th>
+                        <th>Restore Type</th>
+                        <th>Status</th>
+                        <th>Initiated By</th>
+                        <th>Started</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for restore in restores %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'system_admin:restore_detail' tenant_slug=current_tenant.slug pk=restore.pk %}">{{ restore.job_number }}</a>
+                        </td>
+                        <td>
+                            <a href="{% url 'system_admin:backup_job_detail' tenant_slug=current_tenant.slug pk=restore.backup.pk %}">{{ restore.backup.job_number }}</a>
+                        </td>
+                        <td>{{ restore.get_restore_type_display }}</td>
+                        <td>
+                            {% if restore.status == 'pending' %}
+                                <span class="badge bg-soft-secondary text-secondary">Pending</span>
+                            {% elif restore.status == 'running' %}
+                                <span class="badge bg-soft-info text-info">Running</span>
+                            {% elif restore.status == 'completed' %}
+                                <span class="badge bg-soft-success text-success">Completed</span>
+                            {% elif restore.status == 'failed' %}
+                                <span class="badge bg-soft-danger text-danger">Failed</span>
+                            {% elif restore.status == 'rolled_back' %}
+                                <span class="badge bg-soft-warning text-warning">Rolled Back</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ restore.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ restore.initiated_by|default:"-" }}</td>
+                        <td>{{ restore.started_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'system_admin:restore_detail' tenant_slug=current_tenant.slug pk=restore.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-restart-line" style="font-size: 3rem; color: #ccc;"></i></div>
+                                <h5 class="text-muted">No restore jobs found</h5>
+                                <p class="text-muted">Restore jobs will appear here when you restore from a backup.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
