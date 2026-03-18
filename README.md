@@ -46,6 +46,7 @@ A comprehensive multi-tenant accounting application built with Django 5.1 and Bo
 - **Reporting & Compliance** — Financial statements (Balance Sheet, P&L, Cash Flow, Equity) with Draft→Generated→Reviewed→Approved→Published workflow; departmental P&Ls with budget vs actual variance analysis; custom report builder with configurable columns, filters, and layout types; scheduled report distribution with email recipients and execution logging; XBRL/EDGAR filing support with taxonomy tagging and SEC submission workflow; statutory reporting with jurisdiction-specific templates (US GAAP/IFRS/local); consolidation reporting packages with entity-level data collection and eliminations; executive and operational dashboards with configurable widgets and snapshots
 - **Budgeting & Planning** — Budget creation (top-down/bottom-up/hybrid) with line items per GL account and fiscal period, Draft→In Review→Approved→Active→Closed workflow; budget version control with snapshot-based revision and scenario tracking; driver-based planning with revenue/cost/headcount/volume drivers and per-period quantity×rate calculations; rolling forecasts (monthly/quarterly) with configurable horizons, forecast vs actual variance tracking; variance analysis with budget vs actual drill-down, favorable/unfavorable classification and explanations; what-if scenario modeling (best case/worst case/most likely/custom) with percentage, fixed amount, and override adjustments; workforce planning with position-level salary and benefits forecasting, headcount tracking, and GL account mapping
 - **Audit & Controls** — SOX control documentation with preventive/detective/corrective types, risk levels, and testing workflows (walkthrough/sample/full); segregation of duties rules with hard/soft enforcement, automated conflict scanning, and violation tracking; role-based and field-level access policies with periodic access reviews and reviewer decisions; change management with approval workflows for master data changes (Draft→Submitted→Under Review→Approved→Implemented); comprehensive audit trail with action logging (create/update/delete/view/export), JSON diff snapshots, and IP tracking; exception reporting with configurable rules (threshold/pattern/duplicate/missing/timing), severity levels, and automated scanning; document management with categories, file upload/download, version tracking, and record linking
+- **System Administration** — MFA configuration (TOTP/email/SMS) with role-based enforcement and grace periods; IP restriction rules (allow/deny) with CIDR range support, priority ordering, and role/user targeting; session policies with configurable timeouts, concurrent session limits, and password complexity rules; visual workflow designer with multi-step definitions (approval/notification/condition/action), assignee routing, timeout escalation, and instance tracking with step-by-step audit logs; notification center with channel management (email/in-app/webhook/Slack), event-driven rules with recipient targeting and template support, delivery tracking with sent/failed/read status; data import/export with CSV/Excel/JSON support, column mapping, progress tracking, error logging, and reusable import templates; backup & recovery with scheduled backups (full/incremental/differential), manual backup creation, retention policies, and point-in-time restore capabilities; system health monitoring with configurable metrics and thresholds, time-series data collection, service health checks (database/storage/email/cache/API/queue), and period-based usage analytics
 - **Theme System** — Light/dark mode, 3 layout variants (vertical/horizontal/detached), RTL support, sidebar customization
 - **Responsive Design** — Fully responsive Bootstrap 5.3 interface
 - **Seed Data** — Management command to populate fake data for development and testing
@@ -106,6 +107,7 @@ NavAccounting/
 │   ├── tax/                        # Jurisdictions, Tax Rates, Rules, Groups, Returns, Use Tax, Provisions, Calendar, Audits, Nexus Tracking
 │   ├── reporting/                  # Financial Statements, Management Reports, Report Builder, Scheduled Reports, XBRL/EDGAR, Statutory, Consolidation, Dashboards
 │   ├── budgeting/                  # Budgets, Versions, Planning Drivers, Rolling Forecasts, Variance Analysis, What-if Scenarios, Workforce Planning
+│   ├── system_admin/               # Security Settings, Workflow Designer, Notification Center, Data Import/Export, Backup & Recovery, System Health
 │   └── dashboard/                  # Widget config, Alerts, KPI services
 ├── templates/
 │   ├── base.html                   # Root HTML template
@@ -230,6 +232,13 @@ NavAccounting/
 │   │   ├── variance/               # Variance list, form, detail
 │   │   ├── scenarios/              # Scenario list, form, detail
 │   │   └── workforce/              # Workforce plan list, form, detail
+│   ├── system_admin/               # SA templates (49 files across 6 subdirectories)
+│   │   ├── security/               # MFA config list, form, detail; IP restriction list, form, detail; Session policy list, form, detail
+│   │   ├── workflows/              # Workflow list, form, detail; Step form; Instance list, detail
+│   │   ├── notifications/          # Channel list, form, detail; Rule list, form, detail; Log list, detail
+│   │   ├── data_operations/        # Import list, form, detail; Export list, form, detail; Template list, form
+│   │   ├── backups/                # Schedule list, form, detail; Job list, form, detail; Restore form, list, detail
+│   │   └── health/                 # Dashboard; Metric list, form, detail; Health check list, form, detail; Analytics list, detail
 │   ├── roles/                      # Role list, role form, assign
 │   └── tenants/                    # Tenant select, create
 ├── static/
@@ -366,6 +375,7 @@ python manage.py seed_data --me
 python manage.py seed_data --tx
 python manage.py seed_data --rc
 python manage.py seed_data --bp
+python manage.py seed_data --sa
 ```
 
 ### What Gets Seeded
@@ -393,6 +403,7 @@ python manage.py seed_data --bp
 | Tax Management | 7 jurisdictions (Federal, 3 states, 2 counties, 1 city) with hierarchy, 7 tax rates (CA/NY/TX/Federal), 8 tax rules (exemptions/reduced/zero-rated/surtax), 4 tax groups (CA+LA, CA+SF, NY+NYC, CA full combined), 5 tax returns with line items (filed/draft/calculated/reviewed), 5 use tax assessments (pending/accrued/paid/exempt), 2 use tax accruals (posted/draft), 3 income tax provisions with deferred items and ETR reconciliation (finalized/draft/calculated), 5 tax deadlines (recurring/one-time), 4 tax audits with findings (closed/in-progress/pending), 4 nexus jurisdictions with activity records |
 | Budgeting & Planning | 5 budgets (Operating/Capital/Department/Marketing/IT with line items across GL accounts and fiscal periods), 4 budget versions (original/revision/2 scenarios with snapshot data), 5 planning drivers (revenue per customer/cost per unit/headcount growth/sales volume/office space with per-period values), 3 rolling forecasts (monthly operations/quarterly revenue/cash flow with forecast vs actual lines), 4 variance analyses (Jan–Apr with per-account budget vs actual, favorable/unfavorable flags, explanations), 4 what-if scenarios (10% revenue growth/15% cost reduction/economic downturn/new market entry with adjustments and calculated results), 3 workforce plans (Engineering/Sales/Operations with position-level salary, benefits, headcount, and new hire tracking) |
 | Audit & Controls | 8 SOX controls (Journal Entry Approval/Bank Reconciliation/Vendor Master/IT Access/Revenue Recognition/SoD-AP/Inventory Count/Payroll Processing with 18 test records), 6 SoD rules (AP/AR/GL/Payroll/Vendor Master/Inventory conflict pairs with 6 violations in various statuses), 6 access policies (role-based/field-level/data-level with active/inactive statuses), 3 access reviews (full/department/role scope, completed with 4 review items), 7 change requests (master data/configuration/process/system types with approval records), 20 audit trail entries (create/update/delete/view/export/login/logout actions with detailed summaries), 6 exception rules (threshold/duplicate/missing/timing/pattern with 8 exceptions including realistic scenarios), 6 document categories (Policies/Procedures/Evidence/Reports/Contracts/Correspondence) |
+| System Administration | 3 MFA configurations (TOTP for all/Email for admins/SMS role-based), 5 IP restrictions (office network/VPN/block suspicious/admin only/deprecated with allow/deny rules and CIDR ranges), 3 session policies (standard/high security/relaxed with varying timeouts and password rules), 4 workflow definitions (Journal Entry Approval/PO Approval/Invoice Approval/Expense Review with 9 steps across approval/notification/condition types), 5 workflow instances (2 completed/2 in-progress/1 cancelled with step logs), 4 notification channels (email/in-app/Slack/webhook), 6 notification rules (invoice approval/payment processed/new user/budget alert/monthly report/journal posted), 8 notification logs (sent/read/pending/failed statuses), 3 import templates (vendor/customer/COA), 4 import jobs (completed/draft/failed statuses with progress tracking), 4 export jobs (CSV/Excel/PDF/JSON), 4 backup schedules (nightly full/weekly incremental/monthly archive/paused hourly), 6 backup jobs (4 completed/1 running/1 failed with file sizes), 3 restore jobs (full/partial/point-in-time), 6 system metrics (API response time/DB query time/active users/disk usage/error rate/memory with 72 data points), 6 health checks (database/storage/email/cache/API/queue with healthy/degraded/unhealthy statuses), 5 usage analytics (3 daily/1 weekly/1 monthly with user counts, logins, transactions, and top modules) |
 
 ---
 
@@ -495,6 +506,12 @@ These paths skip tenant resolution:
 | — | VarianceAnalysis, VarianceLineItem |
 | — | ScenarioModel, ScenarioAdjustment |
 | — | WorkforcePlan, WorkforcePlanPosition |
+| — | MFAConfiguration, IPRestriction, SessionPolicy |
+| — | WorkflowDefinition, WorkflowStep, WorkflowInstance, WorkflowStepLog |
+| — | NotificationChannel, NotificationRule, NotificationLog |
+| — | DataImportJob, DataExportJob, DataImportTemplate |
+| — | BackupSchedule, BackupJob, RestoreJob |
+| — | SystemMetric, MetricDataPoint, SystemHealthCheck, UsageAnalytics |
 
 ---
 
@@ -1202,6 +1219,80 @@ On user registration, the `NavAccountingAdapter` automatically:
 | `/t/<slug>/au/documents/<pk>/` | Document detail | Document info |
 | `/t/<slug>/au/documents/<pk>/edit/` | Edit document | Edit document metadata |
 | `/t/<slug>/au/documents/<pk>/download/` | Download document | Download file |
+| **System Administration — Security Settings** | | |
+| `/t/<slug>/sa/security/mfa/` | MFA config list | All MFA configurations |
+| `/t/<slug>/sa/security/mfa/create/` | Create MFA config | New MFA configuration |
+| `/t/<slug>/sa/security/mfa/<pk>/` | MFA config detail | MFA config info |
+| `/t/<slug>/sa/security/mfa/<pk>/edit/` | Edit MFA config | Edit MFA configuration |
+| `/t/<slug>/sa/security/ip/` | IP restriction list | All IP restrictions |
+| `/t/<slug>/sa/security/ip/create/` | Create IP restriction | New IP restriction |
+| `/t/<slug>/sa/security/ip/<pk>/` | IP restriction detail | IP restriction info |
+| `/t/<slug>/sa/security/ip/<pk>/edit/` | Edit IP restriction | Edit IP restriction |
+| `/t/<slug>/sa/security/sessions/` | Session policy list | All session policies |
+| `/t/<slug>/sa/security/sessions/create/` | Create session policy | New session policy |
+| `/t/<slug>/sa/security/sessions/<pk>/` | Session policy detail | Session policy info |
+| `/t/<slug>/sa/security/sessions/<pk>/edit/` | Edit session policy | Edit session policy |
+| **System Administration — Workflow Designer** | | |
+| `/t/<slug>/sa/workflows/` | Workflow list | All workflow definitions |
+| `/t/<slug>/sa/workflows/create/` | Create workflow | New workflow definition |
+| `/t/<slug>/sa/workflows/<pk>/` | Workflow detail | Workflow info with steps |
+| `/t/<slug>/sa/workflows/<pk>/edit/` | Edit workflow | Edit workflow definition |
+| `/t/<slug>/sa/workflows/<pk>/add-step/` | Add step | Add step to workflow |
+| `/t/<slug>/sa/workflows/<pk>/steps/<step_pk>/edit/` | Edit step | Edit workflow step |
+| `/t/<slug>/sa/workflows/<pk>/steps/<step_pk>/delete/` | Delete step | Remove workflow step |
+| `/t/<slug>/sa/workflows/instances/` | Instance list | All workflow instances |
+| `/t/<slug>/sa/workflows/instances/<pk>/` | Instance detail | Instance with step logs |
+| **System Administration — Notification Center** | | |
+| `/t/<slug>/sa/notifications/channels/` | Channel list | All notification channels |
+| `/t/<slug>/sa/notifications/channels/create/` | Create channel | New notification channel |
+| `/t/<slug>/sa/notifications/channels/<pk>/` | Channel detail | Channel info with rules |
+| `/t/<slug>/sa/notifications/channels/<pk>/edit/` | Edit channel | Edit notification channel |
+| `/t/<slug>/sa/notifications/channels/<pk>/test/` | Test channel | Send test notification |
+| `/t/<slug>/sa/notifications/rules/` | Rule list | All notification rules |
+| `/t/<slug>/sa/notifications/rules/create/` | Create rule | New notification rule |
+| `/t/<slug>/sa/notifications/rules/<pk>/` | Rule detail | Rule info with logs |
+| `/t/<slug>/sa/notifications/rules/<pk>/edit/` | Edit rule | Edit notification rule |
+| `/t/<slug>/sa/notifications/logs/` | Log list | All notification logs |
+| `/t/<slug>/sa/notifications/logs/<pk>/` | Log detail | Notification log info |
+| **System Administration — Data Import/Export** | | |
+| `/t/<slug>/sa/data/imports/` | Import list | All data import jobs |
+| `/t/<slug>/sa/data/imports/create/` | Create import | New import job |
+| `/t/<slug>/sa/data/imports/<pk>/` | Import detail | Import progress/errors |
+| `/t/<slug>/sa/data/imports/<pk>/validate/` | Validate import | Run validation |
+| `/t/<slug>/sa/data/imports/<pk>/execute/` | Execute import | Start import |
+| `/t/<slug>/sa/data/imports/<pk>/cancel/` | Cancel import | Cancel import |
+| `/t/<slug>/sa/data/exports/` | Export list | All data export jobs |
+| `/t/<slug>/sa/data/exports/create/` | Create export | New export job |
+| `/t/<slug>/sa/data/exports/<pk>/` | Export detail | Export info |
+| `/t/<slug>/sa/data/exports/<pk>/download/` | Download export | Download file |
+| `/t/<slug>/sa/data/templates/` | Template list | All import templates |
+| `/t/<slug>/sa/data/templates/create/` | Create template | New import template |
+| `/t/<slug>/sa/data/templates/<pk>/edit/` | Edit template | Edit import template |
+| `/t/<slug>/sa/data/templates/<pk>/download-sample/` | Download sample | Download sample file |
+| **System Administration — Backup & Recovery** | | |
+| `/t/<slug>/sa/backups/schedules/` | Schedule list | All backup schedules |
+| `/t/<slug>/sa/backups/schedules/create/` | Create schedule | New backup schedule |
+| `/t/<slug>/sa/backups/schedules/<pk>/` | Schedule detail | Schedule with jobs |
+| `/t/<slug>/sa/backups/schedules/<pk>/edit/` | Edit schedule | Edit backup schedule |
+| `/t/<slug>/sa/backups/jobs/` | Job list | All backup jobs |
+| `/t/<slug>/sa/backups/jobs/create/` | Manual backup | Create manual backup |
+| `/t/<slug>/sa/backups/jobs/<pk>/` | Job detail | Job info with restores |
+| `/t/<slug>/sa/backups/restore/<pk>/` | Create restore | Restore from backup |
+| `/t/<slug>/sa/backups/restores/` | Restore list | All restore jobs |
+| `/t/<slug>/sa/backups/restores/<pk>/` | Restore detail | Restore job info |
+| **System Administration — System Health** | | |
+| `/t/<slug>/sa/health/` | Health dashboard | Overview with checks/metrics |
+| `/t/<slug>/sa/health/metrics/` | Metric list | All system metrics |
+| `/t/<slug>/sa/health/metrics/create/` | Create metric | New system metric |
+| `/t/<slug>/sa/health/metrics/<pk>/` | Metric detail | Metric with data points |
+| `/t/<slug>/sa/health/metrics/<pk>/edit/` | Edit metric | Edit system metric |
+| `/t/<slug>/sa/health/checks/` | Health check list | All health checks |
+| `/t/<slug>/sa/health/checks/create/` | Create check | New health check |
+| `/t/<slug>/sa/health/checks/<pk>/` | Check detail | Health check info |
+| `/t/<slug>/sa/health/checks/<pk>/edit/` | Edit check | Edit health check |
+| `/t/<slug>/sa/health/checks/<pk>/run/` | Run check | Execute health check |
+| `/t/<slug>/sa/health/analytics/` | Analytics list | All usage analytics |
+| `/t/<slug>/sa/health/analytics/<pk>/` | Analytics detail | Usage analytics info |
 
 ---
 
@@ -1864,7 +1955,31 @@ When a tax audit adjustment is posted:
 
 **Seed Data:** 8 SOX controls with 18 test records (walkthrough/sample/full with pass rates), 6 SoD rules with 6 violations (open/acknowledged/mitigated/accepted), 6 access policies with 3 access reviews (4 review items with retain/modify/revoke decisions), 7 change requests with approval records across all workflow statuses, 20 audit trail entries with realistic action summaries and JSON diffs, 6 exception rules with 8 detected exceptions (threshold breaches, duplicate vendors, missing approvals, after-hours transactions, round-number payments, bank change + payment patterns), 6 document categories
 
-### 19. `dashboard` — Dashboard & Analytics
+### 19. `system_admin` — System Administration Module
+- **MFAConfiguration** — Multi-factor authentication config with TOTP/email/SMS methods, all/admin/role-based enforcement scope, grace period management, Active→Inactive status
+- **IPRestriction** — IP-based access rules with allow/deny types, IPv4/IPv6 and CIDR range support, priority-ordered evaluation, all/role/user targeting scope
+- **SessionPolicy** — Session management with configurable duration/idle timeouts, concurrent session limits, single-session enforcement, password expiry/length/complexity rules
+- **WorkflowDefinition** — Process builder with target model binding, on_create/on_update/on_status_change/manual triggers, version tracking, Draft→Active→Inactive→Archived status
+- **WorkflowStep** — Multi-step workflow with approval/notification/condition/action types, user/role/manager/creator assignee routing, conditional field evaluation with operators, timeout escalation
+- **WorkflowInstance** — Running workflow tracker with target model/record binding, current step pointer, In Progress→Completed→Cancelled→Failed status
+- **WorkflowStepLog** — Step execution audit with approved/rejected/skipped/escalated/completed actions, performer tracking, timestamped comments
+- **NotificationChannel** — Delivery channel config for email/in-app/webhook/Slack with JSON config storage, Active→Inactive status
+- **NotificationRule** — Event-driven triggers for record_created/updated/status_changed/approval_needed/threshold_exceeded/system_alert/scheduled events, recipient targeting (user/role/creator/all), subject/body templates
+- **NotificationLog** — Delivery tracking with Pending→Sent→Failed→Read status, timestamps, error messages, metadata
+- **DataImportJob** — Import operations with CSV/Excel/JSON format support, column mapping, row-level progress tracking (total/processed/success/error), Draft→Validating→Validated→Importing→Completed→Failed→Cancelled workflow
+- **DataExportJob** — Export operations with CSV/Excel/JSON/PDF formats, source model/filter/column selection, Pending→Processing→Completed→Failed status
+- **DataImportTemplate** — Reusable import configurations with saved column mappings, sample file attachments, target model binding
+- **BackupSchedule** — Scheduled backups with full/incremental/differential types, hourly/daily/weekly/monthly frequency, retention policy, storage location config
+- **BackupJob** — Individual backup execution with scheduled/manual triggers, file path/size tracking, Pending→Running→Completed→Failed status, expiration dates
+- **RestoreJob** — Point-in-time restore with full/partial/point-in-time types, target table selection, Pending→Running→Completed→Failed→Rolled Back status
+- **SystemMetric** — Metric definitions with gauge/counter/histogram types, performance/usage/storage/error categories, warning/critical thresholds, collection interval config
+- **MetricDataPoint** — High-volume time-series data with decimal values, timestamps, indexed for efficient querying
+- **SystemHealthCheck** — Service monitoring for database/storage/email/cache/external API/queue with healthy/degraded/unhealthy/unknown status, response time tracking
+- **UsageAnalytics** — Period-based usage stats (daily/weekly/monthly) with active users, logins, transactions, storage, API calls, top modules/users JSON aggregation
+
+**Seed Data:** 3 MFA configurations, 5 IP restrictions with CIDR ranges, 3 session policies (standard/high security/relaxed), 4 workflow definitions with 9 steps and 5 instances with step logs, 4 notification channels with 6 rules and 8 delivery logs, 3 import templates with 4 import jobs and 4 export jobs, 4 backup schedules with 6 backup jobs and 3 restore jobs, 6 system metrics with 72 time-series data points, 6 health checks with varied statuses, 5 usage analytics records
+
+### 20. `dashboard` — Dashboard & Analytics
 - **DashboardWidgetConfig** — Per-user widget layout (position, visibility, span)
 - **Alert** — System alerts with severity (info, warning, danger, success)
 - Services for KPI calculations and cash flow data
