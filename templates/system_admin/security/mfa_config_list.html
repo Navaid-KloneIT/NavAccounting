@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}MFA Configurations{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">MFA Configurations</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item active">MFA Configurations</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-shield-keyhole-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Active</p>
+                        <h3 class="mb-0">{{ active_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-check-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Inactive</p>
+                        <h3 class="mb-0">{{ inactive_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-secondary p-3">
+                        <i class="ri-close-line text-secondary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Config #, name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">MFA Method</label>
+                <select name="method" class="form-select">
+                    <option value="">All Methods</option>
+                    {% for val, label in method_choices %}
+                    <option value="{{ val }}" {% if request.GET.method == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'system_admin:mfa_config_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'system_admin:mfa_config_create' tenant_slug=current_tenant.slug %}" class="btn btn-success ms-auto"><i class="ri-add-line me-1"></i> New</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if configs %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Config #</th>
+                        <th>Name</th>
+                        <th>MFA Method</th>
+                        <th>Enforced</th>
+                        <th>Scope</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{% url 'system_admin:mfa_config_detail' tenant_slug=current_tenant.slug pk=config.pk %}">{{ config.config_number }}</a>
+                        </td>
+                        <td>{{ config.name }}</td>
+                        <td><span class="badge bg-soft-info text-info">{{ config.get_mfa_method_display }}</span></td>
+                        <td>
+                            {% if config.is_enforced %}
+                                <span class="badge bg-soft-success text-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ config.get_enforcement_scope_display|default:"-" }}</td>
+                        <td>
+                            {% if config.status == 'active' %}
+                                <span class="badge bg-soft-success text-success">Active</span>
+                            {% elif config.status == 'inactive' %}
+                                <span class="badge bg-soft-secondary text-secondary">Inactive</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ config.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'system_admin:mfa_config_detail' tenant_slug=current_tenant.slug pk=config.pk %}" class="btn btn-sm btn-soft-info" title="View"><i class="ri-eye-line"></i></a>
+                            <a href="{% url 'system_admin:mfa_config_edit' tenant_slug=current_tenant.slug pk=config.pk %}" class="btn btn-sm btn-soft-primary" title="Edit"><i class="ri-pencil-line"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "partials/_pagination.html" %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ri-shield-keyhole-line" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-2">No MFA configurations found.</p>
+            <a href="{% url 'system_admin:mfa_config_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> Create First Configuration</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
