@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ policy.policy_number }} - Session Policy{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ policy.policy_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:session_policy_list' tenant_slug=current_tenant.slug %}">Session Policies</a></li>
+            <li class="breadcrumb-item active">{{ policy.policy_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Policy Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Policy Information</h5>
+                <div>
+                    {% if policy.status == 'active' %}
+                        <span class="badge bg-soft-success text-success fs-6">Active</span>
+                    {% elif policy.status == 'inactive' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Inactive</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ policy.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Policy Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ policy.policy_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ policy.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Max Session Duration</div>
+                    <div class="col-sm-8">{{ policy.max_session_duration_minutes|default:"-" }} min</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Idle Timeout</div>
+                    <div class="col-sm-8">{{ policy.idle_timeout_minutes|default:"-" }} min</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Max Concurrent Sessions</div>
+                    <div class="col-sm-8">{{ policy.max_concurrent_sessions|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Enforce Single Session</div>
+                    <div class="col-sm-8">
+                        {% if policy.enforce_single_session %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Re-auth for Sensitive Actions</div>
+                    <div class="col-sm-8">
+                        {% if policy.require_re_auth_for_sensitive %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Password Expiry</div>
+                    <div class="col-sm-8">{{ policy.password_expiry_days|default:"-" }} days</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Min Password Length</div>
+                    <div class="col-sm-8">{{ policy.min_password_length|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Require Special Characters</div>
+                    <div class="col-sm-8">
+                        {% if policy.require_special_chars %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Active</div>
+                    <div class="col-sm-8">
+                        {% if policy.is_active %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-danger text-danger">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if policy.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ policy.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:session_policy_edit' tenant_slug=current_tenant.slug pk=policy.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Policy
+                </a>
+                <a href="{% url 'system_admin:session_policy_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ policy.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ policy.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ policy.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
