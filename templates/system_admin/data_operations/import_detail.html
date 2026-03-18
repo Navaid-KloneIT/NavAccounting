@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ import_job.job_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ import_job.job_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">System Administration</li>
+        <li class="breadcrumb-item"><a href="{% url 'system_admin:import_list' tenant_slug=current_tenant.slug %}">Data Imports</a></li>
+        <li class="breadcrumb-item active">Import Detail</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Import Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-upload-2-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Import Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Job #</dt>
+                    <dd class="col-sm-8"><strong>{{ import_job.job_number }}</strong></dd>
+
+                    <dt class="col-sm-4 text-muted">Name</dt>
+                    <dd class="col-sm-8">{{ import_job.name }}</dd>
+
+                    <dt class="col-sm-4 text-muted">File Format</dt>
+                    <dd class="col-sm-8">{{ import_job.get_file_format_display }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Target Model</dt>
+                    <dd class="col-sm-8">{{ import_job.target_model }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Source File</dt>
+                    <dd class="col-sm-8">{{ import_job.source_file_name|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Status</dt>
+                    <dd class="col-sm-8">
+                        {% if import_job.status == 'draft' %}<span class="badge badge-soft-secondary">Draft</span>
+                        {% elif import_job.status == 'validating' %}<span class="badge badge-soft-info">Validating</span>
+                        {% elif import_job.status == 'validated' %}<span class="badge badge-soft-primary">Validated</span>
+                        {% elif import_job.status == 'importing' %}<span class="badge badge-soft-warning">Importing</span>
+                        {% elif import_job.status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                        {% elif import_job.status == 'failed' %}<span class="badge badge-soft-danger">Failed</span>
+                        {% elif import_job.status == 'cancelled' %}<span class="badge badge-soft-dark">Cancelled</span>
+                        {% else %}<span class="badge badge-soft-secondary">{{ import_job.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Started By</dt>
+                    <dd class="col-sm-8">{{ import_job.started_by|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Started At</dt>
+                    <dd class="col-sm-8">{{ import_job.started_at|date:"M d, Y H:i"|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Completed At</dt>
+                    <dd class="col-sm-8">{{ import_job.completed_at|date:"M d, Y H:i"|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-info p-2 me-2"><i class="ri-bar-chart-line text-info"></i></div>
+                    <h5 class="card-title mb-0">Progress</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if import_job.total_rows %}
+                <div class="progress mb-3" style="height: 20px;">
+                    {% widthratio import_job.success_rows import_job.total_rows 100 as success_pct %}
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ success_pct }}%;" aria-valuenow="{{ success_pct }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ success_pct }}%
+                    </div>
+                </div>
+                {% endif %}
+                <div class="row text-center">
+                    <div class="col-3">
+                        <h5 class="mb-1">{{ import_job.total_rows|default:"0" }}</h5>
+                        <p class="text-muted mb-0 small">Total Rows</p>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="mb-1">{{ import_job.processed_rows|default:"0" }}</h5>
+                        <p class="text-muted mb-0 small">Processed</p>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="mb-1 text-success">{{ import_job.success_rows|default:"0" }}</h5>
+                        <p class="text-muted mb-0 small">Success</p>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="mb-1 text-danger">{{ import_job.error_rows|default:"0" }}</h5>
+                        <p class="text-muted mb-0 small">Errors</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Log -->
+        {% if import_job.error_rows > 0 %}
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-danger p-2 me-2"><i class="ri-error-warning-line text-danger"></i></div>
+                    <h5 class="card-title mb-0">Error Log</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Row</th>
+                                <th>Field</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for error in import_job.error_log %}
+                            <tr>
+                                <td>{{ error.row|default:"-" }}</td>
+                                <td>{{ error.field|default:"-" }}</td>
+                                <td>{{ error.message|default:error }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">No error details available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if import_job.status == 'draft' %}
+                <form method="post" action="{% url 'system_admin:import_validate' tenant_slug=current_tenant.slug pk=import_job.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-info btn-sm w-100">
+                        <i class="ri-check-double-line me-1"></i> Validate
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if import_job.status == 'validated' %}
+                <form method="post" action="{% url 'system_admin:import_execute' tenant_slug=current_tenant.slug pk=import_job.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100">
+                        <i class="ri-play-line me-1"></i> Execute Import
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if import_job.status == 'draft' or import_job.status == 'validating' or import_job.status == 'validated' %}
+                <form method="post" action="{% url 'system_admin:import_cancel' tenant_slug=current_tenant.slug pk=import_job.pk %}" onsubmit="return confirm('Are you sure you want to cancel this import job?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-danger btn-sm w-100">
+                        <i class="ri-close-circle-line me-1"></i> Cancel Import
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'system_admin:import_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Imports
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted small">Created</dt>
+                    <dd class="col-sm-7 small">{{ import_job.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Updated</dt>
+                    <dd class="col-sm-7 small">{{ import_job.updated_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Created By</dt>
+                    <dd class="col-sm-7 small">{{ import_job.created_by|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
