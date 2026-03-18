@@ -89,6 +89,174 @@
                 </a>
             </li>
 
+            <!-- Security Settings -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'system_admin' and 'security' in request.path %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-lock-line"></i>
+                    <span class="menu-text">Security Settings</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'system_admin' and 'security' in request.path %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:mfa_config_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'mfa_config_list' or request.resolver_match.url_name == 'mfa_config_create' or request.resolver_match.url_name == 'mfa_config_detail' or request.resolver_match.url_name == 'mfa_config_edit' %}active{% endif %}">
+                            <span class="menu-text">MFA Configuration</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:ip_restriction_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'ip_restriction' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">IP Restrictions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:session_policy_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'session_policy' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Session Policies</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Workflow Designer -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'system_admin' and 'workflow' in request.path %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-flow-chart"></i>
+                    <span class="menu-text">Workflow Designer</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'system_admin' and 'workflow' in request.path %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:workflow_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'workflow_list' or request.resolver_match.url_name == 'workflow_create' or request.resolver_match.url_name == 'workflow_detail' or request.resolver_match.url_name == 'workflow_edit' %}active{% endif %}">
+                            <span class="menu-text">Definitions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:workflow_instance_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'workflow_instance' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Instances</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Notification Center -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'system_admin' and 'notification' in request.path %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-notification-3-line"></i>
+                    <span class="menu-text">Notification Center</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'system_admin' and 'notification' in request.path %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:notification_channel_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'notification_channel' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Channels</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:notification_rule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'notification_rule' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Rules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:notification_log_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'notification_log' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Logs</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Data Import/Export -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'system_admin' and '/data/' in request.path %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-database-2-line"></i>
+                    <span class="menu-text">Data Import/Export</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'system_admin' and '/data/' in request.path %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:import_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'import_list' or request.resolver_match.url_name == 'import_create' or request.resolver_match.url_name == 'import_detail' %}active{% endif %}">
+                            <span class="menu-text">Imports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:export_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'export' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Exports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:import_template_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'import_template' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Templates</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- Backup & Recovery -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'system_admin' and 'backup' in request.path %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-hard-drive-2-line"></i>
+                    <span class="menu-text">Backup &amp; Recovery</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'system_admin' and 'backup' in request.path %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:backup_schedule_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'backup_schedule' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Schedules</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:backup_job_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'backup_job' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Jobs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:restore_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'restore' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Restores</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
+            <!-- System Health -->
+            <li class="nav-item has-submenu {% if request.resolver_match.app_name == 'system_admin' and 'health' in request.path %}open{% endif %}">
+                <a href="javascript:void(0);" class="menu-link" data-toggle="submenu">
+                    <i class="ri-heart-pulse-line"></i>
+                    <span class="menu-text">System Health</span>
+                    <i class="ri-arrow-right-s-line menu-arrow"></i>
+                </a>
+                {% if current_tenant %}
+                <ul class="sub-menu" {% if request.resolver_match.app_name == 'system_admin' and 'health' in request.path %}style="display:block"{% endif %}>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:health_dashboard' tenant_slug=current_tenant.slug %}" class="menu-link {% if request.resolver_match.url_name == 'health_dashboard' %}active{% endif %}">
+                            <span class="menu-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:metric_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'metric' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Metrics</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:health_check_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'health_check' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Health Checks</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'system_admin:analytics_list' tenant_slug=current_tenant.slug %}" class="menu-link {% if 'analytics' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="menu-text">Analytics</span>
+                        </a>
+                    </li>
+                </ul>
+                {% endif %}
+            </li>
+
             <li class="menu-title" data-toggle="menu-section">General Ledger <i class="ri-arrow-down-s-line menu-title-arrow"></i></li>
 
             <!-- Chart of Accounts -->
