@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ log.log_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">{{ log.log_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:notification_log_list' tenant_slug=current_tenant.slug %}">Notification Logs</a></li>
+            <li class="breadcrumb-item active">{{ log.log_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Log Information -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2">
+                        <i class="ri-mail-send-line text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Log Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Log #</dt>
+                            <dd class="col-sm-7"><strong>{{ log.log_number }}</strong></dd>
+                            <dt class="col-sm-5 text-muted">Subject</dt>
+                            <dd class="col-sm-7">{{ log.subject }}</dd>
+                            <dt class="col-sm-5 text-muted">Rule</dt>
+                            <dd class="col-sm-7">
+                                {% if log.rule %}
+                                <a href="{% url 'system_admin:notification_rule_detail' tenant_slug=current_tenant.slug pk=log.rule.pk %}">{{ log.rule.name }}</a>
+                                {% else %}-{% endif %}
+                            </dd>
+                            <dt class="col-sm-5 text-muted">Channel</dt>
+                            <dd class="col-sm-7">
+                                {% if log.channel %}
+                                <a href="{% url 'system_admin:notification_channel_detail' tenant_slug=current_tenant.slug pk=log.channel.pk %}">{{ log.channel.name }}</a>
+                                {% else %}-{% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Recipient</dt>
+                            <dd class="col-sm-7">{{ log.recipient|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if log.status == 'pending' %}
+                                    <span class="badge bg-soft-warning text-warning">Pending</span>
+                                {% elif log.status == 'sent' %}
+                                    <span class="badge bg-soft-success text-success">Sent</span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="badge bg-soft-danger text-danger">Failed</span>
+                                {% elif log.status == 'read' %}
+                                    <span class="badge bg-soft-info text-info">Read</span>
+                                {% else %}
+                                    <span class="badge bg-soft-secondary text-secondary">{{ log.get_status_display }}</span>
+                                {% endif %}
+                            </dd>
+                            <dt class="col-sm-5 text-muted">Sent At</dt>
+                            <dd class="col-sm-7">{{ log.sent_at|date:"M d, Y H:i"|default:"-" }}</dd>
+                            <dt class="col-sm-5 text-muted">Read At</dt>
+                            <dd class="col-sm-7">{{ log.read_at|date:"M d, Y H:i"|default:"-" }}</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                {% if log.body %}
+                <hr>
+                <h6 class="text-muted text-uppercase small mb-2">Body</h6>
+                <pre class="bg-light p-3 rounded"><code>{{ log.body }}</code></pre>
+                {% endif %}
+
+                <!-- Error Message -->
+                {% if log.error_message %}
+                <hr>
+                <h6 class="text-danger text-uppercase small mb-2">Error Message</h6>
+                <div class="alert alert-danger mb-0">{{ log.error_message }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Quick Actions</h6>
+                <a href="{% url 'system_admin:notification_log_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Logs
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase small mb-3">Metadata</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted small">Created</dt>
+                    <dd class="col-sm-7 small">{{ log.created_at|date:"M d, Y H:i" }}</dd>
+                    <dt class="col-sm-5 text-muted small">Updated</dt>
+                    <dd class="col-sm-7 small">{{ log.updated_at|date:"M d, Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
