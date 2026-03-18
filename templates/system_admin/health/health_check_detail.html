@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ check.check_number }} - Health Check{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">
+            <i class="ri-stethoscope-line me-1"></i> {{ check.check_number }}
+        </h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:health_check_list' tenant_slug=current_tenant.slug %}">Health Checks</a></li>
+            <li class="breadcrumb-item active">{{ check.check_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Check Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Check Information</h5>
+                <div>
+                    {% if check.last_status == 'healthy' %}
+                        <span class="badge bg-soft-success text-success fs-6">Healthy</span>
+                    {% elif check.last_status == 'degraded' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Degraded</span>
+                    {% elif check.last_status == 'unhealthy' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Unhealthy</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Unknown</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Check Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ check.check_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Name</div>
+                    <div class="col-sm-8">{{ check.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Check Type</div>
+                    <div class="col-sm-8">
+                        {% if check.check_type == 'database' %}
+                            <span class="badge bg-soft-primary text-primary">{{ check.get_check_type_display }}</span>
+                        {% elif check.check_type == 'storage' %}
+                            <span class="badge bg-soft-info text-info">{{ check.get_check_type_display }}</span>
+                        {% elif check.check_type == 'email' %}
+                            <span class="badge bg-soft-warning text-warning">{{ check.get_check_type_display }}</span>
+                        {% elif check.check_type == 'cache' %}
+                            <span class="badge bg-soft-success text-success">{{ check.get_check_type_display }}</span>
+                        {% elif check.check_type == 'external_api' %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ check.get_check_type_display }}</span>
+                        {% elif check.check_type == 'queue' %}
+                            <span class="badge bg-soft-dark text-dark">{{ check.get_check_type_display }}</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ check.get_check_type_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Endpoint</div>
+                    <div class="col-sm-8">{{ check.endpoint|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Last Status</div>
+                    <div class="col-sm-8">
+                        {% if check.last_status == 'healthy' %}
+                            <span class="badge bg-soft-success text-success">Healthy</span>
+                        {% elif check.last_status == 'degraded' %}
+                            <span class="badge bg-soft-warning text-warning">Degraded</span>
+                        {% elif check.last_status == 'unhealthy' %}
+                            <span class="badge bg-soft-danger text-danger">Unhealthy</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">Unknown</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Last Checked At</div>
+                    <div class="col-sm-8">{{ check.last_checked_at|date:"M d, Y H:i"|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Response Time</div>
+                    <div class="col-sm-8">{{ check.last_response_time_ms|default:"-" }}{% if check.last_response_time_ms %} ms{% endif %}</div>
+                </div>
+                {% if check.last_error %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Last Error</div>
+                    <div class="col-sm-8 text-danger">{{ check.last_error }}</div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Check Interval</div>
+                    <div class="col-sm-8">{{ check.check_interval_minutes|default:"-" }}{% if check.check_interval_minutes %} minutes{% endif %}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Active</div>
+                    <div class="col-sm-8">
+                        {% if check.is_active %}
+                            <span class="badge bg-soft-success text-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">No</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:health_check_edit' tenant_slug=current_tenant.slug pk=check.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit Health Check
+                </a>
+                <form method="post" action="{% url 'system_admin:health_check_run' tenant_slug=current_tenant.slug pk=check.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-soft-success btn-sm w-100">
+                        <i class="ri-play-line me-1"></i> Run Now
+                    </button>
+                </form>
+                <a href="{% url 'system_admin:health_check_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ check.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ check.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ check.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
