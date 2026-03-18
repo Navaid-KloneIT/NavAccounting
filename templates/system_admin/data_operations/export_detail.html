@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ export_job.job_number }}{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>{{ export_job.job_number }}</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">System Administration</li>
+        <li class="breadcrumb-item"><a href="{% url 'system_admin:export_list' tenant_slug=current_tenant.slug %}">Data Exports</a></li>
+        <li class="breadcrumb-item active">Export Detail</li>
+    </ol>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Export Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-download-2-line text-primary"></i></div>
+                    <h5 class="card-title mb-0">Export Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Job #</dt>
+                    <dd class="col-sm-8"><strong>{{ export_job.job_number }}</strong></dd>
+
+                    <dt class="col-sm-4 text-muted">Name</dt>
+                    <dd class="col-sm-8">{{ export_job.name }}</dd>
+
+                    <dt class="col-sm-4 text-muted">File Format</dt>
+                    <dd class="col-sm-8">{{ export_job.get_file_format_display }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Source Model</dt>
+                    <dd class="col-sm-8">{{ export_job.source_model }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Total Records</dt>
+                    <dd class="col-sm-8">{{ export_job.total_records|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Output File</dt>
+                    <dd class="col-sm-8">{{ export_job.output_file_name|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Status</dt>
+                    <dd class="col-sm-8">
+                        {% if export_job.status == 'draft' %}<span class="badge badge-soft-secondary">Draft</span>
+                        {% elif export_job.status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                        {% elif export_job.status == 'processing' %}<span class="badge badge-soft-info">Processing</span>
+                        {% elif export_job.status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                        {% elif export_job.status == 'failed' %}<span class="badge badge-soft-danger">Failed</span>
+                        {% elif export_job.status == 'cancelled' %}<span class="badge badge-soft-dark">Cancelled</span>
+                        {% else %}<span class="badge badge-soft-secondary">{{ export_job.get_status_display }}</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Started By</dt>
+                    <dd class="col-sm-8">{{ export_job.started_by|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Started At</dt>
+                    <dd class="col-sm-8">{{ export_job.started_at|date:"M d, Y H:i"|default:"-" }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Completed At</dt>
+                    <dd class="col-sm-8">{{ export_job.completed_at|date:"M d, Y H:i"|default:"-" }}</dd>
+
+                    {% if export_job.error_message %}
+                    <dt class="col-sm-4 text-muted">Error</dt>
+                    <dd class="col-sm-8"><span class="text-danger">{{ export_job.error_message }}</span></dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if export_job.status == 'completed' %}
+                <a href="{% url 'system_admin:export_download' tenant_slug=current_tenant.slug pk=export_job.pk %}" class="btn btn-soft-success btn-sm w-100">
+                    <i class="ri-download-line me-1"></i> Download File
+                </a>
+                {% endif %}
+
+                <a href="{% url 'system_admin:export_list' tenant_slug=current_tenant.slug %}" class="btn btn-light btn-sm w-100">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Exports
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted small">Created</dt>
+                    <dd class="col-sm-7 small">{{ export_job.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Updated</dt>
+                    <dd class="col-sm-7 small">{{ export_job.updated_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Created By</dt>
+                    <dd class="col-sm-7 small">{{ export_job.created_by|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
