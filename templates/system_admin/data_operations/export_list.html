@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Data Exports{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>Data Exports</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">System Administration</li>
+        <li class="breadcrumb-item active">Data Exports</li>
+    </ol>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Total</p>
+                        <h3 class="mb-0">{{ total_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-primary p-3">
+                        <i class="ri-download-2-line text-primary" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Completed</p>
+                        <h3 class="mb-0">{{ completed_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Pending</p>
+                        <h3 class="mb-0">{{ pending_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-time-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Job #, name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">File Format</label>
+                <select name="file_format" class="form-select">
+                    <option value="">All Formats</option>
+                    {% for value, label in format_choices %}
+                    <option value="{{ value }}" {% if request.GET.file_format == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'system_admin:export_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+            </div>
+        </form>
+        <div class="mt-3 text-end">
+            <a href="{% url 'system_admin:export_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary"><i class="ri-add-line me-1"></i> New Export</a>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Job #</th>
+                        <th>Name</th>
+                        <th>Format</th>
+                        <th>Source Model</th>
+                        <th class="text-end">Records</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in exports %}
+                    <tr>
+                        <td><strong><a href="{% url 'system_admin:export_detail' tenant_slug=current_tenant.slug pk=job.pk %}">{{ job.job_number }}</a></strong></td>
+                        <td>{{ job.name }}</td>
+                        <td><span class="badge badge-soft-info">{{ job.get_file_format_display }}</span></td>
+                        <td>{{ job.source_model }}</td>
+                        <td class="text-end">{{ job.total_records|default:"-" }}</td>
+                        <td>
+                            {% if job.status == 'draft' %}<span class="badge badge-soft-secondary">Draft</span>
+                            {% elif job.status == 'pending' %}<span class="badge badge-soft-warning">Pending</span>
+                            {% elif job.status == 'processing' %}<span class="badge badge-soft-info">Processing</span>
+                            {% elif job.status == 'completed' %}<span class="badge badge-soft-success">Completed</span>
+                            {% elif job.status == 'failed' %}<span class="badge badge-soft-danger">Failed</span>
+                            {% elif job.status == 'cancelled' %}<span class="badge badge-soft-dark">Cancelled</span>
+                            {% else %}<span class="badge badge-soft-secondary">{{ job.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'system_admin:export_detail' tenant_slug=current_tenant.slug pk=job.pk %}" class="btn btn-sm btn-soft-info" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-download-2-line text-muted" style="font-size: 3rem;"></i></div>
+                                <h5 class="text-muted">No export jobs found</h5>
+                                <p class="text-muted">Create your first data export to get started.</p>
+                                <a href="{% url 'system_admin:export_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> New Export
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
