@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Workflow Definitions - NavAccounting{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4><i class="ri-flow-chart me-1"></i> Workflow Definitions</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item active">Workflow Definitions</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stats-label">Total Workflows</p>
+                        <h3 class="stats-value">{{ total_count }}</h3>
+                    </div>
+                    <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="ri-flow-chart"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stats-label">Active</p>
+                        <h3 class="stats-value">{{ active_count }}</h3>
+                    </div>
+                    <div class="stats-icon bg-soft-success text-success">
+                        <i class="ri-checkbox-circle-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stats-label">Draft</p>
+                        <h3 class="stats-value">{{ draft_count }}</h3>
+                    </div>
+                    <div class="stats-icon bg-soft-warning text-warning">
+                        <i class="ri-draft-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ri-search-line"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search workflows..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Trigger Event</label>
+                <select name="trigger_event" class="form-select">
+                    <option value="">All Triggers</option>
+                    {% for value, label in trigger_choices %}
+                    <option value="{{ value }}" {% if request.GET.trigger_event == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="ri-search-line me-1"></i> Filter</button>
+                <a href="{% url 'system_admin:workflow_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">Reset</a>
+                <a href="{% url 'system_admin:workflow_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary ms-auto"><i class="ri-add-line me-1"></i> New Workflow</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Workflow #</th>
+                        <th>Name</th>
+                        <th>Target Model</th>
+                        <th>Trigger</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wf in workflows %}
+                    <tr>
+                        <td><strong>{{ wf.workflow_number }}</strong></td>
+                        <td>{{ wf.name }}</td>
+                        <td>{{ wf.target_model }}</td>
+                        <td>{{ wf.get_trigger_event_display }}</td>
+                        <td><span class="badge badge-soft-secondary">v{{ wf.version }}</span></td>
+                        <td>
+                            {% if wf.status == 'draft' %}
+                            <span class="badge badge-soft-warning">Draft</span>
+                            {% elif wf.status == 'active' %}
+                            <span class="badge badge-soft-success">Active</span>
+                            {% elif wf.status == 'inactive' %}
+                            <span class="badge badge-soft-secondary">Inactive</span>
+                            {% elif wf.status == 'archived' %}
+                            <span class="badge badge-soft-dark">Archived</span>
+                            {% else %}
+                            <span class="badge badge-soft-secondary">{{ wf.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'system_admin:workflow_detail' tenant_slug=current_tenant.slug pk=wf.pk %}"
+                               class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" title="View">
+                                <i class="ri-eye-line"></i>
+                            </a>
+                            <a href="{% url 'system_admin:workflow_edit' tenant_slug=current_tenant.slug pk=wf.pk %}"
+                               class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" title="Edit">
+                                <i class="ri-pencil-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <div class="mb-3"><i class="ri-flow-chart" style="font-size: 3rem; color: #ccc;"></i></div>
+                                <h5 class="text-muted">No workflows defined yet</h5>
+                                <p class="text-muted">Create your first workflow definition to automate business processes.</p>
+                                <a href="{% url 'system_admin:workflow_create' tenant_slug=current_tenant.slug %}" class="btn btn-primary btn-sm">
+                                    <i class="ri-add-line me-1"></i> Create Workflow
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% include "partials/_pagination.html" %}
+</div>
+{% endblock %}
