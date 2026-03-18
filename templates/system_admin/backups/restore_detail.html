@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ restore.job_number }} - Restore Job{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4><i class="ri-restart-line me-1"></i> {{ restore.job_number }}</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:restore_list' tenant_slug=current_tenant.slug %}">Restore Jobs</a></li>
+            <li class="breadcrumb-item active">{{ restore.job_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Restore Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Restore Information</h5>
+                <div>
+                    {% if restore.status == 'pending' %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">Pending</span>
+                    {% elif restore.status == 'running' %}
+                        <span class="badge bg-soft-info text-info fs-6">Running</span>
+                    {% elif restore.status == 'completed' %}
+                        <span class="badge bg-soft-success text-success fs-6">Completed</span>
+                    {% elif restore.status == 'failed' %}
+                        <span class="badge bg-soft-danger text-danger fs-6">Failed</span>
+                    {% elif restore.status == 'rolled_back' %}
+                        <span class="badge bg-soft-warning text-warning fs-6">Rolled Back</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ restore.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Job Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ restore.job_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Backup</div>
+                    <div class="col-sm-8">
+                        <a href="{% url 'system_admin:backup_job_detail' tenant_slug=current_tenant.slug pk=restore.backup.pk %}">{{ restore.backup.job_number }}</a>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Restore Type</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-soft-info text-info">{{ restore.get_restore_type_display }}</span>
+                    </div>
+                </div>
+                {% if restore.point_in_time %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Point in Time</div>
+                    <div class="col-sm-8">{{ restore.point_in_time|date:"M d, Y H:i:s" }}</div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Initiated By</div>
+                    <div class="col-sm-8">{{ restore.initiated_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Started At</div>
+                    <div class="col-sm-8">{{ restore.started_at|date:"M d, Y H:i:s"|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Completed At</div>
+                    <div class="col-sm-8">{{ restore.completed_at|date:"M d, Y H:i:s"|default:"-" }}</div>
+                </div>
+                {% if restore.error_message %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Error Message</div>
+                    <div class="col-sm-8">
+                        <div class="alert alert-danger mb-0 py-2">{{ restore.error_message }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if restore.notes %}
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Notes</div>
+                    <div class="col-sm-8">{{ restore.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:restore_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Restores
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ restore.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ restore.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ restore.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
