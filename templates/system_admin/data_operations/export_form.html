@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}New Data Export{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <h4>New Data Export</h4>
+    <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+        <li class="breadcrumb-item">System Administration</li>
+        <li class="breadcrumb-item"><a href="{% url 'system_admin:export_list' tenant_slug=current_tenant.slug %}">Data Exports</a></li>
+        <li class="breadcrumb-item active">New Export</li>
+    </ol>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Export Details -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-download-2-line text-primary"></i></div>
+                <h5 class="card-title mb-0">Export Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_file_format" class="form-label">File Format <span class="text-danger">*</span></label>
+                    {{ form.file_format }}
+                    {% if form.file_format.errors %}<div class="invalid-feedback d-block">{{ form.file_format.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_source_model" class="form-label">Source Model <span class="text-danger">*</span></label>
+                    {{ form.source_model }}
+                    {% if form.source_model.errors %}<div class="invalid-feedback d-block">{{ form.source_model.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <div class="rounded bg-soft-warning p-2 me-2"><i class="ri-sticky-note-line text-warning"></i></div>
+                <h5 class="card-title mb-0">Notes</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-end gap-2">
+            <a href="{% url 'system_admin:export_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                <i class="ri-arrow-left-line me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ri-save-line me-1"></i> Save Export
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
