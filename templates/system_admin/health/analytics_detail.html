@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ analytics.analytics_number }} - Usage Analytics{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">
+            <i class="ri-bar-chart-2-line me-1"></i> {{ analytics.analytics_number }}
+        </h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:analytics_list' tenant_slug=current_tenant.slug %}">Usage Analytics</a></li>
+            <li class="breadcrumb-item active">{{ analytics.analytics_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Analytics Information -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Analytics Information</h5>
+                <div>
+                    {% if analytics.period_type == 'daily' %}
+                        <span class="badge bg-soft-primary text-primary fs-6">Daily</span>
+                    {% elif analytics.period_type == 'weekly' %}
+                        <span class="badge bg-soft-info text-info fs-6">Weekly</span>
+                    {% elif analytics.period_type == 'monthly' %}
+                        <span class="badge bg-soft-success text-success fs-6">Monthly</span>
+                    {% else %}
+                        <span class="badge bg-soft-secondary text-secondary fs-6">{{ analytics.get_period_type_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Analytics Number</div>
+                    <div class="col-sm-8 fw-semibold">{{ analytics.analytics_number }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Period Start</div>
+                    <div class="col-sm-8">{{ analytics.period_start|date:"M d, Y" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Period End</div>
+                    <div class="col-sm-8">{{ analytics.period_end|date:"M d, Y" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Period Type</div>
+                    <div class="col-sm-8">
+                        {% if analytics.period_type == 'daily' %}
+                            <span class="badge bg-soft-primary text-primary">Daily</span>
+                        {% elif analytics.period_type == 'weekly' %}
+                            <span class="badge bg-soft-info text-info">Weekly</span>
+                        {% elif analytics.period_type == 'monthly' %}
+                            <span class="badge bg-soft-success text-success">Monthly</span>
+                        {% else %}
+                            <span class="badge bg-soft-secondary text-secondary">{{ analytics.get_period_type_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Active Users</div>
+                    <div class="col-sm-8">{{ analytics.active_users|default:"0" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Total Logins</div>
+                    <div class="col-sm-8">{{ analytics.total_logins|default:"0" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Total Transactions</div>
+                    <div class="col-sm-8">{{ analytics.total_transactions|default:"0" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">Storage Used (MB)</div>
+                    <div class="col-sm-8">{{ analytics.storage_used_mb|default:"0" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-4 text-muted">API Calls</div>
+                    <div class="col-sm-8">{{ analytics.api_calls|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Modules -->
+        {% if analytics.top_modules %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Top Modules</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for module in analytics.top_modules %}
+                    <li class="list-group-item">{{ module }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top Users -->
+        {% if analytics.top_users %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Top Users</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for user in analytics.top_users %}
+                    <li class="list-group-item">{{ user }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'system_admin:analytics_list' tenant_slug=current_tenant.slug %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ri-arrow-left-line me-1"></i> Back to Analytics
+                </a>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created By</div>
+                    <div class="col-sm-7">{{ analytics.created_by|default:"-" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Created At</div>
+                    <div class="col-sm-7">{{ analytics.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-5 text-muted">Updated At</div>
+                    <div class="col-sm-7">{{ analytics.updated_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
