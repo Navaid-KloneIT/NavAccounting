@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ workflow.workflow_number }} - Workflow - NavAccounting{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4><i class="ri-flow-chart me-1"></i> {{ workflow.workflow_number }} - Workflow</h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item"><a href="{% url 'system_admin:workflow_list' tenant_slug=current_tenant.slug %}">Workflow Definitions</a></li>
+            <li class="breadcrumb-item active">{{ workflow.workflow_number }}</li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Workflow Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="rounded bg-soft-primary p-2 me-2"><i class="ri-flow-chart text-primary"></i></div>
+                    <h5 class="card-title mb-0">Workflow Information</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Workflow #</dt>
+                            <dd class="col-sm-7">{{ workflow.workflow_number }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Name</dt>
+                            <dd class="col-sm-7">{{ workflow.name }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Target Model</dt>
+                            <dd class="col-sm-7">{{ workflow.target_model }}</dd>
+
+                            <dt class="col-sm-5 text-muted">Trigger Event</dt>
+                            <dd class="col-sm-7">{{ workflow.get_trigger_event_display }}</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5 text-muted">Version</dt>
+                            <dd class="col-sm-7"><span class="badge badge-soft-secondary">v{{ workflow.version }}</span></dd>
+
+                            <dt class="col-sm-5 text-muted">Status</dt>
+                            <dd class="col-sm-7">
+                                {% if workflow.status == 'draft' %}
+                                <span class="badge badge-soft-warning">Draft</span>
+                                {% elif workflow.status == 'active' %}
+                                <span class="badge badge-soft-success">Active</span>
+                                {% elif workflow.status == 'inactive' %}
+                                <span class="badge badge-soft-secondary">Inactive</span>
+                                {% elif workflow.status == 'archived' %}
+                                <span class="badge badge-soft-dark">Archived</span>
+                                {% else %}
+                                <span class="badge badge-soft-secondary">{{ workflow.get_status_display }}</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                {% if workflow.description %}
+                <div class="mt-3 pt-3 border-top">
+                    <dt class="text-muted mb-1">Description</dt>
+                    <dd>{{ workflow.description }}</dd>
+                </div>
+                {% endif %}
+                {% if workflow.notes %}
+                <div class="mt-3 pt-3 border-top">
+                    <dt class="text-muted mb-1">Notes</dt>
+                    <dd>{{ workflow.notes }}</dd>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Steps Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded bg-soft-info p-2 me-2"><i class="ri-list-ordered text-info"></i></div>
+                        <h5 class="card-title mb-0">Steps</h5>
+                    </div>
+                    <a href="{% url 'system_admin:workflow_step_create' tenant_slug=current_tenant.slug pk=workflow.pk %}" class="btn btn-sm btn-primary">
+                        <i class="ri-add-line me-1"></i> Add Step
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Step #</th>
+                                <th>Name</th>
+                                <th>Order</th>
+                                <th>Type</th>
+                                <th>Assignee Type</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for step in workflow.steps.all %}
+                            <tr>
+                                <td><strong>{{ step.step_number }}</strong></td>
+                                <td>{{ step.name }}</td>
+                                <td>{{ step.order }}</td>
+                                <td>
+                                    {% if step.step_type == 'approval' %}
+                                    <span class="badge badge-soft-primary">Approval</span>
+                                    {% elif step.step_type == 'notification' %}
+                                    <span class="badge badge-soft-info">Notification</span>
+                                    {% elif step.step_type == 'condition' %}
+                                    <span class="badge badge-soft-warning">Condition</span>
+                                    {% elif step.step_type == 'action' %}
+                                    <span class="badge badge-soft-success">Action</span>
+                                    {% else %}
+                                    <span class="badge badge-soft-secondary">{{ step.get_step_type_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ step.get_assignee_type_display|default:"-" }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'system_admin:workflow_step_edit' tenant_slug=current_tenant.slug pk=workflow.pk step_pk=step.pk %}"
+                                       class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" title="Edit">
+                                        <i class="ri-pencil-line"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'system_admin:workflow_step_delete' tenant_slug=current_tenant.slug pk=workflow.pk step_pk=step.pk %}"
+                                          class="d-inline" onsubmit="return confirm('Are you sure you want to delete this step?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" title="Delete">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6">
+                                    <div class="text-center py-4">
+                                        <p class="text-muted mb-0">No steps defined.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'system_admin:workflow_edit' tenant_slug=current_tenant.slug pk=workflow.pk %}" class="btn btn-soft-primary">
+                        <i class="ri-pencil-line me-1"></i> Edit Workflow
+                    </a>
+                    <a href="{% url 'system_admin:workflow_step_create' tenant_slug=current_tenant.slug pk=workflow.pk %}" class="btn btn-soft-info">
+                        <i class="ri-add-line me-1"></i> Add Step
+                    </a>
+                    <a href="{% url 'system_admin:workflow_instance_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-secondary">
+                        <i class="ri-play-circle-line me-1"></i> View Instances
+                    </a>
+                    <a href="{% url 'system_admin:workflow_list' tenant_slug=current_tenant.slug %}" class="btn btn-light">
+                        <i class="ri-arrow-left-line me-1"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Metadata</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Created</dt>
+                    <dd class="col-sm-7">{{ workflow.created_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Updated</dt>
+                    <dd class="col-sm-7">{{ workflow.updated_at|date:"M d, Y H:i" }}</dd>
+
+                    <dt class="col-sm-5 text-muted">Created By</dt>
+                    <dd class="col-sm-7">{{ workflow.created_by|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
