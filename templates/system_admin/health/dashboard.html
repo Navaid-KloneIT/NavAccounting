@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}System Health Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-title-box">
+    <div class="page-title-left">
+        <h4 class="page-title">
+            <i class="ri-heart-pulse-line me-1"></i> System Health Dashboard
+        </h4>
+    </div>
+    <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:index' tenant_slug=current_tenant.slug %}">Dashboard</a></li>
+            <li class="breadcrumb-item">System Administration</li>
+            <li class="breadcrumb-item active">System Health</li>
+        </ol>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{% url 'system_admin:metric_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-primary btn-sm">
+            <i class="ri-line-chart-line me-1"></i> View All Metrics
+        </a>
+        <a href="{% url 'system_admin:health_check_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-info btn-sm">
+            <i class="ri-stethoscope-line me-1"></i> View All Checks
+        </a>
+        <a href="{% url 'system_admin:analytics_list' tenant_slug=current_tenant.slug %}" class="btn btn-soft-warning btn-sm">
+            <i class="ri-bar-chart-2-line me-1"></i> Analytics
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row">
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Healthy</p>
+                        <h3 class="mb-0">{{ healthy_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-success p-3">
+                        <i class="ri-checkbox-circle-line text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Degraded</p>
+                        <h3 class="mb-0">{{ degraded_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-warning p-3">
+                        <i class="ri-error-warning-line text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-4 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase">Unhealthy</p>
+                        <h3 class="mb-0">{{ unhealthy_count }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-soft-danger p-3">
+                        <i class="ri-close-circle-line text-danger" style="font-size: 1.5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Health Checks Status -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Health Checks Status</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if health_checks %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Check Type</th>
+                        <th>Last Status</th>
+                        <th>Response Time</th>
+                        <th>Last Checked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for check in health_checks %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'system_admin:health_check_detail' tenant_slug=current_tenant.slug pk=check.pk %}">{{ check.name }}</a>
+                        </td>
+                        <td>
+                            {% if check.check_type == 'database' %}
+                                <span class="badge bg-soft-primary text-primary">{{ check.get_check_type_display }}</span>
+                            {% elif check.check_type == 'storage' %}
+                                <span class="badge bg-soft-info text-info">{{ check.get_check_type_display }}</span>
+                            {% elif check.check_type == 'email' %}
+                                <span class="badge bg-soft-warning text-warning">{{ check.get_check_type_display }}</span>
+                            {% elif check.check_type == 'cache' %}
+                                <span class="badge bg-soft-success text-success">{{ check.get_check_type_display }}</span>
+                            {% elif check.check_type == 'external_api' %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ check.get_check_type_display }}</span>
+                            {% elif check.check_type == 'queue' %}
+                                <span class="badge bg-soft-dark text-dark">{{ check.get_check_type_display }}</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">{{ check.get_check_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if check.last_status == 'healthy' %}
+                                <span class="badge bg-soft-success text-success">Healthy</span>
+                            {% elif check.last_status == 'degraded' %}
+                                <span class="badge bg-soft-warning text-warning">Degraded</span>
+                            {% elif check.last_status == 'unhealthy' %}
+                                <span class="badge bg-soft-danger text-danger">Unhealthy</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ check.last_response_time_ms|default:"-" }}{% if check.last_response_time_ms %} ms{% endif %}</td>
+                        <td>{{ check.last_checked_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-muted mb-0">No health checks configured.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Key Metrics</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if recent_metrics %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Latest Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in recent_metrics %}
+                    <tr>
+                        <td>{{ metric.name }}</td>
+                        <td>{{ metric.get_category_display|default:"-" }}</td>
+                        <td>{{ metric.latest_value|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-muted mb-0">No metrics available.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Latest Usage Analytics -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Latest Usage Analytics</h5>
+    </div>
+    <div class="card-body">
+        {% if latest_analytics %}
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 text-center">
+                    <p class="text-muted mb-1 small text-uppercase">Active Users</p>
+                    <h4 class="mb-0">{{ latest_analytics.active_users|default:"0" }}</h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 text-center">
+                    <p class="text-muted mb-1 small text-uppercase">Total Logins</p>
+                    <h4 class="mb-0">{{ latest_analytics.total_logins|default:"0" }}</h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 text-center">
+                    <p class="text-muted mb-1 small text-uppercase">Total Transactions</p>
+                    <h4 class="mb-0">{{ latest_analytics.total_transactions|default:"0" }}</h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 text-center">
+                    <p class="text-muted mb-1 small text-uppercase">Storage Used (MB)</p>
+                    <h4 class="mb-0">{{ latest_analytics.storage_used_mb|default:"0" }}</h4>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-3">
+            <p class="text-muted mb-0">No analytics data yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
